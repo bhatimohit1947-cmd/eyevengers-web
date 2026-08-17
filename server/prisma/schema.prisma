@@ -1,0 +1,255 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  phone     String   @unique
+  name      String?
+  email     String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  addresses Address[]
+  orders    Order[]
+  cart      Cart?
+  wishlist  Wishlist?
+}
+
+model Address {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  street     String
+  city       String
+  state      String
+  country    String
+  pincode    String
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Product {
+  id             String           @id @default(uuid())
+  name           String
+  description    String?
+  brandId        String?
+  brand          Brand?           @relation(fields: [brandId], references: [id])
+  categoryId     String
+  category       Category         @relation(fields: [categoryId], references: [id])
+  collectionId   String?
+  collection     Collection?      @relation(fields: [collectionId], references: [id])
+  
+  mrp            Float
+  sellingPrice   Float
+  discountPercent Float?          @default(0)
+  
+  images         String[]
+  arModelUrl     String?
+  tags           String[]
+  
+  material       String?
+  shape          String?
+  color          String?
+  gender         String?          @default("Unisex")
+  
+  isBestseller   Boolean          @default(false)
+  ratingAvg      Float            @default(0)
+  
+  variants       ProductVariant[]
+  orderItems     OrderItem[]
+  cartItems      CartItem[]
+  wishlists      Wishlist[]
+  
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+model ProductVariant {
+  id         String   @id @default(uuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  size       String?
+  color      String?
+  stock      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  slug      String    @unique
+  imageUrl  String?
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Brand {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  logoUrl   String?
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Collection {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id])
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String
+  cart      Cart     @relation(fields: [cartId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Wishlist {
+  id        String    @id @default(uuid())
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id])
+  products  Product[] // Many-to-many relationship
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Order {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  status        String      @default("PENDING") // PENDING, PROCESSING, SHIPPED, DELIVERED, CANCELLED
+  totalAmount   Float
+  paymentStatus String      @default("UNPAID")
+  shippingAddressId String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  items         OrderItem[]
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int      @default(1)
+  price     Float
+  appliedOfferId String?  // Enhancement 6: Analytics tracking
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AdminUser {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  roleId    String
+  role      Role     @relation(fields: [roleId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Role {
+  id          String      @id @default(uuid())
+  name        String      @unique // SuperAdmin, ContentEditor, CatalogManager, OrderManager
+  permissions String[]
+  adminUsers  AdminUser[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model HomepageSection {
+  id          String   @id @default(uuid())
+  type        String   // HeroBanner, SecondaryBanner, CategoryRail, SliderBanner, SpecialsGrid, MediaSlider, Spotlight, GuideSlider, CollectionCardsGrid, SocialStore
+  configJson  String   // JSON string containing all specific config for this section type
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// --- NEW PAGE BUILDER MODELS (PHASE 3) ---
+
+model Page {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  title       String
+  status      String   @default("draft") // draft, published
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sections    SectionInstance[]
+}
+
+model SectionInstance {
+  id          String   @id @default(uuid())
+  pageId      String
+  page        Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  sectionType String
+  configJson  String   // JSON payload for component
+  order       Int      @default(0)
+  isVisible   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MediaAsset {
+  id          String   @id @default(uuid())
+  url         String
+  type        String   // image, video
+  uploadedAt  DateTime @default(now())
+}
+
+// --- OFFER SYSTEM (PHASE 0 & ENHANCEMENTS) ---
+
+model Offer {
+  id               String    @id @default(uuid())
+  name             String
+  discountType     String    // percentage, flat
+  discountValue    Float
+  scope            String    // global, product, category, brand
+  targetIds        String[]  // stores product/category/brand IDs based on scope
+  startDatetime    DateTime?
+  endDatetime      DateTime?
+  priority         Int       @default(0)
+  status           String    @default("active") // active, paused, expired
+  landingPageSlug  String?
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model BannerEvent {
+  id        String   @id @default(uuid())
+  sectionId String
+  offerId   String?
+  eventType String   // impression, click
+  timestamp DateTime @default(now())
+}
