@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Crown, Medal, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -14,7 +14,7 @@ interface MembershipPlan {
   benefits: string[];
 }
 
-export default function MembershipPage() {
+function MembershipPageContent() {
   const searchParams = useSearchParams();
   const offerId = searchParams.get('offerId');
   const autoBuyTier = searchParams.get('buy');
@@ -202,5 +202,13 @@ export default function MembershipPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function MembershipPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading plans...</div>}>
+      <MembershipPageContent />
+    </Suspense>
   );
 }
