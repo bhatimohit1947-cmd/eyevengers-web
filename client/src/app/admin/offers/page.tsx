@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Plus, Tag, Settings, Save, AlertCircle, Calendar, BarChart3, TrendingUp, DollarSign, Link as LinkIcon, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -34,7 +34,7 @@ interface Offer {
   stackingBehavior: 'best_price_wins' | 'stack_with_membership' | 'offer_overrides_membership' | 'not_applicable_to_members';
 }
 
-export default function OffersAdmin() {
+function OffersAdminContent() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [activeTab, setActiveTab] = useState<'edit' | 'analytics'>('edit');
@@ -456,5 +456,13 @@ export default function OffersAdmin() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function OffersAdmin() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-500">Loading offers...</div>}>
+      <OffersAdminContent />
+    </Suspense>
   );
 }
