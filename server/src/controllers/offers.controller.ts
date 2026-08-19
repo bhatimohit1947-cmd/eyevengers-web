@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { supabase } from '../supabaseClient';
-import { MOCK_DB } from './cms.controller';
 
 export let MOCK_OFFER_REDEMPTIONS: any[] = [];
 
@@ -168,25 +167,27 @@ export const getOfferUsages = async (req: Request, res: Response) => {
   const { id } = req.params;
   const usages: any[] = [];
 
-  for (const section of MOCK_DB.sections) {
-    const config = JSON.parse(section.configJson);
+  const { data: sections } = await supabase.from('cms_sections').select('*');
+
+  for (const section of (sections || [])) {
+    const config = section.config_json;
     
     // Top-level banner link
     if (config.linkedOfferId === id) {
       usages.push({
         sectionId: section.id,
-        sectionType: section.sectionType,
+        sectionType: section.section_type,
         location: 'Top-level banner link'
       });
     }
 
     // Category Rail Tiles
-    if (section.sectionType === 'CategoryRail' && Array.isArray(config.tiles)) {
+    if (section.section_type === 'CategoryRail' && Array.isArray(config.tiles)) {
       config.tiles.forEach((tile: any, index: number) => {
         if (tile.linkedOfferId === id) {
           usages.push({
             sectionId: section.id,
-            sectionType: section.sectionType,
+            sectionType: section.section_type,
             location: `Tile index ${index} ("${tile.label}")`
           });
         }
@@ -194,12 +195,12 @@ export const getOfferUsages = async (req: Request, res: Response) => {
     }
 
     // Trending / Poster Slider Cards
-    if (section.sectionType === 'PosterSlider' && Array.isArray(config.cards)) {
+    if (section.section_type === 'PosterSlider' && Array.isArray(config.cards)) {
       config.cards.forEach((card: any, index: number) => {
         if (card.linkedOfferId === id) {
           usages.push({
             sectionId: section.id,
-            sectionType: section.sectionType,
+            sectionType: section.section_type,
             location: `Card index ${index}`
           });
         }
