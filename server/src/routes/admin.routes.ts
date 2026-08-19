@@ -7,10 +7,14 @@ import {
   getEyeTestSettings, updateEyeTestSettings,
   getEyeTestBookings, createEyeTestBooking,
   getStores, createStore, deleteStore,
-  getLensSettings, updateLensSettings
+  getLensSettings, updateLensSettings,
+  getNotifications, markNotificationRead
 } from '../controllers/admin.controller';
 
 const router = express.Router();
+
+router.get('/notifications', getNotifications);
+router.put('/notifications/:id/read', markNotificationRead);
 
 router.get('/products', getProducts);
 router.post('/products', createProduct);

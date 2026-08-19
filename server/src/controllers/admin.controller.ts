@@ -200,6 +200,44 @@ export const updateSettings = async (req: Request, res: Response) => {
 };
 
 // ==========================
+// NOTIFICATIONS
+// ==========================
+export const getNotifications = async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabase.from('notifications').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+};
+
+export const markNotificationRead = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update notification' });
+  }
+};
+
+export const createNotification = async (category: string, title: string, message: string) => {
+  try {
+    await supabase.from('notifications').insert([{
+      id: `NOTIF-${Date.now()}`,
+      category,
+      title,
+      message,
+      is_read: false
+    }]);
+  } catch (error) {
+    console.error("Failed to create notification:", error);
+  }
+};
+
+// ==========================
 // EYE TESTS & BOOKINGS
 // ==========================
 export const getEyeTestSettings = async (req: Request, res: Response) => {
@@ -253,6 +291,14 @@ export const createEyeTestBooking = async (req: Request, res: Response) => {
   try {
     const { error } = await supabase.from('eye_test_bookings').insert([newBooking]);
     if (error) throw error;
+    
+    // Trigger notification
+    await createNotification(
+      'Eye Test', 
+      'New Eye Test Booking', 
+      `${req.body.name} booked a ${req.body.type} visit for ${req.body.date} at ${req.body.time}.`
+    );
+
     res.status(201).json(newBooking);
   } catch (error) {
     res.status(500).json({ error: 'Failed to create eye test booking' });

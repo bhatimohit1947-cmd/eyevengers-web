@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { supabase } from '../supabaseClient';
+import { createNotification } from './admin.controller';
 
 // Use the API Keys provided by the user
 const razorpay = new Razorpay({
@@ -67,6 +68,9 @@ export const createOrder = async (req: Request, res: Response) => {
       const { error } = await supabase.from('orders').insert([newOrder]);
       if (error) throw error;
       
+      // Trigger Notification
+      await createNotification('Order', 'New Prepaid Order', `Order ${newOrder.id} initiated for ₹${amount}.`);
+
       return res.json({ success: true, order: newOrder, razorpayOrder: rzpOrder });
     }
 
@@ -74,6 +78,9 @@ export const createOrder = async (req: Request, res: Response) => {
     const { error } = await supabase.from('orders').insert([newOrder]);
     if (error) throw error;
     
+    // Trigger Notification
+    await createNotification('Order', 'New COD Order', `Order ${newOrder.id} placed for ₹${amount} via COD.`);
+
     // format for frontend
     const formattedOrder = {
       ...newOrder,

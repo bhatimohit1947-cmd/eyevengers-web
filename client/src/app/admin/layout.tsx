@@ -15,11 +15,13 @@ import {
   Crown,
   Stethoscope,
   MapPin,
-  Glasses
+  Glasses,
+  Bell
 } from 'lucide-react';
 
 const sidebarLinks = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { name: 'Notifications', href: '/admin/notifications', icon: Bell },
   { name: 'Homepage Builder', href: '/admin/homepage', icon: PanelTop },
   { name: 'Offers & Campaigns', href: '/admin/offers', icon: Tag },
   { name: 'Products', href: '/admin/products', icon: Package },
