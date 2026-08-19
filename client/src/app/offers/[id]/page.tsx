@@ -16,12 +16,12 @@ export default function OfferLandingPage() {
     async function loadData() {
       try {
         // Fetch specific offer details
-        const offerRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/offers/${id}`);
+        const offerRes = await fetch(`https://eyevengers-web.onrender.com/api/offers/${id}`);
         const offerData = await offerRes.json();
         setOffer(offerData);
 
         // Fetch all products
-        const prodRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/products`);
+        const prodRes = await fetch(`https://eyevengers-web.onrender.com/api/admin/products`);
         const prodData = await prodRes.json();
         
         // Filter products using Smart Rules

@@ -25,7 +25,7 @@ export default function MembershipsAdminPage() {
 
   const fetchPlans = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/memberships/plans`);
+      const res = await fetch(`https://eyevengers-web.onrender.com/api/memberships/plans`);
       if (res.ok) {
         const data = await res.json();
         setPlans(data);
@@ -42,8 +42,8 @@ export default function MembershipsAdminPage() {
     
     try {
       const url = editingPlan.id 
-        ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/memberships/plans/${editingPlan.id}`
-        : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/memberships/plans`;
+        ? `https://eyevengers-web.onrender.com/api/memberships/plans/${editingPlan.id}`
+        : `https://eyevengers-web.onrender.com/api/memberships/plans`;
         
       const method = editingPlan.id ? 'PUT' : 'POST';
       

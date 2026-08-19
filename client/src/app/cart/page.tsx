@@ -35,7 +35,7 @@ export default function CartPage() {
     setCouponState({ type: 'none', message: 'Validating...', discount: 0 });
     
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/offers/validate-coupon`, {
+      const res = await fetch(`https://eyevengers-web.onrender.com/api/offers/validate-coupon`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: couponCode, cartItems, user: { id: 'guest', orderCount: 0 } })

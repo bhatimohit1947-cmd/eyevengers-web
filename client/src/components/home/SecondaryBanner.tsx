@@ -23,7 +23,7 @@ export function SecondaryBanner({ data }: SecondaryBannerProps) {
 
   useEffect(() => {
     if (data.linkedOfferId) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/offers/${data.linkedOfferId}`)
+      fetch(`https://eyevengers-web.onrender.com/api/offers/${data.linkedOfferId}`)
         .then(res => res.json())
         .then(offer => {
           if (!offer.error) setOfferData(offer);

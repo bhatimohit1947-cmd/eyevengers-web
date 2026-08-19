@@ -7,7 +7,7 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/customers`)
+    fetch(`https://eyevengers-web.onrender.com/api/admin/customers`)
       .then(res => res.json())
       .then(data => setCustomers(data))
       .catch(err => console.error("Error fetching customers:", err));

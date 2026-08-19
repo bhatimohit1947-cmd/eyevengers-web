@@ -29,7 +29,7 @@ export default function CalendarView() {
   const router = useRouter();
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/offers/calendar`)
+    fetch(`https://eyevengers-web.onrender.com/api/offers/calendar`)
       .then(res => res.json())
       .then(data => {
         const mappedEvents = data.map((o: any) => ({

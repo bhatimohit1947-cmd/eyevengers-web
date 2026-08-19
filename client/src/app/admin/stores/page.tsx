@@ -20,7 +20,7 @@ export default function AdminStoresPage() {
 
   const fetchStores = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/stores?t=${Date.now()}`);
+      const res = await fetch(`https://eyevengers-web.onrender.com/api/admin/stores?t=${Date.now()}`);
       const data = await res.json();
       setStores(data);
     } catch (error) {
@@ -35,7 +35,7 @@ export default function AdminStoresPage() {
     
     setAdding(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/stores`, {
+      const res = await fetch(`https://eyevengers-web.onrender.com/api/admin/stores`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newStore)
@@ -53,7 +53,7 @@ export default function AdminStoresPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this store?')) return;
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/stores/${id}`, { method: 'DELETE' });
+      await fetch(`https://eyevengers-web.onrender.com/api/admin/stores/${id}`, { method: 'DELETE' });
       setStores(stores.filter(s => s.id !== id));
     } catch (error) {
       console.error(error);

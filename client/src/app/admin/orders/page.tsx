@@ -8,7 +8,7 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   const fetchOrders = () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/orders`)
+    fetch(`https://eyevengers-web.onrender.com/api/orders`)
       .then(res => res.json())
       .then(data => setOrders(data))
       .catch(err => console.error("Error fetching orders:", err));
@@ -20,7 +20,7 @@ export default function OrdersPage() {
 
   const updateStatus = async (orderId: string, newStatus: string) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/orders/${orderId}/status`, {
+      const res = await fetch(`https://eyevengers-web.onrender.com/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })

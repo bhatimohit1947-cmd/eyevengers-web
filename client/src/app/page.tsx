@@ -141,7 +141,7 @@ const FALLBACK_MOCK_DATA = {
 async function getHomePageData() {
   // Try to fetch from the CMS Backend
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/cms/pages/home`, { cache: 'no-store' });
+    const res = await fetch(`https://eyevengers-web.onrender.com/api/cms/pages/home`, { cache: 'no-store' });
     if (!res.ok) throw new Error('CMS Backend unavailable');
     const data = await res.json();
     return data as { page: Page, sections: SectionInstance[] };

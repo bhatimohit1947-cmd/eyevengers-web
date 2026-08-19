@@ -37,7 +37,7 @@ export default function ProductDetailPage() {
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/lenses/settings?t=${Date.now()}`)
+    fetch(`https://eyevengers-web.onrender.com/api/admin/lenses/settings?t=${Date.now()}`)
       .then(r => r.json())
       .then(data => setLensSettings(data))
       .catch(err => console.error(err));
@@ -113,7 +113,7 @@ export default function ProductDetailPage() {
     };
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/orders/create`, {
+      const res = await fetch(`https://eyevengers-web.onrender.com/api/orders/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount, paymentMethod, orderDetails })
@@ -139,7 +139,7 @@ export default function ProductDetailPage() {
           order_id: data.razorpayOrder.id,
           handler: async function (response: any) {
             // Verify Signature
-            const verifyRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/orders/verify`, {
+            const verifyRes = await fetch(`https://eyevengers-web.onrender.com/api/orders/verify`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({

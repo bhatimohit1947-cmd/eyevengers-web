@@ -13,7 +13,7 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/settings`)
+    fetch(`https://eyevengers-web.onrender.com/api/admin/settings`)
       .then(res => res.json())
       .then(data => setSettings(data))
       .catch(err => console.error("Error fetching settings:", err));
@@ -23,7 +23,7 @@ export default function SettingsPage() {
     e.preventDefault();
     setIsSaving(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/settings`, {
+      const res = await fetch(`https://eyevengers-web.onrender.com/api/admin/settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)

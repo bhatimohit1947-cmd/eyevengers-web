@@ -18,7 +18,7 @@ export default function ProductsManagement() {
   });
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/products`)
+    fetch(`https://eyevengers-web.onrender.com/api/admin/products`)
       .then(res => res.json())
       .then(data => setProducts(data))
       .catch(err => console.error("Error fetching products:", err));
@@ -27,7 +27,7 @@ export default function ProductsManagement() {
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/products`, {
+      const res = await fetch(`https://eyevengers-web.onrender.com/api/admin/products`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newProduct)

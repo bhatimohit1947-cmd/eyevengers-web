@@ -17,8 +17,8 @@ export default function AdminEyeTestsPage() {
     setLoading(true);
     try {
       const [resSettings, resBookings] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/eye-test/settings`).then(r => r.json()),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/eye-test/bookings`).then(r => r.json())
+        fetch(`https://eyevengers-web.onrender.com/api/admin/eye-test/settings`).then(r => r.json()),
+        fetch(`https://eyevengers-web.onrender.com/api/admin/eye-test/bookings`).then(r => r.json())
       ]);
       if (resSettings.error) {
         setSettings({ 
@@ -46,7 +46,7 @@ export default function AdminEyeTestsPage() {
   const handleSaveSettings = async () => {
     setSaving(true);
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/eye-test/settings`, {
+      await fetch(`https://eyevengers-web.onrender.com/api/admin/eye-test/settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)

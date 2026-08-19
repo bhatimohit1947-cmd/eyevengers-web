@@ -46,7 +46,7 @@ function MembershipPageContent() {
 
   const fetchPlans = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/memberships/plans`);
+      const res = await fetch(`https://eyevengers-web.onrender.com/api/memberships/plans`);
       if (res.ok) {
         const data = await res.json();
         setPlans(data);
@@ -60,7 +60,7 @@ function MembershipPageContent() {
   
   const fetchOffer = async (id: string) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/offers/${id}`);
+      const res = await fetch(`https://eyevengers-web.onrender.com/api/offers/${id}`);
       if (res.ok) {
         const data = await res.json();
         setOfferDetails(data);

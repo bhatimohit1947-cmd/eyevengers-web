@@ -8,7 +8,7 @@ export default function StoresLocatorPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/stores?t=${Date.now()}`)
+    fetch(`https://eyevengers-web.onrender.com/api/admin/stores?t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         setStores(data);

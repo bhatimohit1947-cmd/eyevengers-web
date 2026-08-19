@@ -8,7 +8,7 @@ export default function AdminDashboard() {
   const [members, setMembers] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/memberships/customers`)
+    fetch(`https://eyevengers-web.onrender.com/api/memberships/customers`)
       .then(res => res.json())
       .then(data => setMembers(data))
       .catch(err => console.error(err));

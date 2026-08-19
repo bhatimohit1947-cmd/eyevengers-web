@@ -63,7 +63,7 @@ export default function HomepageBuilder() {
 
   const fetchSections = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/cms/pages/home`);
+      const res = await fetch(`https://eyevengers-web.onrender.com/api/cms/pages/home`);
       const data = await res.json();
       setSections(data.sections || []);
     } catch (error) {
@@ -75,7 +75,7 @@ export default function HomepageBuilder() {
 
   useEffect(() => {
     fetchSections();
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/offers`)
+    fetch(`https://eyevengers-web.onrender.com/api/offers`)
       .then(r => r.json())
       .then(data => setOffers(data));
   }, []);
@@ -83,7 +83,7 @@ export default function HomepageBuilder() {
   const toggleVisibility = async (id: string, currentVis: boolean) => {
     try {
       setSections(sections.map(s => s.id === id ? { ...s, isVisible: !currentVis } : s));
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/cms/sections/${id}`, {
+      await fetch(`https://eyevengers-web.onrender.com/api/cms/sections/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isVisible: !currentVis })
@@ -106,7 +106,7 @@ export default function HomepageBuilder() {
       setSections(sections.map(s => s.id === editingSection.id ? { ...s, configJson: parsedConfig } : s));
       setEditingSection(null);
 
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/cms/sections/${editingSection.id}`, {
+      await fetch(`https://eyevengers-web.onrender.com/api/cms/sections/${editingSection.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ configJson: parsedConfig })
@@ -119,7 +119,7 @@ export default function HomepageBuilder() {
 
   const handleAddSection = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/cms/sections`, {
+      const res = await fetch(`https://eyevengers-web.onrender.com/api/cms/sections`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -164,7 +164,7 @@ export default function HomepageBuilder() {
     try {
       await Promise.all(
         updatedSections.map(sec => 
-          fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/cms/sections/${sec.id}`, {
+          fetch(`https://eyevengers-web.onrender.com/api/cms/sections/${sec.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ order: sec.order })

@@ -28,8 +28,8 @@ export default function EyeTestPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/eye-test/settings?t=${Date.now()}`).then(r => r.json()),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/stores?t=${Date.now()}`).then(r => r.json())
+      fetch(`https://eyevengers-web.onrender.com/api/admin/eye-test/settings?t=${Date.now()}`).then(r => r.json()),
+      fetch(`https://eyevengers-web.onrender.com/api/admin/stores?t=${Date.now()}`).then(r => r.json())
     ])
       .then(([settingsData, storesData]) => {
         setSettings(settingsData);
@@ -46,7 +46,7 @@ export default function EyeTestPage() {
   const handleFinalSubmit = async () => {
     setIsSubmitting(true);
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/eye-test/bookings`, {
+      await fetch(`https://eyevengers-web.onrender.com/api/admin/eye-test/bookings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -8,7 +8,7 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/orders`)
+    fetch(`https://eyevengers-web.onrender.com/api/orders`)
       .then(r => r.json())
       .then(data => {
         setOrders(data);

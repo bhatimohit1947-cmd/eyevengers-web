@@ -45,7 +45,7 @@ function OffersAdminContent() {
   const editId = searchParams.get('edit');
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/offers`)
+    fetch(`https://eyevengers-web.onrender.com/api/offers`)
       .then(r => r.json())
       .then(data => {
         setOffers(data);
@@ -55,7 +55,7 @@ function OffersAdminContent() {
         }
       });
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/products`)
+    fetch(`https://eyevengers-web.onrender.com/api/admin/products`)
       .then(r => r.json())
       .then(products => {
         const brands = Array.from(new Set(products.map((p: any) => p.brand).filter((b: any) => b && b !== 'Generic'))) as string[];
@@ -66,13 +66,13 @@ function OffersAdminContent() {
 
   useEffect(() => {
     if (selectedOffer?.id && activeTab === 'analytics') {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/offers/${selectedOffer.id}/analytics`)
+      fetch(`https://eyevengers-web.onrender.com/api/offers/${selectedOffer.id}/analytics`)
         .then(r => r.json())
         .then(data => setAnalytics(data));
     }
     
     if (selectedOffer?.id && activeTab === 'edit') {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/offers/${selectedOffer.id}/usages`)
+      fetch(`https://eyevengers-web.onrender.com/api/offers/${selectedOffer.id}/usages`)
         .then(r => r.json())
         .then(data => setUsages(data));
     } else {
@@ -98,8 +98,8 @@ function OffersAdminContent() {
 
     const method = selectedOffer.id ? 'PUT' : 'POST';
     const url = selectedOffer.id 
-      ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/offers/${selectedOffer.id}` 
-      : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/offers`;
+      ? `https://eyevengers-web.onrender.com/api/offers/${selectedOffer.id}` 
+      : `https://eyevengers-web.onrender.com/api/offers`;
 
     const res = await fetch(url, {
       method,

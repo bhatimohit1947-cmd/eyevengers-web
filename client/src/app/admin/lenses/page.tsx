@@ -13,7 +13,7 @@ export default function AdminLensesPage() {
 
   const fetchSettings = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/lenses/settings?t=${Date.now()}`);
+      const res = await fetch(`https://eyevengers-web.onrender.com/api/admin/lenses/settings?t=${Date.now()}`);
       const data = await res.json();
       if (data.error) {
         setSettings({ categories: [], products: [] });
@@ -30,7 +30,7 @@ export default function AdminLensesPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/lenses/settings`, {
+      await fetch(`https://eyevengers-web.onrender.com/api/admin/lenses/settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)
