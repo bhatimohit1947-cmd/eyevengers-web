@@ -158,9 +158,9 @@ export default function AdminLensesPage() {
                           onChange={e => updateProduct(product.id, 'categoryId', e.target.value)} 
                           className="w-full border border-gray-300 rounded p-2 text-sm focus:ring-brand-navy bg-gray-50 outline-none"
                         >
-                          {settings.categories.map((c: any) => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                          ))}
+                          {settings?.categories?.map((c: any) => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
                         </select>
                       </div>
                     </div>
