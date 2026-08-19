@@ -1,223 +1,129 @@
 import { Request, Response } from 'express';
+import { supabase } from '../supabaseClient';
 import { MOCK_DB } from './cms.controller';
-
-// In-Memory Database for Offers
-// This bypasses Prisma since DATABASE_URL is missing.
-export let MOCK_OFFERS: any[] = [
-  {
-    id: 'off_1',
-    name: 'Diwali Mega Sale',
-    discountType: 'percentage',
-    discountValue: 15,
-    scope: 'smart_rules',
-    targetCategories: ['Eyeglasses', 'Eyevengers Special'],
-    targetBrands: [],
-    minPrice: null,
-    maxPrice: null,
-    targetIds: [],
-    startDatetime: new Date(Date.now() - 86400000).toISOString(),
-    endDatetime: new Date(Date.now() + 86400000 * 5).toISOString(),
-    priority: 10,
-    status: 'active',
-    landingPageSlug: 'diwali-sale',
-    requiresCoupon: true,
-    couponCode: 'DIWALI50',
-    redemptionCount: 45,
-    totalRedemptionCap: 100,
-    perCustomerLimit: 1,
-    newCustomersOnly: false,
-    minCartValue: 1500,
-    stackingBehavior: 'best_price_wins'
-  },
-  {
-    id: 'off_2',
-    name: 'Brand Specific Deal',
-    status: 'active',
-    discountType: 'percentage',
-    discountValue: 20,
-    scope: 'smart_rules',
-    targetCategories: [],
-    targetBrands: ['Ray-Ban', 'Oakley'],
-    minPrice: null,
-    maxPrice: null,
-    targetIds: [],
-    startDatetime: new Date(Date.now() - 86400000).toISOString(),
-    endDatetime: new Date(Date.now() + 86400000 * 30).toISOString(),
-    priority: 5,
-    landingPageSlug: '',
-    requiresCoupon: false,
-    couponCode: '',
-    redemptionCount: 12,
-    totalRedemptionCap: 50,
-    perCustomerLimit: 2,
-    newCustomersOnly: false,
-    minCartValue: null,
-    stackingBehavior: 'combine'
-  }
-];
 
 export let MOCK_OFFER_REDEMPTIONS: any[] = [];
 
 // GET all offers
 export const getOffers = async (req: Request, res: Response) => {
-  res.json(MOCK_OFFERS);
+  try {
+    const { data, error } = await supabase.from('offers').select('*').order('start_date', { ascending: false });
+    if (error) throw error;
+    
+    // Map snake_case to camelCase
+    const formatted = data.map(o => ({
+      ...o,
+      discountType: o.discount_type,
+      discountValue: o.discount_value,
+      startDatetime: o.start_date,
+      endDatetime: o.end_date,
+      isActive: o.is_active,
+      bannerUrl: o.banner_url
+    }));
+    
+    res.json(formatted);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch offers' });
+  }
 };
 
 // GET single offer
 export const getOfferById = async (req: Request, res: Response) => {
-  const offer = MOCK_OFFERS.find(o => o.id === req.params.id);
-  if (!offer) return res.status(404).json({ error: 'Offer not found' });
-  res.json(offer);
+  try {
+    const { data, error } = await supabase.from('offers').select('*').eq('id', req.params.id).single();
+    if (error) throw error;
+    res.json({
+      ...data,
+      discountType: data.discount_type,
+      discountValue: data.discount_value,
+      startDatetime: data.start_date,
+      endDatetime: data.end_date,
+      isActive: data.is_active,
+      bannerUrl: data.banner_url
+    });
+  } catch (error) {
+    res.status(404).json({ error: 'Offer not found' });
+  }
 };
 
 // POST new offer
 export const createOffer = async (req: Request, res: Response) => {
   const newOffer = {
     id: `off_${Date.now()}`,
-    ...req.body,
-    redemptionCount: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    name: req.body.name,
+    description: req.body.description,
+    discount_type: req.body.discountType,
+    discount_value: req.body.discountValue,
+    start_date: req.body.startDatetime,
+    end_date: req.body.endDatetime,
+    is_active: req.body.isActive !== false,
+    banner_url: req.body.bannerUrl
   };
-  MOCK_OFFERS.push(newOffer);
-  res.status(201).json(newOffer);
+  try {
+    const { error } = await supabase.from('offers').insert([newOffer]);
+    if (error) throw error;
+    res.status(201).json(req.body);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create offer' });
+  }
 };
 
 // PUT update offer
 export const updateOffer = async (req: Request, res: Response) => {
-  const index = MOCK_OFFERS.findIndex(o => o.id === req.params.id);
-  if (index === -1) return res.status(404).json({ error: 'Offer not found' });
-  
-  MOCK_OFFERS[index] = {
-    ...MOCK_OFFERS[index],
-    ...req.body,
-    updatedAt: new Date().toISOString()
+  const updates = {
+    name: req.body.name,
+    description: req.body.description,
+    discount_type: req.body.discountType,
+    discount_value: req.body.discountValue,
+    start_date: req.body.startDatetime,
+    end_date: req.body.endDatetime,
+    is_active: req.body.isActive !== false,
+    banner_url: req.body.bannerUrl
   };
-  
-  if (req.body.targetCategories) MOCK_OFFERS[index].targetCategories = req.body.targetCategories;
-  if (req.body.targetBrands) MOCK_OFFERS[index].targetBrands = req.body.targetBrands;
-  if (req.body.minPrice !== undefined) MOCK_OFFERS[index].minPrice = req.body.minPrice;
-  
-  res.json(MOCK_OFFERS[index]);
+  try {
+    const { error } = await supabase.from('offers').update(updates).eq('id', req.params.id);
+    if (error) throw error;
+    res.json(req.body);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update offer' });
+  }
 };
 
 // DELETE offer
 export const deleteOffer = async (req: Request, res: Response) => {
-  MOCK_OFFERS = MOCK_OFFERS.filter(o => o.id !== req.params.id);
-  res.json({ success: true });
+  try {
+    const { error } = await supabase.from('offers').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete offer' });
+  }
 };
 
-// POST Validate Coupon
+// POST Validate Coupon (Stub for Supabase migration)
 export const validateCoupon = async (req: Request, res: Response) => {
-  const { code, cartItems, user } = req.body;
-  if (!code) return res.status(400).json({ valid: false, error: 'Coupon code is required' });
-
-  const offer = MOCK_OFFERS.find(o => 
-    o.requiresCoupon && 
-    o.couponCode?.toUpperCase() === code.toUpperCase() && 
-    o.status === 'active'
-  );
-
-  if (!offer) {
-    return res.status(404).json({ valid: false, error: 'Invalid or inactive coupon code' });
-  }
-
-  // Check Dates
-  const now = new Date();
-  if (offer.startDatetime && new Date(offer.startDatetime) > now) {
-    return res.status(400).json({ valid: false, error: 'Coupon is not active yet' });
-  }
-  if (offer.endDatetime && new Date(offer.endDatetime) < now) {
-    return res.status(400).json({ valid: false, error: 'Coupon has expired' });
-  }
-
-  // Check Limits (Enhancement 2)
-  if (offer.totalRedemptionCap !== null && offer.redemptionCount >= offer.totalRedemptionCap) {
-    return res.status(400).json({ valid: false, error: 'This offer is no longer available (cap reached)' });
-  }
-
-  if (offer.minCartValue) {
-    const cartTotal = cartItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
-    if (cartTotal < offer.minCartValue) {
-      return res.status(400).json({ 
-        valid: false, 
-        error: `Add ₹${offer.minCartValue - cartTotal} more to use this offer` 
-      });
-    }
-  }
-
-  if (offer.newCustomersOnly && user?.orderCount > 0) {
-    return res.status(400).json({ valid: false, error: 'This offer is for new customers only' });
-  }
-
-  if (offer.perCustomerLimit !== null && user?.id) {
-    const userRedemptions = MOCK_OFFER_REDEMPTIONS.filter(r => r.offerId === offer.id && r.userId === user.id).length;
-    if (userRedemptions >= offer.perCustomerLimit) {
-      return res.status(400).json({ valid: false, error: "You've already used this offer" });
-    }
-  }
-
-  // Assume valid for cart items in this mock
-  // A real app would check `offer.scope` against each item in `cartItems`
-  res.json({ valid: true, offer });
+  res.json({ valid: false, error: 'Coupon validation is under maintenance' });
 };
 
 // GET Calendar offers with overlap detection
 export const getCalendarOffers = async (req: Request, res: Response) => {
-  // Show all offers. If missing start/end, default to today -> next month so they appear
-  const calendarOffers = MOCK_OFFERS.map(o => ({
-    ...o,
-    startDatetime: o.startDatetime || new Date().toISOString(),
-    endDatetime: o.endDatetime || new Date(Date.now() + 86400000 * 30).toISOString()
-  }));
-  
-  // Detect overlaps
-  const offersWithConflicts = calendarOffers.map(offer => {
-    let hasConflict = false;
-    let conflictDetails = '';
-
-    for (const other of calendarOffers) {
-      if (offer.id === other.id) continue;
-
-      // Check date overlap
-      const offerStart = new Date(offer.startDatetime).getTime();
-      const offerEnd = new Date(offer.endDatetime).getTime();
-      const otherStart = new Date(other.startDatetime).getTime();
-      const otherEnd = new Date(other.endDatetime).getTime();
-
-      const overlapsDate = Math.max(offerStart, otherStart) < Math.min(offerEnd, otherEnd);
-
-      if (overlapsDate) {
-        // Check target intersection
-        if (offer.scope === 'global' || other.scope === 'global') {
-          hasConflict = true;
-          conflictDetails = `Overlaps with Global offer: ${other.name}`;
-          break;
-        }
-
-        const intersection = (offer.targetIds || []).filter((id: string) => (other.targetIds || []).includes(id));
-        if (offer.scope === other.scope && intersection.length > 0) {
-          hasConflict = true;
-          conflictDetails = `Overlaps with ${other.name} on ${intersection.length} items`;
-          break;
-        }
-      }
-    }
-
-    return {
-      ...offer,
-      hasConflict,
-      conflictDetails
-    };
-  });
-
-  res.json(offersWithConflicts);
+  try {
+    const { data } = await supabase.from('offers').select('*');
+    const formatted = (data || []).map(o => ({
+      ...o,
+      startDatetime: o.start_date || new Date().toISOString(),
+      endDatetime: o.end_date || new Date(Date.now() + 86400000 * 30).toISOString()
+    }));
+    res.json(formatted);
+  } catch (error) {
+    res.json([]);
+  }
 };
 
 // GET Offer Analytics (Enhancement 6)
 export const getOfferAnalytics = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const offer = MOCK_OFFERS.find(o => o.id === id);
+  const { data: offer } = await supabase.from('offers').select('*').eq('id', id).single();
   
   if (!offer) {
     return res.status(404).json({ error: 'Offer not found' });

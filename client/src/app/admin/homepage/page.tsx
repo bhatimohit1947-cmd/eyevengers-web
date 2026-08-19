@@ -18,6 +18,19 @@ export default function HomepageBuilder() {
   const [editingSection, setEditingSection] = useState<Section | null>(null);
   const [editConfigText, setEditConfigText] = useState("");
   const [offers, setOffers] = useState<any[]>([]);
+  const [newSectionType, setNewSectionType] = useState('hero_banner');
+
+  const SECTION_TYPES: Record<string, any> = {
+    'hero_banner': { title: "New Banner", ctaLabel: "Shop Now", bannerImageUrl: "" },
+    'secondary_banner': { title: "Secondary Banner", ctaLabel: "View Details", bannerImageUrl: "" },
+    'CategoryRail': { title: "Categories", tiles: [] },
+    'SpecialsGrid': { title: "Special Offers", promos: [] },
+    'PosterSlider': { title: "Trending", cards: [] },
+    'PromoFeatures': { items: [] },
+    'InfoCards': { cards: [] },
+    'TrustBanner': { title: "Why Choose Us" },
+    'VirtualTryOnBanner': { title: "Try on 3D", ctaUrl: "/virtual-try-on" }
+  };
 
   // Array item management helpers
   const handleAddArrayItem = (arrayKey: string) => {
@@ -111,8 +124,8 @@ export default function HomepageBuilder() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pageId: 'page_home',
-          sectionType: 'hero_banner',
-          configJson: { title: "New Banner", ctaLabel: "Shop Now", bannerImageUrl: "" },
+          sectionType: newSectionType,
+          configJson: SECTION_TYPES[newSectionType] || { title: "New Section" },
           order: sections.length + 1
         })
       });
@@ -176,7 +189,16 @@ export default function HomepageBuilder() {
           <h2 className="text-2xl font-bold text-gray-900">Homepage Builder</h2>
           <p className="text-sm text-gray-500 mt-1">Drag and drop sections to instantly reorder your live homepage.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
+          <select 
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-navy"
+            value={newSectionType}
+            onChange={(e) => setNewSectionType(e.target.value)}
+          >
+            {Object.keys(SECTION_TYPES).map(type => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
           <button onClick={handleAddSection} className="bg-brand-navy text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-blue-900 transition shadow-sm">
             <Plus size={18} />
             Add Section

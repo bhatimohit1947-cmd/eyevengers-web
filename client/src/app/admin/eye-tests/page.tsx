@@ -20,10 +20,25 @@ export default function AdminEyeTestsPage() {
         fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/eye-test/settings`).then(r => r.json()),
         fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/eye-test/bookings`).then(r => r.json())
       ]);
-      setSettings(resSettings);
-      setBookings(resBookings);
+      if (resSettings.error) {
+        setSettings({ 
+          store: { isAvailable: false, title: '', price: 0, description: '', features: [] }, 
+          home: { isAvailable: false, title: '', price: 0, description: '', features: [] } 
+        });
+      } else {
+        setSettings({
+          store: resSettings.store || { isAvailable: false, title: '', price: 0, description: '', features: [] },
+          home: resSettings.home || { isAvailable: false, title: '', price: 0, description: '', features: [] }
+        });
+      }
+      setBookings(Array.isArray(resBookings) ? resBookings : []);
     } catch (error) {
       console.error(error);
+      setSettings({ 
+        store: { isAvailable: false, title: '', price: 0, description: '', features: [] }, 
+        home: { isAvailable: false, title: '', price: 0, description: '', features: [] } 
+      });
+      setBookings([]);
     }
     setLoading(false);
   };

@@ -1,47 +1,5 @@
 import { Request, Response } from 'express';
-
-// Mock Databases
-export let MOCK_MEMBERSHIP_PLANS: any[] = [
-  {
-    id: 'bronze_plan',
-    name: 'Bronze Membership',
-    tier: 'bronze',
-    price: 999,
-    durationMonths: 6,
-    benefits: [
-      'Flat 5% OFF on all orders',
-      'Free standard shipping',
-      'Priority customer support'
-    ]
-  },
-  {
-    id: 'silver_plan',
-    name: 'Silver Membership',
-    tier: 'silver',
-    price: 1999,
-    durationMonths: 12,
-    benefits: [
-      'Flat 10% OFF on all orders',
-      'Free express shipping',
-      'Early access to sales',
-      '1 Free lens replacement per year'
-    ]
-  },
-  {
-    id: 'gold_plan',
-    name: 'Gold Membership',
-    tier: 'gold',
-    price: 4999,
-    durationMonths: 24,
-    benefits: [
-      'Flat 20% OFF on all orders',
-      'Free express shipping globally',
-      'VIP Event Invites',
-      'Unlimited minor repairs',
-      'Dedicated personal stylist'
-    ]
-  }
-];
+import { supabase } from '../supabaseClient';
 
 export let MOCK_MEMBERSHIP_CUSTOMERS: any[] = [
   {
@@ -78,32 +36,65 @@ export let MOCK_MEMBERSHIP_CUSTOMERS: any[] = [
 
 // Controller functions
 export const getMembershipPlans = async (req: Request, res: Response) => {
-  res.json(MOCK_MEMBERSHIP_PLANS);
+  try {
+    const { data, error } = await supabase.from('memberships').select('*');
+    if (error) throw error;
+    
+    // Map snake_case to camelCase
+    const formatted = data.map(p => ({
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      durationMonths: p.validity_months,
+      benefits: p.features || [],
+      isActive: p.is_active,
+      tier: p.badge_text || 'standard'
+    }));
+    
+    res.json(formatted);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch membership plans' });
+  }
 };
 
 export const createMembershipPlan = async (req: Request, res: Response) => {
   const newPlan = {
     id: `plan_${Date.now()}`,
-    ...req.body
+    name: req.body.name,
+    price: req.body.price,
+    validity_months: req.body.durationMonths,
+    features: req.body.benefits,
+    is_active: true,
+    badge_text: req.body.tier
   };
-  MOCK_MEMBERSHIP_PLANS.push(newPlan);
-  res.json(newPlan);
+  
+  try {
+    const { error } = await supabase.from('memberships').insert([newPlan]);
+    if (error) throw error;
+    res.status(201).json(req.body);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create membership plan' });
+  }
 };
 
 export const updateMembershipPlan = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const index = MOCK_MEMBERSHIP_PLANS.findIndex(p => p.id === id);
-  
-  if (index === -1) {
-    return res.status(404).json({ error: 'Plan not found' });
-  }
-
-  MOCK_MEMBERSHIP_PLANS[index] = {
-    ...MOCK_MEMBERSHIP_PLANS[index],
-    ...req.body
+  const updates = {
+    name: req.body.name,
+    price: req.body.price,
+    validity_months: req.body.durationMonths,
+    features: req.body.benefits,
+    is_active: req.body.isActive !== false,
+    badge_text: req.body.tier
   };
 
-  res.json(MOCK_MEMBERSHIP_PLANS[index]);
+  try {
+    const { error } = await supabase.from('memberships').update(updates).eq('id', id);
+    if (error) throw error;
+    res.json(req.body);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update membership plan' });
+  }
 };
 
 export const getMembershipCustomers = async (req: Request, res: Response) => {

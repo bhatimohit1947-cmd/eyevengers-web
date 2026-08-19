@@ -80,7 +80,13 @@ let MOCK_DB = {
 // PRODUCTS
 // ==========================
 export const getProducts = async (req: Request, res: Response) => {
-  res.json(MOCK_DB.products);
+  try {
+    const { data, error } = await supabase.from('products').select('*');
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch products' });
+  }
 };
 
 export const createProduct = async (req: Request, res: Response) => {
@@ -94,64 +100,128 @@ export const createProduct = async (req: Request, res: Response) => {
     gender: gender || 'Unisex',
     price: Number(price),
     stock: Number(stock),
-    imageUrl,
+    image_url: imageUrl,
     status: Number(stock) > 0 ? 'Active' : 'Out of Stock'
   };
-  MOCK_DB.products.push(newProduct);
-  res.status(201).json(newProduct);
+  
+  try {
+    const { error } = await supabase.from('products').insert([newProduct]);
+    if (error) throw error;
+    res.status(201).json({ ...newProduct, imageUrl: newProduct.image_url });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create product' });
+  }
 };
 
 // ==========================
 // ORDERS
 // ==========================
 export const getOrders = async (req: Request, res: Response) => {
-  res.json(MOCK_DB.orders);
+  res.json([]); // Order management out of scope for this migration
 };
 
 // ==========================
 // CUSTOMERS
 // ==========================
 export const getCustomers = async (req: Request, res: Response) => {
-  res.json(MOCK_DB.customers);
+  res.json([]); // Customer management out of scope for this migration
 };
 
 // ==========================
 // SETTINGS
 // ==========================
 export const getSettings = async (req: Request, res: Response) => {
-  res.json(MOCK_DB.settings);
+  try {
+    const { data, error } = await supabase.from('global_settings').select('*');
+    if (error) throw error;
+    
+    // Convert array of key-value pairs to a single object
+    const settingsObj: any = {};
+    (data || []).forEach(row => {
+      settingsObj[row.key] = row.value;
+    });
+    
+    res.json(settingsObj);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch settings' });
+  }
 };
 
 export const updateSettings = async (req: Request, res: Response) => {
-  MOCK_DB.settings = { ...MOCK_DB.settings, ...req.body };
-  res.json(MOCK_DB.settings);
+  try {
+    // req.body is an object like { storeName: 'abc', taxRate: 18 }
+    const updates = Object.keys(req.body).map(key => ({
+      key,
+      value: req.body[key]
+    }));
+    
+    const { error } = await supabase.from('global_settings').upsert(updates);
+    if (error) throw error;
+    
+    res.json(req.body);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update settings' });
+  }
 };
 
 // ==========================
 // EYE TESTS & BOOKINGS
 // ==========================
 export const getEyeTestSettings = async (req: Request, res: Response) => {
-  res.json(MOCK_DB.eyeTestSettings);
+  try {
+    const { data, error } = await supabase.from('eye_test_settings').select('*');
+    if (error) throw error;
+    
+    const settingsObj: any = {};
+    (data || []).forEach(row => {
+      settingsObj[row.key] = row.value;
+    });
+    
+    res.json(settingsObj);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch eye test settings' });
+  }
 };
 
 export const updateEyeTestSettings = async (req: Request, res: Response) => {
-  MOCK_DB.eyeTestSettings = { ...MOCK_DB.eyeTestSettings, ...req.body };
-  res.json(MOCK_DB.eyeTestSettings);
+  try {
+    const updates = Object.keys(req.body).map(key => ({
+      key,
+      value: req.body[key]
+    }));
+    
+    const { error } = await supabase.from('eye_test_settings').upsert(updates);
+    if (error) throw error;
+    
+    res.json(req.body);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update eye test settings' });
+  }
 };
 
 export const getEyeTestBookings = async (req: Request, res: Response) => {
-  res.json(MOCK_DB.eyeTestBookings);
+  try {
+    const { data, error } = await supabase.from('eye_test_bookings').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch eye test bookings' });
+  }
 };
 
 export const createEyeTestBooking = async (req: Request, res: Response) => {
   const newBooking = {
     id: `ETB-${Date.now()}`,
-    createdAt: new Date().toISOString(),
     ...req.body,
     status: 'Confirmed'
   };
-  MOCK_DB.eyeTestBookings.unshift(newBooking);
-  res.status(201).json(newBooking);
+  try {
+    const { error } = await supabase.from('eye_test_bookings').insert([newBooking]);
+    if (error) throw error;
+    res.status(201).json(newBooking);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create eye test booking' });
+  }
 };
 
 // ==========================
@@ -242,6 +312,38 @@ export const getLensSettings = async (req: Request, res: Response) => {
 };
 
 export const updateLensSettings = async (req: Request, res: Response) => {
-  MOCK_DB.lensSettings = { ...MOCK_DB.lensSettings, ...req.body };
-  res.json(MOCK_DB.lensSettings);
+  try {
+    const { categories, products } = req.body;
+    
+    // Wipe and replace (upsert isn't perfect for deletes, but we'll use upsert for simplicity since ids are fixed or managed)
+    if (categories && categories.length > 0) {
+      const formattedCategories = categories.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        has_power_input: c.hasPowerInput,
+        power_fields: c.powerFields,
+        normal_limit: c.normalLimit,
+        high_power_surcharge: c.highPowerSurcharge
+      }));
+      const { error: catError } = await supabase.from('lens_categories').upsert(formattedCategories);
+      if (catError) throw catError;
+    }
+    
+    if (products && products.length > 0) {
+      const formattedProducts = products.map((p: any) => ({
+        id: p.id,
+        category_id: p.categoryId,
+        name: p.name,
+        features: p.features,
+        base_price: p.basePrice
+      }));
+      const { error: prodError } = await supabase.from('lens_products').upsert(formattedProducts);
+      if (prodError) throw prodError;
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating lens settings:', error);
+    res.status(500).json({ error: 'Failed to update lens settings' });
+  }
 };

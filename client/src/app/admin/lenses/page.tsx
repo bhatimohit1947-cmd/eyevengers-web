@@ -15,9 +15,14 @@ export default function AdminLensesPage() {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/lenses/settings?t=${Date.now()}`);
       const data = await res.json();
-      setSettings(data);
+      if (data.error) {
+        setSettings({ categories: [], products: [] });
+      } else {
+        setSettings(data);
+      }
     } catch (error) {
       console.error(error);
+      setSettings({ categories: [], products: [] });
     }
     setLoading(false);
   };
@@ -92,7 +97,7 @@ export default function AdminLensesPage() {
           <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-6 sticky top-6">
             <h2 className="font-bold text-lg text-gray-800 mb-4">Power Limits per Category</h2>
             <div className="space-y-6">
-              {settings.categories.filter((c:any) => c.hasPowerInput).map((category: any) => (
+              {settings?.categories?.filter((c:any) => c.hasPowerInput).map((category: any) => (
                 <div key={category.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                   <h3 className="font-bold text-brand-navy text-sm mb-3 uppercase tracking-wider">{category.name}</h3>
                   <div className="space-y-3">
@@ -138,7 +143,7 @@ export default function AdminLensesPage() {
             </div>
 
             <div className="space-y-4">
-              {settings.products.map((product: any) => (
+              {settings?.products?.map((product: any) => (
                 <div key={product.id} className="border border-gray-200 rounded-xl p-5 flex gap-4 bg-white hover:border-gray-300 transition">
                   <div className="flex-1 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
