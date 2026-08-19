@@ -1,25 +1,69 @@
 "use client";
 
-import React, { useState } from 'react';
-import { SlidersHorizontal, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { SlidersHorizontal, ChevronDown, Loader2 } from 'lucide-react';
 import { ProductCard } from '@/components/product/ProductCard';
+import { useSearchParams } from 'next/navigation';
 
-// Dummy data
-const MOCK_PRODUCTS = Array(8).fill(null).map((_, i) => ({
-  id: `prod-${i}`,
-  name: i % 2 === 0 ? "Midnight Blue Square Frame" : "Classic Tortoise Round Glasses",
-  brand: i % 3 === 0 ? "JOHN JACOBS" : "VINCENT CHASE",
-  imageUrl: "",
-  mrp: 3500,
-  sellingPrice: 1500,
-  discountPercent: 57,
-  rating: 4.5,
-  reviewsCount: 128,
-  tags: ["with Free BLU lenses", "Extra Light"]
-}));
-
-export default function ProductsPage() {
+function ProductsContent() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [products, setProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const searchParams = useSearchParams();
+  const genderFilter = searchParams.get('gender');
+  const categoryFilter = searchParams.get('category');
+
+  useEffect(() => {
+    fetch('https://eyevengers-web.onrender.com/api/admin/products')
+      .then(res => res.json())
+      .then(data => {
+        // Map backend data to ProductCard format
+        const formattedProducts = (data || []).map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          brand: p.brand,
+          imageUrl: p.image_url,
+          mrp: p.price * 2, // Dummy MRP for UI
+          sellingPrice: p.price,
+          discountPercent: 50,
+          rating: 4.5,
+          reviewsCount: 128,
+          tags: p.stock > 0 ? [] : ["Out of Stock"],
+          gender: p.gender,
+          category: p.category
+        }));
+        setProducts(formattedProducts);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error("Failed to load products", err);
+        setIsLoading(false);
+      });
+  }, []);
+
+  // Filter Logic: If gender is Men/Women/Kids, also include 'Unisex'
+  const filteredProducts = products.filter(p => {
+    let matchGender = true;
+    let matchCategory = true;
+    
+    if (genderFilter) {
+      const gFilter = genderFilter.toLowerCase();
+      const pGender = (p.gender || '').toLowerCase();
+      // If filtering by men/women, include unisex
+      if (gFilter === 'men' || gFilter === 'women') {
+        matchGender = (pGender === gFilter || pGender === 'unisex');
+      } else {
+        matchGender = pGender === gFilter;
+      }
+    }
+    
+    if (categoryFilter) {
+      matchCategory = (p.category || '').toLowerCase() === categoryFilter.toLowerCase();
+    }
+    
+    return matchGender && matchCategory;
+  });
 
   return (
     <div className="bg-gray-50 min-h-screen pb-20 md:pb-0">
@@ -28,8 +72,10 @@ export default function ProductsPage() {
       <div className="bg-white px-4 py-4 border-b border-gray-200">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Eyeglasses</h1>
-            <p className="text-sm text-gray-500 mt-1">Showing 142 items</p>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900 capitalize">
+              {categoryFilter || 'All Products'} {genderFilter ? `- ${genderFilter}` : ''}
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">Showing {filteredProducts.length} items</p>
           </div>
           
           {/* Filter & Sort Controls */}
@@ -91,14 +137,32 @@ export default function ProductsPage() {
 
         {/* Product Grid */}
         <div className="flex-1">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {MOCK_PRODUCTS.map((product, idx) => (
-              <ProductCard key={idx} product={product} />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="animate-spin text-brand-navy" size={48} />
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              No products found for this category or filter.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+              {filteredProducts.map((product, idx) => (
+                <ProductCard key={product.id || idx} product={product} />
+              ))}
+            </div>
+          )}
         </div>
         
       </div>
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen"><Loader2 className="animate-spin text-brand-navy" size={48} /></div>}>
+      <ProductsContent />
+    </Suspense>
   );
 }

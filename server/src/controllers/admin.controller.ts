@@ -113,6 +113,41 @@ export const createProduct = async (req: Request, res: Response) => {
   }
 };
 
+export const updateProduct = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { name, sku, category, brand, gender, price, stock, imageUrl } = req.body;
+  
+  const updates: any = {
+    name,
+    sku,
+    category,
+    brand: brand || 'Generic',
+    gender: gender || 'Unisex',
+    price: Number(price),
+    stock: Number(stock),
+    image_url: imageUrl,
+    status: Number(stock) > 0 ? 'Active' : 'Out of Stock'
+  };
+  
+  try {
+    const { error } = await supabase.from('products').update(updates).eq('id', id);
+    if (error) throw error;
+    res.json({ id, ...updates, imageUrl: updates.image_url });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update product' });
+  }
+};
+
+export const deleteProduct = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (error) throw error;
+    res.json({ success: true, message: 'Product deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete product' });
+  }
+};
 // ==========================
 // ORDERS
 // ==========================

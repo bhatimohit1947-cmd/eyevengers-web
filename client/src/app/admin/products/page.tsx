@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, MoreVertical, X } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, MoreVertical, X, Loader2 } from 'lucide-react';
 
 export default function ProductsManagement() {
   const [products, setProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [newProduct, setNewProduct] = useState({
     name: '',
     sku: '',
@@ -17,29 +19,83 @@ export default function ProductsManagement() {
     imageUrl: ''
   });
 
-  useEffect(() => {
+  const fetchProducts = () => {
+    setIsLoading(true);
     fetch(`https://eyevengers-web.onrender.com/api/admin/products`)
       .then(res => res.json())
-      .then(data => setProducts(data))
-      .catch(err => console.error("Error fetching products:", err));
+      .then(data => {
+        setProducts(data);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error("Error fetching products:", err);
+        setIsLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchProducts();
   }, []);
 
-  const handleAddProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const openAddModal = () => {
+    setEditingProductId(null);
+    setNewProduct({ name: '', sku: '', category: 'Eyeglasses', brand: '', gender: 'Unisex', price: '', stock: '', imageUrl: '' });
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (product: any) => {
+    setEditingProductId(product.id);
+    setNewProduct({
+      name: product.name,
+      sku: product.sku,
+      category: product.category,
+      brand: product.brand || '',
+      gender: product.gender || 'Unisex',
+      price: product.price.toString(),
+      stock: product.stock.toString(),
+      imageUrl: product.image_url || product.imageUrl || ''
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this product?")) return;
     try {
-      const res = await fetch(`https://eyevengers-web.onrender.com/api/admin/products`, {
-        method: 'POST',
+      const res = await fetch(`https://eyevengers-web.onrender.com/api/admin/products/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setProducts(products.filter(p => p.id !== id));
+      }
+    } catch (err) {
+      console.error("Failed to delete product:", err);
+    }
+  };
+
+  const handleSaveProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const url = editingProductId 
+      ? `https://eyevengers-web.onrender.com/api/admin/products/${editingProductId}` 
+      : `https://eyevengers-web.onrender.com/api/admin/products`;
+    const method = editingProductId ? 'PUT' : 'POST';
+
+    try {
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newProduct)
       });
       if (res.ok) {
-        const addedProduct = await res.json();
-        setProducts([...products, addedProduct]);
+        const savedProduct = await res.json();
+        if (editingProductId) {
+          setProducts(products.map(p => p.id === editingProductId ? savedProduct : p));
+        } else {
+          setProducts([...products, savedProduct]);
+        }
         setIsModalOpen(false);
-        setNewProduct({ name: '', sku: '', category: 'Eyeglasses', brand: '', gender: 'Unisex', price: '', stock: '', imageUrl: '' });
       }
     } catch (err) {
-      console.error("Failed to add product:", err);
+      console.error("Failed to save product:", err);
     }
   };
 
@@ -51,7 +107,7 @@ export default function ProductsManagement() {
           <p className="text-sm text-gray-500">Manage your inventory, prices, and product details.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={openAddModal}
           className="bg-brand-navy text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-blue-900 transition shadow-sm whitespace-nowrap"
         >
           <Plus size={18} />
@@ -88,63 +144,69 @@ export default function ProductsManagement() {
 
         {/* Table */}
         <div className="overflow-x-auto flex-1">
-          <table className="w-full text-left text-sm text-gray-500">
-            <thead className="bg-white text-gray-700 uppercase font-bold sticky top-0 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Product</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">SKU</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Category & Brand</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Gender</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Price</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Stock</th>
-                <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {products.map((product) => (
-                <tr key={product.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-md bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden">
-                        {product.imageUrl ? <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" /> : <span className="text-[8px] text-gray-400">IMG</span>}
-                      </div>
-                      <span className="font-medium text-gray-900">{product.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{product.sku}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div>{product.category}</div>
-                    <div className="text-xs text-gray-400 font-medium">{product.brand || 'Generic'}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{product.gender || 'Unisex'}</td>
-                  <td className="px-6 py-4 font-medium text-gray-900">₹{product.price}</td>
-                  <td className="px-6 py-4">
-                    <span className={product.stock > 10 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                      {product.stock}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition" title="Edit">
-                        <Edit size={16} />
-                      </button>
-                      <button className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition" title="Delete">
-                        <Trash2 size={16} />
-                      </button>
-                      <button className="p-1.5 text-gray-400 hover:text-gray-900 rounded transition">
-                        <MoreVertical size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {products.length === 0 && (
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full min-h-[300px]">
+              <Loader2 className="animate-spin text-brand-navy" size={48} />
+            </div>
+          ) : (
+            <table className="w-full text-left text-sm text-gray-500">
+              <thead className="bg-white text-gray-700 uppercase font-bold sticky top-0 border-b border-gray-200">
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-gray-500">No products found.</td>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Product</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">SKU</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Category & Brand</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Gender</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Price</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Stock</th>
+                  <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {products.map((product) => (
+                  <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-md bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden">
+                          {product.image_url || product.imageUrl ? <img src={product.image_url || product.imageUrl} alt={product.name} className="w-full h-full object-cover" /> : <span className="text-[8px] text-gray-400">IMG</span>}
+                        </div>
+                        <span className="font-medium text-gray-900">{product.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{product.sku}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div>{product.category}</div>
+                      <div className="text-xs text-gray-400 font-medium">{product.brand || 'Generic'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">{product.gender || 'Unisex'}</td>
+                    <td className="px-6 py-4 font-medium text-gray-900">₹{product.price}</td>
+                    <td className="px-6 py-4">
+                      <span className={product.stock > 10 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                        {product.stock}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => openEditModal(product)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition" title="Edit">
+                          <Edit size={16} />
+                        </button>
+                        <button onClick={() => handleDelete(product.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition" title="Delete">
+                          <Trash2 size={16} />
+                        </button>
+                        <button className="p-1.5 text-gray-400 hover:text-gray-900 rounded transition">
+                          <MoreVertical size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {products.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="text-center py-8 text-gray-500">No products found.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Pagination */}
@@ -158,18 +220,18 @@ export default function ProductsManagement() {
 
       </div>
 
-      {/* Add Product Modal */}
+      {/* Add/Edit Product Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-gray-100">
-              <h3 className="text-lg font-bold text-gray-900">Add New Product</h3>
+              <h3 className="text-lg font-bold text-gray-900">{editingProductId ? 'Edit Product' : 'Add New Product'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-1 text-gray-400 hover:bg-gray-100 rounded-lg">
                 <X size={20} />
               </button>
             </div>
             
-            <form onSubmit={handleAddProduct} className="p-4 flex flex-col gap-4">
+            <form onSubmit={handleSaveProduct} className="p-4 flex flex-col gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
                 <input required type="text" value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-navy" placeholder="e.g. Midnight Blue Frame" />
