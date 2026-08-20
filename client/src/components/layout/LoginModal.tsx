@@ -11,12 +11,22 @@ export function LoginModal() {
 
   if (!isLoginModalOpen) return null;
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     // Simulate API call
-    setTimeout(() => {
+    setTimeout(async () => {
+      try {
+        await fetch(`https://eyevengers-web.onrender.com/api/admin/login-event`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: email })
+        });
+      } catch (err) {
+        console.error("Failed to notify login", err);
+      }
+
       login({
         id: 'user_123',
         name: 'Demo User',

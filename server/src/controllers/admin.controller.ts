@@ -237,6 +237,16 @@ export const createNotification = async (category: string, title: string, messag
   }
 };
 
+export const recordLoginEvent = async (req: Request, res: Response) => {
+  try {
+    const { phone } = req.body;
+    await createNotification('Login', 'New User Login', `User logged in with phone: ${phone}`);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to record login event' });
+  }
+};
+
 // ==========================
 // EYE TESTS & BOOKINGS
 // ==========================
@@ -301,7 +311,8 @@ export const createEyeTestBooking = async (req: Request, res: Response) => {
 
     res.status(201).json(newBooking);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create eye test booking' });
+    console.error("Eye test booking error:", error);
+    res.status(500).json({ error: 'Failed to create eye test booking', details: error });
   }
 };
 

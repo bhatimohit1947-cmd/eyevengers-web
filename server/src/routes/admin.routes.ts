@@ -8,11 +8,12 @@ import {
   getEyeTestBookings, createEyeTestBooking,
   getStores, createStore, deleteStore,
   getLensSettings, updateLensSettings,
-  getNotifications, markNotificationRead
+  getNotifications, markNotificationRead, recordLoginEvent
 } from '../controllers/admin.controller';
 
 const router = express.Router();
 
+router.post('/login-event', recordLoginEvent);
 router.get('/notifications', getNotifications);
 router.put('/notifications/:id/read', markNotificationRead);
 
