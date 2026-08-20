@@ -44,7 +44,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const sidebarLinks = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-    { name: 'Notifications', href: '/admin/notifications', icon: Bell, badge: counts.notifications },
     { name: 'Homepage Builder', href: '/admin/homepage', icon: PanelTop },
     { name: 'Offers & Campaigns', href: '/admin/offers', icon: Tag },
     { name: 'Products', href: '/admin/products', icon: Package },
