@@ -211,6 +211,16 @@ export const markNotificationRead = async (req: Request, res: Response) => {
   res.json({ success: true });
 };
 
+export const createNotification = async (category: string, title: string, message: string) => {
+  // Dummy function to prevent build errors where it's imported
+  return;
+};
+
+export const recordLoginEvent = async (req: Request, res: Response) => {
+  // Dummy function
+  res.json({ success: true });
+};
+
 export const getSidebarCounts = async (req: Request, res: Response) => {
   try {
     // 2. Get pending orders count
