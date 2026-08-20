@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
@@ -19,23 +19,43 @@ import {
   Bell
 } from 'lucide-react';
 
-const sidebarLinks = [
-  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { name: 'Notifications', href: '/admin/notifications', icon: Bell },
-  { name: 'Homepage Builder', href: '/admin/homepage', icon: PanelTop },
-  { name: 'Offers & Campaigns', href: '/admin/offers', icon: Tag },
-  { name: 'Products', href: '/admin/products', icon: Package },
-  { name: 'Lens Pricing', href: '/admin/lenses', icon: Glasses },
-  { name: 'Membership Plans', href: '/admin/memberships', icon: Crown },
-  { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
-  { name: 'Physical Stores', href: '/admin/stores', icon: MapPin },
-  { name: 'Eye Tests', href: '/admin/eye-tests', icon: Stethoscope },
-  { name: 'Customers', href: '/admin/customers', icon: Users },
-  { name: 'Settings', href: '/admin/settings', icon: Settings },
-];
-
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [counts, setCounts] = useState({ notifications: 0, orders: 0, eyeTests: 0 });
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const res = await fetch(`https://eyevengers-web.onrender.com/api/admin/sidebar-counts`);
+        const data = await res.json();
+        if (data && !data.error) {
+          setCounts(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch sidebar counts", error);
+      }
+    };
+    fetchCounts();
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchCounts, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const sidebarLinks = [
+    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+    { name: 'Notifications', href: '/admin/notifications', icon: Bell, badge: counts.notifications },
+    { name: 'Homepage Builder', href: '/admin/homepage', icon: PanelTop },
+    { name: 'Offers & Campaigns', href: '/admin/offers', icon: Tag },
+    { name: 'Products', href: '/admin/products', icon: Package },
+    { name: 'Lens Pricing', href: '/admin/lenses', icon: Glasses },
+    { name: 'Membership Plans', href: '/admin/memberships', icon: Crown },
+    { name: 'Orders', href: '/admin/orders', icon: ShoppingCart, badge: counts.orders },
+    { name: 'Physical Stores', href: '/admin/stores', icon: MapPin },
+    { name: 'Eye Tests', href: '/admin/eye-tests', icon: Stethoscope, badge: counts.eyeTests },
+    { name: 'Customers', href: '/admin/customers', icon: Users },
+    { name: 'Settings', href: '/admin/settings', icon: Settings },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row font-sans">
@@ -55,14 +75,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link 
                 key={link.name} 
                 href={link.href}
-                className={`flex items-center px-6 py-3 transition-colors ${
+                className={`flex items-center justify-between px-6 py-3 transition-colors ${
                   isActive 
                     ? 'bg-white/10 border-r-4 border-brand-gold text-brand-gold' 
                     : 'text-gray-300 hover:bg-white/5 hover:text-white'
                 }`}
               >
-                <Icon size={20} className="mr-3 flex-shrink-0" />
-                <span className="font-medium whitespace-nowrap">{link.name}</span>
+                <div className="flex items-center">
+                  <Icon size={20} className="mr-3 flex-shrink-0" />
+                  <span className="font-medium whitespace-nowrap">{link.name}</span>
+                </div>
+                {link.badge !== undefined && link.badge > 0 && (
+                  <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    {link.badge}
+                  </span>
+                )}
               </Link>
             );
           })}

@@ -8,11 +8,13 @@ import {
   getEyeTestBookings, createEyeTestBooking,
   getStores, createStore, deleteStore,
   getLensSettings, updateLensSettings,
-  getNotifications, markNotificationRead, recordLoginEvent
+  getNotifications, markNotificationRead, recordLoginEvent,
+  getSidebarCounts
 } from '../controllers/admin.controller';
 
 const router = express.Router();
 
+router.get('/sidebar-counts', getSidebarCounts);
 router.post('/login-event', recordLoginEvent);
 router.get('/notifications', getNotifications);
 router.put('/notifications/:id/read', markNotificationRead);

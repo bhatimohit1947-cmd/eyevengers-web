@@ -225,13 +225,16 @@ export const markNotificationRead = async (req: Request, res: Response) => {
 
 export const createNotification = async (category: string, title: string, message: string) => {
   try {
-    await supabase.from('notifications').insert([{
+    const { error } = await supabase.from('notifications').insert([{
       id: `NOTIF-${Date.now()}`,
       category,
       title,
       message,
       is_read: false
     }]);
+    if (error) {
+      console.error("Supabase insert error for notification:", error);
+    }
   } catch (error) {
     console.error("Failed to create notification:", error);
   }
@@ -244,6 +247,37 @@ export const recordLoginEvent = async (req: Request, res: Response) => {
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to record login event' });
+  }
+};
+
+export const getSidebarCounts = async (req: Request, res: Response) => {
+  try {
+    // 1. Get unread notifications count
+    const { count: notificationsCount } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_read', false);
+
+    // 2. Get pending orders count
+    const { count: ordersCount } = await supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'Pending'); // Or 'Processing', etc. Let's use 'Processing' as per dummy data
+
+    // 3. Get total eye test bookings today (or all pending)
+    const { count: eyeTestCount } = await supabase
+      .from('eye_test_bookings')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'Pending');
+
+    res.json({
+      notifications: notificationsCount || 0,
+      orders: ordersCount || 0,
+      eyeTests: eyeTestCount || 0
+    });
+  } catch (error) {
+    console.error("Failed to get sidebar counts:", error);
+    res.status(500).json({ error: 'Failed to get counts' });
   }
 };
 
