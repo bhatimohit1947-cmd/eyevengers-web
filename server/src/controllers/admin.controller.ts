@@ -248,7 +248,30 @@ export const getSidebarCounts = async (req: Request, res: Response) => {
 // ==========================
 
 // In-Memory Database for Eye Test Bookings (To bypass Supabase RLS issues)
-let inMemoryEyeTestBookings: any[] = [];
+let inMemoryEyeTestBookings: any[] = [
+  {
+    id: "ET-1001",
+    type: "store",
+    name: "Rahul Verma",
+    phone: "9876543210",
+    date: "2026-08-25",
+    time: "10:30",
+    location: "Connaught Place, Delhi",
+    status: "Confirmed",
+    created_at: new Date(Date.now() - 86400000).toISOString()
+  },
+  {
+    id: "ET-1002",
+    type: "home",
+    name: "Priya Sharma",
+    phone: "9123456780",
+    date: "2026-08-26",
+    time: "14:00",
+    location: "Andheri West, Mumbai",
+    status: "Pending",
+    created_at: new Date(Date.now() - 3600000).toISOString()
+  }
+];
 
 export const getEyeTestSettings = async (req: Request, res: Response) => {
   try {
