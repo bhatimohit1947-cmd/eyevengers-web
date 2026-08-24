@@ -1,10 +1,12 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 interface User {
   id: string;
+  googleProviderId?: string;
   name: string;
   email: string;
-  avatar?: string;
+  phone?: string;
 }
 
 interface AuthState {
@@ -24,45 +26,58 @@ interface AuthState {
   executePendingAction: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  user: null,
-  isLoggedIn: false,
-  membershipTier: 'none',
-  isLoginModalOpen: false,
-  pendingAction: null,
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      user: null,
+      isLoggedIn: false,
+      membershipTier: 'none',
+      isLoginModalOpen: false,
+      pendingAction: null,
 
-  login: (userData, tier = 'none') => set({ 
-    user: userData, 
-    isLoggedIn: true, 
-    membershipTier: tier 
-  }),
-  
-  logout: () => set({ 
-    user: null, 
-    isLoggedIn: false, 
-    membershipTier: 'none',
-    pendingAction: null
-  }),
-  
-  setMembershipTier: (tier) => set({ membershipTier: tier }),
-  
-  purchaseMembership: (tier) => set({ membershipTier: tier }),
-  
-  openLoginModal: (pendingAction = undefined) => set({ 
-    isLoginModalOpen: true, 
-    pendingAction: pendingAction || null 
-  }),
-  
-  closeLoginModal: () => set({ 
-    isLoginModalOpen: false, 
-    pendingAction: null 
-  }),
-  
-  executePendingAction: () => {
-    const { pendingAction } = get();
-    if (pendingAction) {
-      pendingAction();
-      set({ pendingAction: null });
+      login: (userData, tier = 'none') => set({ 
+        user: userData, 
+        isLoggedIn: true, 
+        membershipTier: tier 
+      }),
+      
+      logout: () => set({ 
+        user: null, 
+        isLoggedIn: false, 
+        membershipTier: 'none',
+        pendingAction: null
+      }),
+      
+      setMembershipTier: (tier) => set({ membershipTier: tier }),
+      
+      purchaseMembership: (tier) => set({ membershipTier: tier }),
+      
+      openLoginModal: (pendingAction = undefined) => set({ 
+        isLoginModalOpen: true, 
+        pendingAction: pendingAction || null 
+      }),
+      
+      closeLoginModal: () => set({ 
+        isLoginModalOpen: false, 
+        pendingAction: null 
+      }),
+      
+      executePendingAction: () => {
+        const { pendingAction } = get();
+        if (pendingAction) {
+          pendingAction();
+          set({ pendingAction: null });
+        }
+      }
+    }),
+    {
+      name: 'eyevengers-auth-storage', // unique name
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ 
+        user: state.user, 
+        isLoggedIn: state.isLoggedIn, 
+        membershipTier: state.membershipTier 
+      }), // only persist user state, not UI state like login modal
     }
-  }
-}));
+  )
+);
