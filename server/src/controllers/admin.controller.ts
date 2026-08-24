@@ -333,6 +333,23 @@ export const createEyeTestBooking = async (req: Request, res: Response) => {
   }
 };
 
+export const updateEyeTestBookingStatus = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    const bookingIndex = inMemoryEyeTestBookings.findIndex(b => b.id === id);
+    if (bookingIndex !== -1) {
+      inMemoryEyeTestBookings[bookingIndex].status = status;
+      res.json({ success: true, booking: inMemoryEyeTestBookings[bookingIndex] });
+    } else {
+      res.status(404).json({ error: 'Booking not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update booking status' });
+  }
+};
+
 // ==========================
 // STORES
 // ==========================

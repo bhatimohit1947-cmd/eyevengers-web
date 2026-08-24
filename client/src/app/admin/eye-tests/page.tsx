@@ -204,9 +204,34 @@ export default function AdminEyeTestsPage() {
                         {booking.location}
                       </td>
                       <td className="p-4">
-                        <span className="flex items-center text-green-600 font-bold text-xs">
-                          <Check className="w-3 h-3 mr-1" /> Confirmed
-                        </span>
+                        <select
+                          className={`text-xs font-bold border rounded px-2 py-1 ${
+                            booking.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
+                            booking.status === 'Confirmed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                            booking.status === 'Completed' ? 'bg-green-50 text-green-700 border-green-200' :
+                            'bg-red-50 text-red-700 border-red-200'
+                          }`}
+                          value={booking.status}
+                          onChange={async (e) => {
+                            try {
+                              const res = await fetch(`https://eyevengers-web.onrender.com/api/admin/eye-test/bookings/${booking.id}/status`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ status: e.target.value })
+                              });
+                              if (res.ok) {
+                                fetchData();
+                              }
+                            } catch (err) {
+                              console.error(err);
+                            }
+                          }}
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="Confirmed">Confirmed</option>
+                          <option value="Completed">Completed</option>
+                          <option value="Cancelled">Cancelled</option>
+                        </select>
                       </td>
                     </tr>
                   ))

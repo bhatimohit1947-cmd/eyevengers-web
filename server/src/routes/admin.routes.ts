@@ -5,7 +5,7 @@ import {
   getCustomers, 
   getSettings, updateSettings,
   getEyeTestSettings, updateEyeTestSettings,
-  getEyeTestBookings, createEyeTestBooking,
+  getEyeTestBookings, createEyeTestBooking, updateEyeTestBookingStatus,
   getStores, createStore, deleteStore,
   getLensSettings, updateLensSettings,
   getNotifications, markNotificationRead, recordLoginEvent,
@@ -36,6 +36,7 @@ router.put('/eye-test/settings', updateEyeTestSettings);
 
 router.get('/eye-test/bookings', getEyeTestBookings);
 router.post('/eye-test/bookings', createEyeTestBooking);
+router.put('/eye-test/bookings/:id/status', updateEyeTestBookingStatus);
 
 router.get('/stores', getStores);
 router.post('/stores', createStore);
