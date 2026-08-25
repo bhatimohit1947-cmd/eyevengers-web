@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { useCartStore } from './useCartStore';
+import { useWishlistStore } from './useWishlistStore';
 
 interface User {
   id: string;
@@ -35,18 +37,26 @@ export const useAuthStore = create<AuthState>()(
       isLoginModalOpen: false,
       pendingAction: null,
 
-      login: (userData, tier = 'none') => set({ 
-        user: userData, 
-        isLoggedIn: true, 
-        membershipTier: tier 
-      }),
+      login: (userData, tier = 'none') => {
+        set({ 
+          user: userData, 
+          isLoggedIn: true, 
+          membershipTier: tier 
+        });
+        useCartStore.getState().switchUser(userData.id);
+        useWishlistStore.getState().switchUser(userData.id);
+      },
       
-      logout: () => set({ 
-        user: null, 
-        isLoggedIn: false, 
-        membershipTier: 'none',
-        pendingAction: null
-      }),
+      logout: () => {
+        set({ 
+          user: null, 
+          isLoggedIn: false, 
+          membershipTier: 'none',
+          pendingAction: null
+        });
+        useCartStore.getState().switchUser(null);
+        useWishlistStore.getState().switchUser(null);
+      },
       
       setMembershipTier: (tier) => set({ membershipTier: tier }),
       

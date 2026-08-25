@@ -4,6 +4,16 @@ import React, { useState, Component, ErrorInfo, ReactNode } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { X, Loader2, ChevronLeft, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
+interface Address {
+  id: string;
+  name: string;
+  phone: string;
+  pincode: string;
+  addressLine: string;
+  city: string;
+  state: string;
+}
+
 interface CustomerRecord {
   id: string;
   name: string;
@@ -11,6 +21,10 @@ interface CustomerRecord {
   phone: string;
   pin: string;
   createdAt: string;
+  cart?: any[];
+  wishlist?: string[];
+  orders?: any[];
+  addresses?: Address[];
 }
 
 class ModalErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -43,9 +57,10 @@ class ModalErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
 
 export function LoginModal() {
   const { isLoginModalOpen, closeLoginModal, login, executePendingAction } = useAuthStore();
-  const [step, setStep] = useState<'ENTER_PHONE' | 'ENTER_PIN' | 'CREATE_PROFILE'>('ENTER_PHONE');
+  const [step, setStep] = useState<'ENTER_PHONE' | 'ENTER_PIN' | 'CREATE_PROFILE' | 'FORGOT_PIN_OTP' | 'SET_NEW_PIN'>('ENTER_PHONE');
   const [isLoading, setIsLoading] = useState(false);
   const [showPin, setShowPin] = useState(false);
+  const [otp, setOtp] = useState('');
   
   // Form State
   const [phone, setPhone] = useState('');
@@ -165,13 +180,59 @@ export function LoginModal() {
   };
 
   const handleForgotPin = () => {
-    alert('In a real app, this would send an OTP to ' + phone + ' to reset your PIN.');
+    setStep('FORGOT_PIN_OTP');
+    setError('');
+  };
+
+  const handleVerifyOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    if (otp.length !== 4) {
+      setError('Please enter the 4-digit OTP.');
+      return;
+    }
+    
+    setIsLoading(true);
+    setTimeout(() => {
+      // Accept any 4-digit OTP for mock purposes
+      setStep('SET_NEW_PIN');
+      setPin('');
+      setOtp('');
+      setIsLoading(false);
+    }, 500);
+  };
+
+  const handleSetNewPin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    if (pin.length !== 4) {
+      setError('Please enter a 4-digit PIN.');
+      return;
+    }
+    
+    setIsLoading(true);
+    setTimeout(() => {
+      const customers = getCustomers();
+      const customerIndex = customers.findIndex(c => c.phone === phone);
+      
+      if (customerIndex >= 0) {
+        customers[customerIndex].pin = pin;
+        localStorage.setItem('eyevengers_mock_customers', JSON.stringify(customers));
+        completeLogin(customers[customerIndex]);
+      } else {
+        setError('Customer not found.');
+        setIsLoading(false);
+      }
+    }, 500);
   };
 
   const handleClose = () => {
     setStep('ENTER_PHONE');
     setPhone('');
     setPin('');
+    setOtp('');
     setProfileName('');
     setProfileEmail('');
     setError('');
@@ -203,7 +264,11 @@ export function LoginModal() {
             </button>
           )}
           <h2 className="text-xl font-bold text-gray-900 mx-auto">
-            {step === 'ENTER_PHONE' ? 'Sign In / Register' : step === 'ENTER_PIN' ? 'Enter PIN' : 'Create Profile'}
+            {step === 'ENTER_PHONE' && 'Sign In / Register'}
+            {step === 'ENTER_PIN' && 'Enter PIN'}
+            {step === 'CREATE_PROFILE' && 'Create Profile'}
+            {step === 'FORGOT_PIN_OTP' && 'Verify OTP'}
+            {step === 'SET_NEW_PIN' && 'Set New PIN'}
           </h2>
           <button 
             onClick={handleClose}
@@ -374,6 +439,83 @@ export function LoginModal() {
                 className="w-full mt-2 flex justify-center items-center gap-2 bg-brand-navy text-white font-bold py-3.5 rounded-xl hover:bg-[#002b4d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Create Account & Login'}
+              </button>
+            </form>
+          )}
+
+          {step === 'FORGOT_PIN_OTP' && (
+            <form className="space-y-6" onSubmit={handleVerifyOtp}>
+              <div className="text-center mb-6">
+                <p className="text-sm text-gray-600">Enter the 4 digit OTP sent to</p>
+                <p className="font-bold text-gray-900 mt-1">+91 {phone}</p>
+              </div>
+
+              <div>
+                <label className="sr-only">OTP</label>
+                <input
+                  type="text"
+                  required
+                  maxLength={4}
+                  value={otp}
+                  onChange={(e) => {
+                    setOtp(e.target.value.replace(/\D/g, ''));
+                    setError('');
+                  }}
+                  className={`block w-full text-center tracking-[1em] font-bold text-2xl px-3 py-3 rounded-xl border focus:ring-brand-navy focus:border-brand-navy outline-none transition-colors ${error ? 'border-red-500' : 'border-gray-300'}`}
+                  placeholder="••••"
+                />
+                {error && <p className="mt-2 text-xs text-red-600 font-medium text-center">{error}</p>}
+              </div>
+
+              <button
+                type="submit"
+                disabled={otp.length !== 4 || isLoading}
+                className="w-full flex justify-center items-center gap-2 py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-brand-navy hover:bg-[#002b4d] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-navy disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Verify OTP'}
+              </button>
+            </form>
+          )}
+
+          {step === 'SET_NEW_PIN' && (
+            <form className="space-y-6" onSubmit={handleSetNewPin}>
+              <div className="text-center mb-6">
+                <p className="text-sm text-gray-600">Set a new 4-digit PIN for</p>
+                <p className="font-bold text-gray-900 mt-1">+91 {phone}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">New 4-Digit PIN</label>
+                <div className="relative">
+                  <input
+                    type={showPin ? "text" : "password"}
+                    required
+                    maxLength={4}
+                    value={pin}
+                    onChange={(e) => {
+                      setPin(e.target.value.replace(/\D/g, ''));
+                      setError('');
+                    }}
+                    className={`block w-full text-center tracking-[1em] font-bold text-2xl px-3 py-3 rounded-xl border focus:ring-brand-navy focus:border-brand-navy outline-none transition-colors ${error ? 'border-red-500' : 'border-gray-300'}`}
+                    placeholder="••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPin(!showPin)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+                {error && <p className="mt-2 text-xs text-red-600 font-medium text-center">{error}</p>}
+              </div>
+
+              <button
+                type="submit"
+                disabled={pin.length !== 4 || isLoading}
+                className="w-full flex justify-center items-center gap-2 py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-brand-navy hover:bg-[#002b4d] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-navy disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Save & Login'}
               </button>
             </form>
           )}
