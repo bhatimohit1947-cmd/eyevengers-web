@@ -1,27 +1,22 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Minus, Plus, Trash2, ShieldCheck, ChevronRight, Tag, ShoppingBag } from 'lucide-react';
+import { useCartStore } from '@/store/useCartStore';
+import { useAuthGate } from '@/hooks/useAuthGate';
 import Link from 'next/link';
-import { Minus, Plus, Trash2, ShieldCheck, ChevronRight, Tag } from 'lucide-react';
 
 export default function CartPage() {
-  const cartItems = [
-    {
-      id: "prod-1",
-      name: "Midnight Blue Square Frame",
-      brand: "VINCENT CHASE",
-      sellingPrice: 1500,
-      mrp: 3500,
-      quantity: 1,
-      lensType: "Zero Power",
-      lensPrice: 0,
-      imageUrl: ""
-    }
-  ];
+  const router = useRouter();
+  const { items: cartItems, removeItem, updateQuantity, totalPrice } = useCartStore();
+  const { requireAuth } = useAuthGate();
 
-  const totalMrp = cartItems.reduce((acc, item) => acc + (item.mrp * item.quantity), 0);
-  const totalDiscount = cartItems.reduce((acc, item) => acc + ((item.mrp - item.sellingPrice) * item.quantity), 0);
-  const totalAmount = cartItems.reduce((acc, item) => acc + (item.sellingPrice * item.quantity) + item.lensPrice, 0);
+  // We are assuming mrp is some fixed percentage higher for UI mock purposes, 
+  // since useCartStore only stores `price`. Let's mock MRP as price * 1.5
+  const totalMrp = cartItems.reduce((acc, item) => acc + (item.price * 1.5 * item.qty), 0);
+  const totalDiscount = cartItems.reduce((acc, item) => acc + ((item.price * 1.5 - item.price) * item.qty), 0);
+  const totalAmount = totalPrice;
 
   const [couponCode, setCouponCode] = useState("");
   const [couponState, setCouponState] = useState<{type: 'none' | 'success' | 'error', message: string, discount: number}>({
@@ -43,7 +38,6 @@ export default function CartPage() {
       const data = await res.json();
       
       if (data.valid) {
-        // Calculate mock discount based on the offer
         let discountVal = 0;
         if (data.offer.discountType === 'percentage') {
           discountVal = totalAmount * (data.offer.discountValue / 100);
@@ -59,6 +53,28 @@ export default function CartPage() {
     }
   };
 
+  const handleCheckout = () => {
+    requireAuth(() => {
+      router.push('/checkout');
+    });
+  };
+
+  if (cartItems.length === 0) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-16 min-h-[60vh] flex flex-col items-center justify-center text-center">
+        <ShoppingBag size={64} className="text-gray-300 mb-6" />
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h1>
+        <p className="text-gray-500 mb-8 max-w-md">Looks like you haven't added anything to your bag yet.</p>
+        <Link 
+          href="/"
+          className="bg-brand-navy text-white font-bold px-8 py-3 rounded-full hover:bg-[#002b4d] transition-colors"
+        >
+          Continue Shopping
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gray-50 min-h-screen pb-24 md:pb-12">
       <div className="max-w-4xl mx-auto md:px-4 py-4 md:py-8">
@@ -68,24 +84,31 @@ export default function CartPage() {
           
           {/* Cart Items */}
           <div className="w-full md:w-2/3 flex flex-col gap-4">
-            {cartItems.map((item, idx) => (
-              <div key={idx} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex flex-col sm:flex-row gap-4">
+            {cartItems.map((item) => (
+              <div key={item.id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex flex-col sm:flex-row gap-4">
                 
-                <div className="w-full sm:w-32 aspect-[4/3] sm:aspect-square bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <svg className="w-10 h-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+                <div className="w-full sm:w-32 aspect-[4/3] sm:aspect-square bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                  {item.imageUrl ? (
+                    <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <svg className="w-10 h-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  )}
                 </div>
 
                 <div className="flex-1 flex flex-col justify-between">
                   <div>
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{item.brand}</p>
-                        <h3 className="font-semibold text-gray-900 leading-tight mb-1">{item.name}</h3>
-                        <p className="text-sm text-gray-500">Lens: <span className="font-medium text-gray-900">{item.lensType}</span></p>
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">EYEVENGERS</p>
+                        <h3 className="font-semibold text-gray-900 leading-tight mb-1">{item.title}</h3>
+                        <p className="text-sm text-gray-500">Lens: <span className="font-medium text-gray-900">{item.lensConfig?.type || 'Standard'}</span></p>
                       </div>
-                      <button className="text-gray-400 hover:text-red-500 p-1 transition">
+                      <button 
+                        onClick={() => removeItem(item.id)}
+                        className="text-gray-400 hover:text-red-500 p-1 transition"
+                      >
                         <Trash2 size={18} />
                       </button>
                     </div>
@@ -93,19 +116,26 @@ export default function CartPage() {
 
                   <div className="flex justify-between items-end mt-4">
                     <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-full px-2 py-1">
-                      <button className="p-1 text-gray-500 hover:text-brand-navy disabled:opacity-50">
+                      <button 
+                        onClick={() => updateQuantity(item.id, Math.max(1, item.qty - 1))}
+                        disabled={item.qty <= 1}
+                        className="p-1 text-gray-500 hover:text-brand-navy disabled:opacity-50"
+                      >
                         <Minus size={14} />
                       </button>
-                      <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
-                      <button className="p-1 text-gray-500 hover:text-brand-navy">
+                      <span className="text-sm font-bold w-4 text-center">{item.qty}</span>
+                      <button 
+                        onClick={() => updateQuantity(item.id, item.qty + 1)}
+                        className="p-1 text-gray-500 hover:text-brand-navy"
+                      >
                         <Plus size={14} />
                       </button>
                     </div>
 
                     <div className="flex flex-col items-end">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-400 line-through">₹{item.mrp + item.lensPrice}</span>
-                        <span className="text-lg font-bold text-gray-900">₹{item.sellingPrice + item.lensPrice}</span>
+                        <span className="text-sm text-gray-400 line-through">₹{item.price * 1.5}</span>
+                        <span className="text-lg font-bold text-gray-900">₹{item.price}</span>
                       </div>
                     </div>
                   </div>
@@ -175,13 +205,13 @@ export default function CartPage() {
                 <span>₹{(totalAmount - couponState.discount).toFixed(0)}</span>
               </div>
 
-              <Link 
-                href="/checkout"
+              <button 
+                onClick={handleCheckout}
                 className="w-full bg-brand-navy text-white font-bold text-base rounded-full py-3.5 hover:bg-blue-900 transition flex items-center justify-center gap-2 shadow-md shadow-blue-900/20"
               >
                 PROCEED TO CHECKOUT
                 <ChevronRight size={18} />
-              </Link>
+              </button>
             </div>
           </div>
           

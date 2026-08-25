@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { HeartCrack, ShoppingBag, Trash2 } from 'lucide-react';
 import { useWishlistStore } from '@/store/useWishlistStore';
 import { useCartStore } from '@/store/useCartStore';
+import { useAuthStore } from '@/store/useAuthStore';
 
 // In a real app, we'd fetch product details based on productIds from backend
 // For Phase 1, we mock a database
@@ -17,9 +18,15 @@ const MOCK_PRODUCTS_DB: Record<string, any> = {
 export default function WishlistPage() {
   const { productIds, toggleItem } = useWishlistStore();
   const { addItem } = useCartStore();
+  const { isLoggedIn, openLoginModal } = useAuthStore();
   const [items, setItems] = useState<any[]>([]);
 
   useEffect(() => {
+    if (!isLoggedIn) {
+      setTimeout(() => openLoginModal(), 500);
+      return;
+    }
+    
     // Simulate fetching products by ID from API
     const fetchedItems = productIds.map(id => MOCK_PRODUCTS_DB[id] || { id, title: `Product ${id}`, price: 999 }).reverse();
     setItems(fetchedItems);
@@ -36,6 +43,22 @@ export default function WishlistPage() {
     });
     toggleItem(item.id); // Remove from wishlist after moving
   };
+
+  if (!isLoggedIn) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-16 min-h-[60vh] flex flex-col items-center justify-center text-center">
+        <HeartCrack size={64} className="text-gray-300 mb-6" />
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Login to view wishlist</h1>
+        <p className="text-gray-500 mb-8 max-w-md">Save items you love to your wishlist. Review them anytime and easily move them to your bag.</p>
+        <button 
+          onClick={() => openLoginModal()}
+          className="bg-brand-navy text-white font-bold px-8 py-3 rounded-full hover:bg-[#002b4d] transition-colors"
+        >
+          Sign in or Create Account
+        </button>
+      </div>
+    );
+  }
 
   if (productIds.length === 0) {
     return (

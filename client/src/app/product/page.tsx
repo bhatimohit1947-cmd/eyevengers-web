@@ -31,43 +31,40 @@ export default function ProductPage() {
     
     setError('');
     
-    // For Phase 1 we require auth or at least simulate the gate. 
-    // Guest cart can persist via localStorage without auth, but the prompt says 
-    // "Guest can add to cart/wishlist; action is remembered and completes automatically right after login"
-    // Actually, prompt says: "Guest cart persists via localStorage; on login, merge guest cart". So cart doesn't *require* auth strictly, but we can wrap it in auth gate if needed. Wait, "Guest cart persists via localStorage" implies guests CAN add without logging in immediately. I'll NOT wrap cart in auth gate, unlike wishlist.
-    
-    setIsAdding(true);
-    
-    try {
-      // Mock API Call
-      const res = await fetch('/api/cart/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          productId: product.id, 
-          lensConfig: { type: lensType }, 
-          qty: 1 
-        })
-      });
+    requireAuth(async () => {
+      setIsAdding(true);
       
-      // Optimistic Update
-      addItem({
-        id: `${product.id}-${Date.now()}`,
-        productId: product.id,
-        qty: 1,
-        price: product.price,
-        title: product.title,
-        lensConfig: { type: lensType },
-        imageUrl: product.imageUrl
-      });
+      try {
+        // Mock API Call
+        const res = await fetch('/api/cart/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            productId: product.id, 
+            lensConfig: { type: lensType }, 
+            qty: 1 
+          })
+        });
+        
+        // Optimistic Update
+        addItem({
+          id: `${product.id}-${Date.now()}`,
+          productId: product.id,
+          qty: 1,
+          price: product.price,
+          title: product.title,
+          lensConfig: { type: lensType },
+          imageUrl: product.imageUrl
+        });
 
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsAdding(false);
-    }
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsAdding(false);
+      }
+    });
   };
 
   return (

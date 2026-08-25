@@ -1,159 +1,181 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, Component, ErrorInfo, ReactNode } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
-import { X, Loader2 } from 'lucide-react';
-import { useGoogleLogin } from '@react-oauth/google';
+import { X, Loader2, ChevronLeft, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 interface CustomerRecord {
   id: string;
-  googleProviderId: string;
   name: string;
-  email: string;
-  phone?: string;
+  email?: string;
+  phone: string;
+  pin: string;
   createdAt: string;
+}
+
+class ModalErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(_: Error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('LoginModal Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 text-center">
+          <AlertCircle className="mx-auto text-red-500 mb-4" size={48} />
+          <h3 className="text-lg font-bold text-gray-900 mb-2">Something went wrong</h3>
+          <p className="text-gray-500 text-sm">Please try reloading the page.</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 export function LoginModal() {
   const { isLoginModalOpen, closeLoginModal, login, executePendingAction } = useAuthStore();
+  const [step, setStep] = useState<'ENTER_PHONE' | 'ENTER_PIN' | 'CREATE_PROFILE'>('ENTER_PHONE');
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState<'LOGIN' | 'COMPLETE_PROFILE'>('LOGIN');
-  const [googleData, setGoogleData] = useState<{ id: string; name: string; email: string } | null>(null);
+  const [showPin, setShowPin] = useState(false);
+  
+  // Form State
+  const [phone, setPhone] = useState('');
+  const [pin, setPin] = useState('');
   const [profileName, setProfileName] = useState('');
-  const [profilePhone, setProfilePhone] = useState('');
-  const [phoneError, setPhoneError] = useState('');
+  const [profileEmail, setProfileEmail] = useState('');
+  
+  // Errors
+  const [error, setError] = useState('');
 
   if (!isLoginModalOpen) return null;
 
-  // Retrieve mock DB
   const getCustomers = (): CustomerRecord[] => {
     try {
-      return JSON.parse(localStorage.getItem('eyevengers_mock_customers') || '[]');
+      const data = JSON.parse(localStorage.getItem('eyevengers_mock_customers') || '[]');
+      return Array.isArray(data) ? data : [];
     } catch {
       return [];
     }
   };
 
-  const handleGoogleSuccess = async (tokenResponse: any) => {
-    setIsLoading(true);
-    try {
-      // In a real app, this token goes to the backend to verify and fetch user info.
-      // Here we fetch it directly from Google API for the client-side flow.
-      let userInfo: any;
-      
-      // If we're using the mock client ID, simulate the response
-      if (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
-        const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-        });
-        userInfo = await res.json();
-      } else {
-        // Mock fallback for testing without Google Config
-        userInfo = { sub: `google_${Date.now()}`, name: 'Demo User', email: 'demo@example.com' };
-      }
-
-      const googleId = userInfo.sub;
-      const name = userInfo.name || '';
-      const email = userInfo.email || '';
-
-      const customers = getCustomers();
-      const existingCustomer = customers.find(c => c.googleProviderId === googleId || c.email === email);
-
-      if (existingCustomer && existingCustomer.phone) {
-        // Existing user with full profile, log them in immediately
-        completeLogin(existingCustomer);
-      } else {
-        // New user or missing phone, transition to profile completion
-        setGoogleData({ id: googleId, name, email });
-        setProfileName(name);
-        setStep('COMPLETE_PROFILE');
-      }
-    } catch (err) {
-      console.error("Google auth error", err);
-      alert('Unable to sign in with Google. Please try again.');
+  const handlePhoneSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    if (phone.length !== 10) {
+      setError('Please enter a valid 10-digit mobile number.');
+      return;
     }
-    setIsLoading(false);
-  };
-
-  const loginWithGoogle = useGoogleLogin({
-    onSuccess: handleGoogleSuccess,
-    onError: () => alert('Unable to sign in with Google. Please try again.'),
-  });
-
-  const handleMockGoogleLogin = () => {
+    
     setIsLoading(true);
     setTimeout(() => {
-      handleGoogleSuccess({ access_token: 'mock_token' });
-    }, 800);
+      const customers = getCustomers();
+      const existingCustomer = customers.find(c => c.phone === phone);
+      
+      if (existingCustomer) {
+        setStep('ENTER_PIN');
+      } else {
+        setStep('CREATE_PROFILE');
+      }
+      setIsLoading(false);
+    }, 500);
   };
 
   const completeLogin = (customer: CustomerRecord) => {
     login({
       id: customer.id,
-      googleProviderId: customer.googleProviderId,
       name: customer.name,
-      email: customer.email,
+      email: customer.email || '',
       phone: customer.phone,
     }, 'none');
-    
-    setIsLoading(false);
     
     // Simulate backend login notification API call
     fetch(`https://eyevengers-web.onrender.com/api/admin/login-event`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: customer.phone || customer.email })
+      body: JSON.stringify({ phone: customer.phone })
     }).catch(console.error);
 
-    setStep('LOGIN');
-    setGoogleData(null);
-    closeLoginModal();
+    handleClose();
     executePendingAction();
   };
 
-  const handleCompleteProfile = (e: React.FormEvent) => {
+  const handlePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!googleData) return;
+    setError('');
     
-    // Validate phone number (exactly 10 digits)
-    const cleanedPhone = profilePhone.replace(/\D/g, '');
-    if (cleanedPhone.length !== 10) {
-      setPhoneError('Please enter a valid 10-digit mobile number.');
+    if (pin.length !== 4) {
+      setError('Please enter your 4-digit PIN.');
       return;
     }
-    setPhoneError('');
+
     setIsLoading(true);
+    setTimeout(() => {
+      const customers = getCustomers();
+      const existingCustomer = customers.find(c => c.phone === phone);
+      
+      if (existingCustomer && existingCustomer.pin === pin) {
+        completeLogin(existingCustomer);
+      } else {
+        setError('Incorrect PIN. Please try again.');
+        setIsLoading(false);
+      }
+    }, 500);
+  };
 
-    const customers = getCustomers();
-    let customer = customers.find(c => c.googleProviderId === googleData.id || c.email === googleData.email);
+  const handleCreateProfileSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
 
-    if (customer) {
-      // Update existing
-      customer.name = profileName;
-      customer.phone = cleanedPhone;
-    } else {
-      // Create new
-      customer = {
-        id: `CUST-${Date.now()}`,
-        googleProviderId: googleData.id,
-        name: profileName,
-        email: googleData.email,
-        phone: cleanedPhone,
-        createdAt: new Date().toISOString()
-      };
-      customers.push(customer);
+    if (!profileName.trim()) {
+      setError('Name is required.');
+      return;
+    }
+    if (pin.length !== 4) {
+      setError('Please set a 4-digit PIN.');
+      return;
     }
 
-    localStorage.setItem('eyevengers_mock_customers', JSON.stringify(customers));
-    
+    setIsLoading(true);
     setTimeout(() => {
-      completeLogin(customer!);
+      const customers = getCustomers();
+      const newCustomer: CustomerRecord = {
+        id: `CUST-${Date.now()}`,
+        name: profileName,
+        email: profileEmail,
+        phone: phone,
+        pin: pin,
+        createdAt: new Date().toISOString()
+      };
+      
+      customers.push(newCustomer);
+      localStorage.setItem('eyevengers_mock_customers', JSON.stringify(customers));
+      
+      completeLogin(newCustomer);
     }, 600);
   };
 
+  const handleForgotPin = () => {
+    alert('In a real app, this would send an OTP to ' + phone + ' to reset your PIN.');
+  };
+
   const handleClose = () => {
-    setStep('LOGIN');
-    setGoogleData(null);
+    setStep('ENTER_PHONE');
+    setPhone('');
+    setPin('');
+    setProfileName('');
+    setProfileEmail('');
+    setError('');
+    setShowPin(false);
     closeLoginModal();
   };
 
@@ -167,94 +189,202 @@ export function LoginModal() {
 
       {/* Modal */}
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-white rounded-2xl z-[120] shadow-2xl overflow-hidden flex flex-col">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-          <h2 className="text-xl font-bold text-gray-900">
-            {step === 'LOGIN' ? 'Welcome to EYEVENGERS' : 'Complete Your Profile'}
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50 relative">
+          {step !== 'ENTER_PHONE' && (
+            <button 
+              onClick={() => {
+                setStep('ENTER_PHONE');
+                setPin('');
+                setError('');
+              }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 p-2 text-gray-500 hover:text-gray-900 rounded-full hover:bg-gray-200 transition-colors"
+            >
+              <ChevronLeft size={20} />
+            </button>
+          )}
+          <h2 className="text-xl font-bold text-gray-900 mx-auto">
+            {step === 'ENTER_PHONE' ? 'Sign In / Register' : step === 'ENTER_PIN' ? 'Enter PIN' : 'Create Profile'}
           </h2>
           <button 
             onClick={handleClose}
-            className="p-2 -mr-2 text-gray-400 hover:text-gray-900 hover:bg-gray-200 rounded-full transition-colors"
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-200 rounded-full transition-colors"
           >
             <X size={20} />
           </button>
         </div>
 
-        <div className="p-6">
-          {step === 'LOGIN' ? (
-            <div className="flex flex-col items-center">
-              <p className="text-gray-600 mb-8 text-center">Sign in to continue</p>
-              
+        <ModalErrorBoundary>
+          <div className="p-6">
+            {step === 'ENTER_PHONE' && (
+            <form className="space-y-6" onSubmit={handlePhoneSubmit}>
+              <div className="text-center mb-6">
+                <p className="text-gray-600">Enter your mobile number to get started</p>
+              </div>
+
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                  Mobile Number
+                </label>
+                <div className="mt-1 flex rounded-md shadow-sm">
+                  <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm font-medium">
+                    +91
+                  </span>
+                  <input
+                    type="tel"
+                    id="phone"
+                    required
+                    maxLength={10}
+                    value={phone}
+                    onChange={(e) => {
+                      setPhone(e.target.value.replace(/\D/g, ''));
+                      setError('');
+                    }}
+                    className={`flex-1 min-w-0 block w-full px-4 py-3 rounded-none rounded-r-xl border focus:ring-brand-navy focus:border-brand-navy sm:text-sm outline-none transition-colors ${error ? 'border-red-500' : 'border-gray-300'}`}
+                    placeholder="Enter 10 digit number"
+                  />
+                </div>
+                {error && <p className="mt-2 text-xs text-red-600 font-medium">{error}</p>}
+              </div>
+
               <button
-                onClick={() => process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? loginWithGoogle() : handleMockGoogleLogin()}
-                disabled={isLoading}
-                className="w-full bg-white border border-gray-300 text-gray-700 font-medium py-3 rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-3 shadow-sm relative overflow-hidden"
+                type="submit"
+                disabled={phone.length !== 10 || isLoading}
+                className="w-full flex justify-center items-center gap-2 py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-brand-navy hover:bg-[#002b4d] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-navy disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
-                {isLoading ? (
-                  <Loader2 size={20} className="animate-spin text-gray-400" />
-                ) : (
-                  <>
-                    <svg className="w-5 h-5" viewBox="0 0 24 24">
-                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                    </svg>
-                    Continue with Google
-                  </>
-                )}
+                {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Continue'}
+              </button>
+            </form>
+          )}
+
+          {step === 'ENTER_PIN' && (
+            <form className="space-y-6" onSubmit={handlePinSubmit}>
+              <div className="text-center mb-6">
+                <p className="text-sm text-gray-600">Welcome back!</p>
+                <p className="font-bold text-gray-900 mt-1">+91 {phone}</p>
+              </div>
+
+              <div>
+                <label htmlFor="pin" className="block text-sm font-medium text-gray-700 mb-1">
+                  Enter 4-Digit PIN
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPin ? "text" : "password"}
+                    id="pin"
+                    required
+                    maxLength={4}
+                    value={pin}
+                    onChange={(e) => {
+                      setPin(e.target.value.replace(/\D/g, ''));
+                      setError('');
+                    }}
+                    className={`block w-full text-center tracking-[1em] font-bold text-2xl px-3 py-3 rounded-xl border focus:ring-brand-navy focus:border-brand-navy outline-none transition-colors ${error ? 'border-red-500' : 'border-gray-300'}`}
+                    placeholder="••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPin(!showPin)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+                {error && <p className="mt-2 text-xs text-red-600 font-medium text-center">{error}</p>}
+              </div>
+
+              <button
+                type="submit"
+                disabled={pin.length !== 4 || isLoading}
+                className="w-full flex justify-center items-center gap-2 py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-brand-navy hover:bg-[#002b4d] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-navy disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Login'}
               </button>
               
-              <p className="text-center text-xs text-gray-500 mt-6 font-medium">
-                Fast, secure and password-free
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={handleCompleteProfile} className="space-y-5">
+              <div className="text-center">
+                <button 
+                  type="button" 
+                  onClick={handleForgotPin}
+                  className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors"
+                >
+                  Forgot PIN?
+                </button>
+              </div>
+            </form>
+          )}
+
+          {step === 'CREATE_PROFILE' && (
+            <form className="space-y-5" onSubmit={handleCreateProfileSubmit}>
+              <div className="text-center mb-6">
+                <p className="text-sm text-gray-600">Looks like you're new here!</p>
+                <p className="font-bold text-gray-900 mt-1">Create your profile</p>
+              </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
                 <input
                   type="text"
                   required
                   value={profileName}
                   onChange={(e) => setProfileName(e.target.value)}
-                  className="block w-full px-4 py-3 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:bg-white focus:ring-1 focus:ring-brand-navy focus:border-brand-navy sm:text-sm transition duration-150 ease-in-out"
-                  placeholder="Your full name"
+                  className="block w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 placeholder-gray-400 focus:bg-white focus:ring-brand-navy focus:border-brand-navy sm:text-sm outline-none transition-colors"
+                  placeholder="e.g. Rahul Kumar"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email (Optional)</label>
+                <input
+                  type="email"
+                  value={profileEmail}
+                  onChange={(e) => setProfileEmail(e.target.value)}
+                  className="block w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 placeholder-gray-400 focus:bg-white focus:ring-brand-navy focus:border-brand-navy sm:text-sm outline-none transition-colors"
+                  placeholder="e.g. rahul@example.com"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
-                <div className="relative flex">
-                  <div className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-gray-200 bg-gray-100 text-gray-500 sm:text-sm font-medium">
-                    +91
-                  </div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Set 4-Digit PIN *</label>
+                <div className="relative">
                   <input
-                    type="tel"
+                    type={showPin ? "text" : "password"}
                     required
-                    maxLength={10}
-                    value={profilePhone}
-                    onChange={(e) => setProfilePhone(e.target.value.replace(/\D/g, ''))} // only allow digits
-                    className={`block w-full pl-3 pr-3 py-3 border rounded-r-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-brand-navy focus:border-brand-navy sm:text-sm transition duration-150 ease-in-out ${phoneError ? 'border-red-300' : 'border-gray-200'}`}
-                    placeholder="98XXXXXXXX"
+                    maxLength={4}
+                    value={pin}
+                    onChange={(e) => {
+                      setPin(e.target.value.replace(/\D/g, ''));
+                      setError('');
+                    }}
+                    className={`block w-full text-center tracking-[0.5em] font-bold text-xl px-4 py-3 border rounded-xl bg-gray-50 placeholder-gray-300 focus:bg-white focus:ring-brand-navy focus:border-brand-navy sm:text-sm outline-none transition-colors ${error ? 'border-red-500' : 'border-gray-300'}`}
+                    placeholder="••••"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPin(!showPin)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
                 </div>
-                {phoneError && <p className="mt-2 text-xs text-red-600 font-medium">{phoneError}</p>}
+                {error && <p className="mt-2 text-xs text-red-600 font-medium">{error}</p>}
               </div>
 
               <button
                 type="submit"
-                disabled={isLoading}
-                className="w-full mt-6 bg-brand-navy text-white font-bold py-3.5 rounded-xl hover:bg-[#002b4d] transition-colors flex items-center justify-center gap-2"
+                disabled={isLoading || profileName.trim().length === 0 || pin.length !== 4}
+                className="w-full mt-2 flex justify-center items-center gap-2 bg-brand-navy text-white font-bold py-3.5 rounded-xl hover:bg-[#002b4d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? (
-                  <><Loader2 size={18} className="animate-spin" /> Saving...</>
-                ) : (
-                  'Continue →'
-                )}
+                {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Create Account & Login'}
               </button>
             </form>
           )}
+
+          <div className="mt-6 border-t border-gray-100 pt-6">
+            <p className="text-center text-xs text-gray-500">
+              By proceeding, you agree to our <a href="#" className="font-medium text-gray-900 hover:underline">Terms & Conditions</a> and <a href="#" className="font-medium text-gray-900 hover:underline">Privacy Policy</a>.
+            </p>
+          </div>
         </div>
+        </ModalErrorBoundary>
       </div>
     </>
   );
