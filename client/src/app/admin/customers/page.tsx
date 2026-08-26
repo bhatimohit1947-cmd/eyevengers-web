@@ -48,21 +48,26 @@ export default function CustomersPage() {
   };
 
   useEffect(() => {
-    try {
-      const mockCustomers = JSON.parse(localStorage.getItem('eyevengers_mock_customers') || '[]');
-      // Map to expected format if needed, but the mock schema matches mostly.
-      // Mock schema: id, name, email, phone, pin, createdAt
-      const formatted = mockCustomers.map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        email: c.email,
-        phone: c.phone,
-        joinedAt: c.createdAt || new Date().toISOString()
-      }));
-      setCustomers(formatted);
-    } catch (err) {
-      console.error("Error loading mock customers:", err);
-    }
+    const fetchCustomers = async () => {
+      try {
+        const res = await fetch('/api/customers');
+        const mockCustomers = await res.json();
+        
+        const formatted = Array.isArray(mockCustomers) ? mockCustomers.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          email: c.email,
+          phone: c.phone,
+          joinedAt: c.createdAt || new Date().toISOString()
+        })) : [];
+        
+        setCustomers(formatted);
+      } catch (err) {
+        console.error("Error loading mock customers:", err);
+      }
+    };
+    
+    fetchCustomers();
   }, []);
 
   return (

@@ -73,16 +73,30 @@ export function LoginModal() {
 
   if (!isLoginModalOpen) return null;
 
-  const getCustomers = (): CustomerRecord[] => {
+  const getCustomers = async (): Promise<CustomerRecord[]> => {
     try {
-      const data = JSON.parse(localStorage.getItem('eyevengers_mock_customers') || '[]');
+      const res = await fetch('/api/customers');
+      const data = await res.json();
       return Array.isArray(data) ? data : [];
     } catch {
       return [];
     }
   };
 
-  const handlePhoneSubmit = (e: React.FormEvent) => {
+  const saveCustomer = async (customer: Partial<CustomerRecord>) => {
+    try {
+      const res = await fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(customer)
+      });
+      return await res.json();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
@@ -92,17 +106,15 @@ export function LoginModal() {
     }
     
     setIsLoading(true);
-    setTimeout(() => {
-      const customers = getCustomers();
-      const existingCustomer = customers.find(c => c.phone === phone);
-      
-      if (existingCustomer) {
-        setStep('ENTER_PIN');
-      } else {
-        setStep('CREATE_PROFILE');
-      }
-      setIsLoading(false);
-    }, 500);
+    const customers = await getCustomers();
+    const existingCustomer = customers.find(c => c.phone === phone);
+    
+    if (existingCustomer) {
+      setStep('ENTER_PIN');
+    } else {
+      setStep('CREATE_PROFILE');
+    }
+    setIsLoading(false);
   };
 
   const completeLogin = (customer: CustomerRecord) => {
@@ -124,7 +136,7 @@ export function LoginModal() {
     executePendingAction();
   };
 
-  const handlePinSubmit = (e: React.FormEvent) => {
+  const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
@@ -134,20 +146,18 @@ export function LoginModal() {
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      const customers = getCustomers();
-      const existingCustomer = customers.find(c => c.phone === phone);
-      
-      if (existingCustomer && existingCustomer.pin === pin) {
-        completeLogin(existingCustomer);
-      } else {
-        setError('Incorrect PIN. Please try again.');
-        setIsLoading(false);
-      }
-    }, 500);
+    const customers = await getCustomers();
+    const existingCustomer = customers.find(c => c.phone === phone);
+    
+    if (existingCustomer && existingCustomer.pin === pin) {
+      completeLogin(existingCustomer);
+    } else {
+      setError('Incorrect PIN. Please try again.');
+    }
+    setIsLoading(false);
   };
 
-  const handleCreateProfileSubmit = (e: React.FormEvent) => {
+  const handleCreateProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -161,22 +171,23 @@ export function LoginModal() {
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      const customers = getCustomers();
-      const newCustomer: CustomerRecord = {
-        id: `CUST-${Date.now()}`,
-        name: profileName,
-        email: profileEmail,
-        phone: phone,
-        pin: pin,
-        createdAt: new Date().toISOString()
-      };
-      
-      customers.push(newCustomer);
-      localStorage.setItem('eyevengers_mock_customers', JSON.stringify(customers));
-      
-      completeLogin(newCustomer);
-    }, 600);
+    const newCustomer: CustomerRecord = {
+      id: `CUST-${Date.now()}`,
+      name: profileName,
+      email: profileEmail,
+      phone: phone,
+      pin: pin,
+      createdAt: new Date().toISOString()
+    };
+    
+    const result = await saveCustomer(newCustomer);
+    
+    if (result?.success) {
+      completeLogin(result.customer);
+    } else {
+      setError('Failed to create account.');
+      setIsLoading(false);
+    }
   };
 
   const handleForgotPin = () => {
@@ -203,7 +214,7 @@ export function LoginModal() {
     }, 500);
   };
 
-  const handleSetNewPin = (e: React.FormEvent) => {
+  const handleSetNewPin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
@@ -213,19 +224,23 @@ export function LoginModal() {
     }
     
     setIsLoading(true);
-    setTimeout(() => {
-      const customers = getCustomers();
-      const customerIndex = customers.findIndex(c => c.phone === phone);
+    const customers = await getCustomers();
+    const customerIndex = customers.findIndex(c => c.phone === phone);
+    
+    if (customerIndex >= 0) {
+      const updatedCustomer = { ...customers[customerIndex], pin };
+      const result = await saveCustomer(updatedCustomer);
       
-      if (customerIndex >= 0) {
-        customers[customerIndex].pin = pin;
-        localStorage.setItem('eyevengers_mock_customers', JSON.stringify(customers));
-        completeLogin(customers[customerIndex]);
+      if (result?.success) {
+        completeLogin(result.customer);
       } else {
-        setError('Customer not found.');
+        setError('Failed to update PIN.');
         setIsLoading(false);
       }
-    }, 500);
+    } else {
+      setError('Customer not found.');
+      setIsLoading(false);
+    }
   };
 
   const handleClose = () => {
