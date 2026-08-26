@@ -158,8 +158,102 @@ export const getOrders = async (req: Request, res: Response) => {
 // ==========================
 // CUSTOMERS
 // ==========================
+import { prisma } from '../index';
+
 export const getCustomers = async (req: Request, res: Response) => {
-  res.json([]); // Customer management out of scope for this migration
+  try {
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    // Fetch stats from global_settings in Supabase
+    const { data: settingsData } = await supabase.from('global_settings').select('*');
+    const statsMap: Record<string, any> = {};
+    if (settingsData) {
+      settingsData.forEach(row => {
+        if (row.key.startsWith('stats_')) {
+          try {
+            statsMap[row.key.replace('stats_', '')] = JSON.parse(row.value);
+          } catch(e) {}
+        }
+      });
+    }
+
+    const formatted = users.map(u => ({
+      id: u.id,
+      name: u.name,
+      phone: u.phone,
+      email: u.email,
+      cartCount: statsMap[u.id]?.cartCount || 0,
+      wishlistCount: statsMap[u.id]?.wishlistCount || 0,
+      joinedAt: u.createdAt,
+      createdAt: u.createdAt
+    }));
+    
+    res.json(formatted);
+  } catch (error) {
+    console.error('Failed to fetch customers:', error);
+    res.status(500).json({ error: 'Failed to fetch customers' });
+  }
+};
+
+export const createOrUpdateCustomer = async (req: Request, res: Response) => {
+  try {
+    const { id, name, email, phone } = req.body;
+    let user;
+    if (id && id.startsWith('CUST-')) {
+      // It's a new or existing user by phone
+      user = await prisma.user.findUnique({ where: { phone } });
+    } else if (id) {
+      user = await prisma.user.findUnique({ where: { id } });
+    }
+
+    if (user) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { name, email, phone }
+      });
+    } else {
+      user = await prisma.user.create({
+        data: { name, email, phone }
+      });
+    }
+    res.json({ success: true, customer: user });
+  } catch (error) {
+    console.error('Failed to save customer:', error);
+    res.status(500).json({ error: 'Failed to save customer' });
+  }
+};
+
+export const syncCustomerStats = async (req: Request, res: Response) => {
+  try {
+    const { id, cartCount, wishlistCount } = req.body;
+    if (!id) return res.status(400).json({ error: 'Missing ID' });
+
+    // Store in global_settings in Supabase
+    const key = `stats_${id}`;
+    
+    // First get existing to merge if necessary
+    const { data: existingData } = await supabase.from('global_settings').select('value').eq('key', key).single();
+    let stats = { cartCount: 0, wishlistCount: 0 };
+    if (existingData && existingData.value) {
+      try { stats = JSON.parse(existingData.value); } catch(e) {}
+    }
+    
+    if (cartCount !== undefined) stats.cartCount = cartCount;
+    if (wishlistCount !== undefined) stats.wishlistCount = wishlistCount;
+
+    const { error } = await supabase.from('global_settings').upsert({
+      key,
+      value: JSON.stringify(stats)
+    });
+    
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Failed to sync stats:', error);
+    res.status(500).json({ error: 'Failed to sync stats' });
+  }
 };
 
 // ==========================

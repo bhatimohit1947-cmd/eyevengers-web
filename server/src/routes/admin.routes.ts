@@ -2,7 +2,7 @@ import express from 'express';
 import { 
   getProducts, createProduct, updateProduct, deleteProduct,
   getOrders, 
-  getCustomers, 
+  getCustomers, createOrUpdateCustomer, syncCustomerStats,
   getSettings, updateSettings,
   getEyeTestSettings, updateEyeTestSettings,
   getEyeTestBookings, createEyeTestBooking, updateEyeTestBookingStatus,
@@ -27,6 +27,8 @@ router.delete('/products/:id', deleteProduct);
 router.get('/orders', getOrders);
 
 router.get('/customers', getCustomers);
+router.post('/customers', createOrUpdateCustomer);
+router.post('/customers/stats', syncCustomerStats);
 
 router.get('/settings', getSettings);
 router.put('/settings', updateSettings);
