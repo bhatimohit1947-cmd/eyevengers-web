@@ -166,15 +166,19 @@ export const getCustomers = async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' }
     });
     
-    // Fetch stats from global_settings in Supabase
+    // Fetch stats and PINs from global_settings in Supabase
     const { data: settingsData } = await supabase.from('global_settings').select('*');
     const statsMap: Record<string, any> = {};
+    const pinMap: Record<string, string> = {};
+
     if (settingsData) {
       settingsData.forEach(row => {
         if (row.key.startsWith('stats_')) {
           try {
             statsMap[row.key.replace('stats_', '')] = JSON.parse(row.value);
           } catch(e) {}
+        } else if (row.key.startsWith('pin_')) {
+          pinMap[row.key.replace('pin_', '')] = row.value;
         }
       });
     }
@@ -184,6 +188,7 @@ export const getCustomers = async (req: Request, res: Response) => {
       name: u.name,
       phone: u.phone,
       email: u.email,
+      pin: pinMap[u.id] || '0000', // Default fallback PIN if not found
       cartCount: statsMap[u.id]?.cartCount || 0,
       wishlistCount: statsMap[u.id]?.wishlistCount || 0,
       joinedAt: u.createdAt,
@@ -199,10 +204,9 @@ export const getCustomers = async (req: Request, res: Response) => {
 
 export const createOrUpdateCustomer = async (req: Request, res: Response) => {
   try {
-    const { id, name, email, phone } = req.body;
+    const { id, name, email, phone, pin } = req.body;
     let user;
     if (id && id.startsWith('CUST-')) {
-      // It's a new or existing user by phone
       user = await prisma.user.findUnique({ where: { phone } });
     } else if (id) {
       user = await prisma.user.findUnique({ where: { id } });
@@ -211,14 +215,24 @@ export const createOrUpdateCustomer = async (req: Request, res: Response) => {
     if (user) {
       user = await prisma.user.update({
         where: { id: user.id },
-        data: { name, email, phone }
+        data: { name, email: email || null, phone }
       });
     } else {
       user = await prisma.user.create({
-        data: { name, email, phone }
+        data: { name, email: email || null, phone }
       });
     }
-    res.json({ success: true, customer: user });
+
+    // Save PIN to global_settings if provided
+    if (pin) {
+      const key = `pin_${user.id}`;
+      await supabase.from('global_settings').upsert({
+        key,
+        value: pin
+      });
+    }
+
+    res.json({ success: true, customer: { ...user, pin } });
   } catch (error) {
     console.error('Failed to save customer:', error);
     res.status(500).json({ error: 'Failed to save customer' });
