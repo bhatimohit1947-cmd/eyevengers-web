@@ -145,16 +145,52 @@ export const useCartStore = create<CartState>()(
 
       switchUser: (userId) => {
         set((state) => {
-          const uId = userId || 'guest';
-          const userCart = state.cartsByUser[uId] || getEmptyCart();
+          const newUserId = userId || 'guest';
           
-          // Optionally, if switching from guest to a logged-in user, we could merge guest cart into the user's cart.
-          // For simplicity and strict isolation as requested, we just switch.
+          // If we are logging in (switching FROM guest TO a real user)
+          if (state.activeUserId === 'guest' && newUserId !== 'guest') {
+            const guestCart = state.cartsByUser['guest'] || getEmptyCart();
+            const userCart = state.cartsByUser[newUserId] || getEmptyCart();
+            
+            // Merge guest items into user cart. (A simple concat, could be enhanced to merge quantities)
+            let mergedItems = [...userCart.items];
+            guestCart.items.forEach(guestItem => {
+              const existingIdx = mergedItems.findIndex(
+                (item) => item.productId === guestItem.productId && 
+                          item.variantId === guestItem.variantId &&
+                          JSON.stringify(item.lensConfig) === JSON.stringify(guestItem.lensConfig)
+              );
+              if (existingIdx >= 0) {
+                mergedItems[existingIdx].qty += guestItem.qty;
+              } else {
+                mergedItems.push(guestItem);
+              }
+            });
+
+            const newTotalCount = mergedItems.reduce((acc, item) => acc + item.qty, 0);
+            const newTotalPrice = mergedItems.reduce((acc, item) => acc + (item.price * item.qty), 0);
+
+            return {
+              activeUserId: newUserId,
+              cartsByUser: {
+                ...state.cartsByUser,
+                'guest': getEmptyCart(), // clear guest cart after merge
+                [newUserId]: { items: mergedItems, totalCount: newTotalCount, totalPrice: newTotalPrice }
+              },
+              items: mergedItems,
+              totalCount: newTotalCount,
+              totalPrice: newTotalPrice
+            };
+          }
+
+          // Otherwise just switch normally (e.g. logging out or switching users)
+          const targetCart = state.cartsByUser[newUserId] || getEmptyCart();
+          
           return {
-            activeUserId: uId,
-            items: userCart.items,
-            totalCount: userCart.totalCount,
-            totalPrice: userCart.totalPrice
+            activeUserId: newUserId,
+            items: targetCart.items,
+            totalCount: targetCart.totalCount,
+            totalPrice: targetCart.totalPrice
           };
         });
       }

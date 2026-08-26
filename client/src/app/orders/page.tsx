@@ -2,23 +2,38 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingBag, ChevronRight, CheckCircle2, Clock, Glasses } from 'lucide-react';
 import Link from 'next/link';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useRouter } from 'next/navigation';
 
 export default function OrdersPage() {
+  const router = useRouter();
+  const { isLoggedIn, user, openLoginModal } = useAuthStore();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`https://eyevengers-web.onrender.com/api/orders`)
-      .then(r => r.json())
-      .then(data => {
-        setOrders(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
-  }, []);
+    if (!isLoggedIn) {
+      router.push('/');
+      setTimeout(() => openLoginModal(), 500);
+      return;
+    }
+
+    try {
+      const storedOrders = JSON.parse(localStorage.getItem('eyevengers_mock_orders') || '[]');
+      const userOrders = storedOrders.filter((o: any) => o.userId === user?.id);
+      
+      // Sort by newest first
+      userOrders.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      setOrders(userOrders);
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
+    }
+  }, [isLoggedIn, user, router, openLoginModal]);
+
+  if (!isLoggedIn) return null;
 
   if (loading) {
     return <div className="min-h-[60vh] flex items-center justify-center">Loading orders...</div>;

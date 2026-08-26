@@ -8,10 +8,13 @@ import {
   X, UserCircle2, Glasses, Heart, ShoppingBag, 
   MapPin, HelpCircle, LogOut, ChevronRight, Crown 
 } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
 
 export function SideDrawer() {
   const { isMenuOpen, closeMenu } = useUIStore();
   const { isLoggedIn, user, membershipTier, logout, openLoginModal } = useAuthStore();
+  const router = useRouter();
+  const pathname = usePathname();
 
   // Prevent background scroll when menu is open
   useEffect(() => {
@@ -28,6 +31,9 @@ export function SideDrawer() {
   const handleLogout = () => {
     logout();
     closeMenu();
+    if (['/orders', '/checkout', '/wishlist'].includes(pathname)) {
+      router.push('/');
+    }
   };
 
   return (

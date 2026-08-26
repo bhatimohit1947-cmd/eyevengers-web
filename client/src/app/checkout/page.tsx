@@ -98,6 +98,33 @@ export default function CheckoutPage() {
     
     // Simulate order placement
     setTimeout(() => {
+      const selectedAddress = addresses.find(a => a.id === selectedAddressId);
+      const newOrder = {
+        id: `ORD-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+        userId: user?.id,
+        createdAt: new Date().toISOString(),
+        amount: totalPrice,
+        status: 'Order Placed',
+        paymentMethod: 'cod',
+        paymentStatus: 'Pending',
+        items: cartItems,
+        address: selectedAddress,
+        details: {
+          frame: cartItems[0]?.title || 'Eyeglasses',
+          lensCategory: cartItems[0]?.lensConfig?.lensCategory || 'Frame Only',
+          lensProduct: cartItems[0]?.lensConfig?.lensType,
+          power: cartItems[0]?.lensConfig?.power
+        }
+      };
+
+      try {
+        const storedOrders = JSON.parse(localStorage.getItem('eyevengers_mock_orders') || '[]');
+        storedOrders.push(newOrder);
+        localStorage.setItem('eyevengers_mock_orders', JSON.stringify(storedOrders));
+      } catch (e) {
+        console.error("Failed to save mock order", e);
+      }
+
       setIsPlacingOrder(false);
       setOrderSuccess(true);
       clearCart();
