@@ -1,10 +1,51 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Search, Eye, Filter, User } from 'lucide-react';
+import { Search, Eye, Filter, User, X, ShoppingBag, Heart, ShoppingCart } from 'lucide-react';
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<any[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
+  const [customerStats, setCustomerStats] = useState({ orders: 0, cartItems: 0, wishlistItems: 0 });
+
+  const loadCustomerStats = (customerId: string) => {
+    try {
+      // Load orders
+      const storedOrders = JSON.parse(localStorage.getItem('eyevengers_mock_orders') || '[]');
+      const userOrders = storedOrders.filter((o: any) => o.userId === customerId);
+
+      // Load cart
+      const cartStorageStr = localStorage.getItem('eyevengers-multi-cart');
+      let cartCount = 0;
+      if (cartStorageStr) {
+        const cartState = JSON.parse(cartStorageStr).state;
+        const userCart = cartState?.cartsByUser?.[customerId];
+        cartCount = userCart?.totalCount || 0;
+      }
+
+      // Load wishlist
+      const wishlistStorageStr = localStorage.getItem('eyevengers-multi-wishlist');
+      let wishlistCount = 0;
+      if (wishlistStorageStr) {
+        const wishlistState = JSON.parse(wishlistStorageStr).state;
+        const userWishlist = wishlistState?.wishlistsByUser?.[customerId];
+        wishlistCount = userWishlist?.length || 0;
+      }
+
+      setCustomerStats({
+        orders: userOrders.length,
+        cartItems: cartCount,
+        wishlistItems: wishlistCount
+      });
+    } catch (e) {
+      console.error('Failed to load stats', e);
+    }
+  };
+
+  const handleViewCustomer = (customer: any) => {
+    setSelectedCustomer(customer);
+    loadCustomerStats(customer.id);
+  };
 
   useEffect(() => {
     try {
@@ -85,7 +126,10 @@ export default function CustomersPage() {
                     <td className="px-6 py-4">{customer.email || '-'}</td>
                     <td className="px-6 py-4">{date}</td>
                     <td className="px-6 py-4 text-right">
-                      <button className="p-1.5 text-gray-400 hover:text-brand-navy hover:bg-blue-50 rounded transition flex items-center gap-1 text-xs font-medium ml-auto">
+                      <button 
+                        onClick={() => handleViewCustomer(customer)}
+                        className="p-1.5 text-gray-400 hover:text-brand-navy hover:bg-blue-50 rounded transition flex items-center gap-1 text-xs font-medium ml-auto"
+                      >
                         <Eye size={16} /> View Profile
                       </button>
                     </td>
@@ -111,6 +155,73 @@ export default function CustomersPage() {
         </div>
 
       </div>
+
+      {/* Customer Details Modal */}
+      {selectedCustomer && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl animate-in zoom-in-95 overflow-hidden">
+            <div className="border-b border-gray-100 p-6 flex items-center justify-between bg-gray-50">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-brand-navy text-white flex items-center justify-center font-bold text-xl">
+                  {selectedCustomer.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">{selectedCustomer.name}</h3>
+                  <p className="text-sm text-gray-500">Customer ID: {selectedCustomer.id}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedCustomer(null)} className="p-2 hover:bg-gray-200 rounded-full transition text-gray-500">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <h4 className="font-bold text-gray-900 mb-4 border-b border-gray-100 pb-2">Contact Details</h4>
+              <div className="space-y-3 mb-8">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500 font-medium">Phone</span>
+                  <span className="text-gray-900 font-bold">+91 {selectedCustomer.phone}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500 font-medium">Email</span>
+                  <span className="text-gray-900 font-bold">{selectedCustomer.email || 'Not provided'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500 font-medium">Joined</span>
+                  <span className="text-gray-900 font-bold">
+                    {new Date(selectedCustomer.joinedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                </div>
+              </div>
+
+              <h4 className="font-bold text-gray-900 mb-4 border-b border-gray-100 pb-2">Activity Summary</h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-blue-50 rounded-xl p-4 text-center border border-blue-100">
+                  <ShoppingBag size={24} className="mx-auto text-blue-600 mb-2" />
+                  <p className="text-2xl font-black text-blue-900">{customerStats.orders}</p>
+                  <p className="text-xs font-bold text-blue-700 uppercase tracking-wider mt-1">Orders</p>
+                </div>
+                <div className="bg-pink-50 rounded-xl p-4 text-center border border-pink-100">
+                  <Heart size={24} className="mx-auto text-pink-600 mb-2" />
+                  <p className="text-2xl font-black text-pink-900">{customerStats.wishlistItems}</p>
+                  <p className="text-xs font-bold text-pink-700 uppercase tracking-wider mt-1">Wishlist</p>
+                </div>
+                <div className="bg-purple-50 rounded-xl p-4 text-center border border-purple-100">
+                  <ShoppingCart size={24} className="mx-auto text-purple-600 mb-2" />
+                  <p className="text-2xl font-black text-purple-900">{customerStats.cartItems}</p>
+                  <p className="text-xs font-bold text-purple-700 uppercase tracking-wider mt-1">In Cart</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="border-t border-gray-100 p-4 bg-gray-50 flex justify-end">
+               <button onClick={() => setSelectedCustomer(null)} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold rounded-lg transition-colors">
+                 Close
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
