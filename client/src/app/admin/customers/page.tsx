@@ -8,43 +8,38 @@ export default function CustomersPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
   const [customerStats, setCustomerStats] = useState({ orders: 0, cartItems: 0, wishlistItems: 0 });
 
-  const loadCustomerStats = (customerId: string) => {
+  const loadCustomerStats = async (customer: any) => {
     try {
-      // Load orders
-      const storedOrders = JSON.parse(localStorage.getItem('eyevengers_mock_orders') || '[]');
-      const userOrders = storedOrders.filter((o: any) => o.userId === customerId);
-
-      // Load cart
-      const cartStorageStr = localStorage.getItem('eyevengers-multi-cart');
-      let cartCount = 0;
-      if (cartStorageStr) {
-        const cartState = JSON.parse(cartStorageStr).state;
-        const userCart = cartState?.cartsByUser?.[customerId];
-        cartCount = userCart?.totalCount || 0;
+      // Load orders from API
+      const res = await fetch('https://eyevengers-web.onrender.com/api/orders');
+      if (res.ok) {
+        const orders = await res.json();
+        const userOrders = orders.filter((o: any) => 
+          o.userId === customer.id || 
+          o.details?.userPhone === customer.phone || 
+          o.details?.customerName === customer.name
+        );
+        
+        setCustomerStats({
+          orders: userOrders.length,
+          cartItems: customer.cartCount || 0,
+          wishlistItems: customer.wishlistCount || 0
+        });
       }
-
-      // Load wishlist
-      const wishlistStorageStr = localStorage.getItem('eyevengers-multi-wishlist');
-      let wishlistCount = 0;
-      if (wishlistStorageStr) {
-        const wishlistState = JSON.parse(wishlistStorageStr).state;
-        const userWishlist = wishlistState?.wishlistsByUser?.[customerId];
-        wishlistCount = userWishlist?.length || 0;
-      }
-
-      setCustomerStats({
-        orders: userOrders.length,
-        cartItems: cartCount,
-        wishlistItems: wishlistCount
-      });
     } catch (e) {
       console.error('Failed to load stats', e);
+      // Fallback
+      setCustomerStats({
+        orders: 0,
+        cartItems: customer.cartCount || 0,
+        wishlistItems: customer.wishlistCount || 0
+      });
     }
   };
 
   const handleViewCustomer = (customer: any) => {
     setSelectedCustomer(customer);
-    loadCustomerStats(customer.id);
+    loadCustomerStats(customer);
   };
 
   useEffect(() => {
@@ -58,6 +53,8 @@ export default function CustomersPage() {
           name: c.name,
           email: c.email,
           phone: c.phone,
+          cartCount: c.cartCount || 0,
+          wishlistCount: c.wishlistCount || 0,
           joinedAt: c.createdAt || new Date().toISOString()
         })) : [];
         

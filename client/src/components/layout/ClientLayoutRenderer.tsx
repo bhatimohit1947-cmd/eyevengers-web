@@ -7,6 +7,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { Footer } from "@/components/layout/Footer";
 import { SideDrawer } from "@/components/layout/SideDrawer";
 import { LoginModal } from "@/components/layout/LoginModal";
+import { SyncActivity } from "@/components/layout/SyncActivity";
 
 export function ClientLayoutRenderer({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -26,6 +27,7 @@ export function ClientLayoutRenderer({ children }: { children: React.ReactNode }
       <BottomNav />
       <SideDrawer />
       <LoginModal />
+      <SyncActivity />
     </>
   );
 }
