@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import Script from 'next/script';
 import { ARTryOn } from '@/components/ui/ARTryOn';
 import { useWishlistStore } from '@/store/useWishlistStore';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -14,6 +15,8 @@ export default function ProductDetailPage() {
   
   const { hasItem, toggleItem } = useWishlistStore();
   const isWishlisted = hasItem(id as string);
+  
+  const { user } = useAuthStore();
   
   // Lens Settings from Admin
   const [lensSettings, setLensSettings] = useState<any>(null);
@@ -109,7 +112,9 @@ export default function ProductDetailPage() {
       frame: product.name,
       lensCategory: selectedCategory?.name,
       lensProduct: selectedLensProduct?.name,
-      power: !isFrameOnly ? powerData : null
+      power: !isFrameOnly ? powerData : null,
+      customerName: user?.name || 'Guest Customer',
+      userPhone: user?.phone || 'N/A'
     };
 
     try {

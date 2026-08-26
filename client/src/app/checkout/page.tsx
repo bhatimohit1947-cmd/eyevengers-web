@@ -113,7 +113,9 @@ export default function CheckoutPage() {
           frame: cartItems[0]?.title || 'Eyeglasses',
           lensCategory: cartItems[0]?.lensConfig?.lensCategory || 'Frame Only',
           lensProduct: cartItems[0]?.lensConfig?.lensType,
-          power: cartItems[0]?.lensConfig?.power
+          power: cartItems[0]?.lensConfig?.power,
+          customerName: user?.name || 'Guest Customer',
+          userPhone: user?.phone || 'N/A'
         }
       };
 

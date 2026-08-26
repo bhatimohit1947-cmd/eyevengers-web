@@ -102,7 +102,12 @@ export default function OrdersPage() {
                 return (
                   <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 font-medium text-gray-900">{order.id}</td>
-                    <td className="px-6 py-4">Guest Customer</td>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-gray-900">{order.details?.customerName || 'Guest Customer'}</div>
+                      {order.details?.userPhone && order.details.userPhone !== 'N/A' && (
+                        <div className="text-xs text-gray-500">{order.details.userPhone}</div>
+                      )}
+                    </td>
                     <td className="px-6 py-4">{date}</td>
                     <td className="px-6 py-4 font-medium text-gray-900">
                       ₹{order.amount}
