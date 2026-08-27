@@ -30,7 +30,8 @@ export default function OrdersPage() {
         let apiOrders: any[] = [];
         try {
           // Fetch from Render directly (can take up to 2 minutes if asleep)
-          const renderRes = await fetch('https://eyevengers-web.onrender.com/api/orders');
+          // Added cache-busting timestamp to prevent browser heuristic caching
+          const renderRes = await fetch(`https://eyevengers-web.onrender.com/api/orders?t=${Date.now()}`);
           if (renderRes.ok) {
             const renderData = await renderRes.json();
             apiOrders = [...apiOrders, ...renderData];
@@ -41,7 +42,7 @@ export default function OrdersPage() {
 
         try {
           // Fetch from Vercel mock fallback (fast)
-          const vercelRes = await fetch('/api/orders');
+          const vercelRes = await fetch(`/api/orders?t=${Date.now()}`);
           if (vercelRes.ok) {
             const vercelData = await vercelRes.json();
             apiOrders = [...apiOrders, ...vercelData];
@@ -57,10 +58,27 @@ export default function OrdersPage() {
         
         const mergedOrders = Array.from(map.values());
 
-        const userOrders = mergedOrders.filter((o: any) => 
-          o.userId === user?.id || 
-          (user?.phone && o.details?.userPhone === user.phone)
-        );
+        const userOrders = mergedOrders.filter((o: any) => {
+          if (!user) return false;
+          
+          if (o.userId === user.id) return true;
+          
+          // Permissive phone matching
+          if (user.phone && o.details?.userPhone) {
+            const cleanUserPhone = String(user.phone).replace(/\D/g, '');
+            const cleanOrderPhone = String(o.details.userPhone).replace(/\D/g, '');
+            if (cleanUserPhone === cleanOrderPhone) return true;
+          }
+          
+          // Permissive name matching if phone is missing (fallback)
+          if (o.details?.customerName && user.name) {
+             const cleanUserName = String(user.name).trim().toLowerCase();
+             const cleanOrderName = String(o.details.customerName).trim().toLowerCase();
+             if (cleanUserName === cleanOrderName && cleanUserName !== 'guest customer') return true;
+          }
+
+          return false;
+        });
         
         // Sort by newest first
         userOrders.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
