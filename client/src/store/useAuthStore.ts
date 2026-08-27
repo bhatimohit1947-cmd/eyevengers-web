@@ -46,7 +46,6 @@ export const useAuthStore = create<AuthState>()(
         });
         useCartStore.getState().switchUser(userData.id);
         useWishlistStore.getState().switchUser(userData.id);
-        useAddressStore.getState().switchUser(userData.id);
       },
       
       logout: () => {
@@ -58,7 +57,6 @@ export const useAuthStore = create<AuthState>()(
         });
         useCartStore.getState().switchUser(null);
         useWishlistStore.getState().switchUser(null);
-        useAddressStore.getState().switchUser(null);
       },
       
       setMembershipTier: (tier) => set({ membershipTier: tier }),

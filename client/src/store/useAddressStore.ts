@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { useAuthStore } from './useAuthStore';
 
 export interface Address {
   id: string;
@@ -14,13 +15,11 @@ export interface Address {
 
 interface AddressState {
   addresses: Address[];
-  currentUserId: string | null;
 
   // Actions
   addAddress: (address: Omit<Address, 'id' | 'userId'>) => void;
   removeAddress: (id: string) => void;
   setDefaultAddress: (id: string) => void;
-  switchUser: (userId: string | null) => void;
   getUserAddresses: () => Address[];
   getDefaultAddress: () => Address | undefined;
 }
@@ -29,10 +28,10 @@ export const useAddressStore = create<AddressState>()(
   persist(
     (set, get) => ({
       addresses: [],
-      currentUserId: null,
 
       addAddress: (addressData) => {
-        const { currentUserId, addresses } = get();
+        const currentUserId = useAuthStore.getState().user?.id;
+        const { addresses } = get();
         if (!currentUserId) return;
 
         const newAddress: Address = {
@@ -60,7 +59,7 @@ export const useAddressStore = create<AddressState>()(
           const newAddresses = state.addresses.filter((a) => a.id !== id);
           
           // If we deleted the default address, make the first remaining one default
-          const { currentUserId } = state;
+          const currentUserId = useAuthStore.getState().user?.id;
           if (currentUserId) {
             const userAddrs = newAddresses.filter(a => a.userId === currentUserId);
             if (userAddrs.length > 0 && !userAddrs.some(a => a.isDefault)) {
@@ -76,7 +75,7 @@ export const useAddressStore = create<AddressState>()(
       },
 
       setDefaultAddress: (id) => {
-        const { currentUserId } = get();
+        const currentUserId = useAuthStore.getState().user?.id;
         if (!currentUserId) return;
 
         set((state) => ({
@@ -87,12 +86,9 @@ export const useAddressStore = create<AddressState>()(
         }));
       },
 
-      switchUser: (userId) => {
-        set({ currentUserId: userId });
-      },
-
       getUserAddresses: () => {
-        const { addresses, currentUserId } = get();
+        const currentUserId = useAuthStore.getState().user?.id;
+        const { addresses } = get();
         if (!currentUserId) return [];
         return addresses.filter(a => a.userId === currentUserId).sort((a, b) => {
           // Default address comes first
@@ -110,7 +106,6 @@ export const useAddressStore = create<AddressState>()(
     {
       name: 'eyevengers-address-storage',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ addresses: state.addresses }) // Only persist the addresses list
     }
   )
 );
