@@ -53,7 +53,7 @@ export async function GET() {
   const timeoutId = setTimeout(() => controller.abort(), 3000);
   
   try {
-    const res = await fetch('https://eyevengers-web.onrender.com/api/admin/orders', {
+    const res = await fetch('https://eyevengers-web.onrender.com/api/orders', {
       signal: controller.signal
     });
     if (res.ok) backendOrders = await res.json();
