@@ -42,7 +42,15 @@ export default function OrdersPage() {
 
   const updateStatus = async (orderId: string, newStatus: string) => {
     try {
-      const res = await fetch(`/api/orders/${orderId}/status`, {
+      // 1. Update Vercel fast-cache so customers see it instantly
+      fetch(`/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      }).catch(console.error);
+
+      // 2. Update Render backend directly from browser to avoid Vercel 10s timeouts
+      const res = await fetch(`https://eyevengers-web.onrender.com/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })

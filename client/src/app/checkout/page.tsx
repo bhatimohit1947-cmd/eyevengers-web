@@ -135,8 +135,15 @@ export default function CheckoutPage() {
         console.error("Failed to save mock order", e);
       }
 
-      // POST to the API so it goes to the Vercel memory cache (and Render backend if alive)
+      // POST to the API so it goes to the Vercel memory cache for instant UI updates
       fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newOrder)
+      }).catch(console.error);
+
+      // POST directly to Render from the browser so it doesn't get killed by Vercel's 10s timeout
+      fetch('https://eyevengers-web.onrender.com/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newOrder)

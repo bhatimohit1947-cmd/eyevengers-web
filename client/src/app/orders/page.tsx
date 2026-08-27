@@ -29,8 +29,23 @@ export default function OrdersPage() {
       try {
         let apiOrders: any[] = [];
         try {
-          const res = await fetch('/api/orders');
-          if (res.ok) apiOrders = await res.json();
+          // Fetch from Render directly (can take up to 2 minutes if asleep)
+          const renderRes = await fetch('https://eyevengers-web.onrender.com/api/orders');
+          if (renderRes.ok) {
+            const renderData = await renderRes.json();
+            apiOrders = [...apiOrders, ...renderData];
+          }
+        } catch (e) {
+          console.log("Render backend failed to respond");
+        }
+
+        try {
+          // Fetch from Vercel mock fallback (fast)
+          const vercelRes = await fetch('/api/orders');
+          if (vercelRes.ok) {
+            const vercelData = await vercelRes.json();
+            apiOrders = [...apiOrders, ...vercelData];
+          }
         } catch (e) {}
 
         const storedOrders = JSON.parse(localStorage.getItem('eyevengers_mock_orders') || '[]');
