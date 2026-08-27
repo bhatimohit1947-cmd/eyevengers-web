@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { useCartStore } from './useCartStore';
 import { useWishlistStore } from './useWishlistStore';
+import { useAddressStore } from './useAddressStore';
 
 interface User {
   id: string;
@@ -45,6 +46,7 @@ export const useAuthStore = create<AuthState>()(
         });
         useCartStore.getState().switchUser(userData.id);
         useWishlistStore.getState().switchUser(userData.id);
+        useAddressStore.getState().switchUser(userData.id);
       },
       
       logout: () => {
@@ -56,6 +58,7 @@ export const useAuthStore = create<AuthState>()(
         });
         useCartStore.getState().switchUser(null);
         useWishlistStore.getState().switchUser(null);
+        useAddressStore.getState().switchUser(null);
       },
       
       setMembershipTier: (tier) => set({ membershipTier: tier }),

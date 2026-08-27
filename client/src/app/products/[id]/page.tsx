@@ -7,6 +7,8 @@ import Script from 'next/script';
 import { ARTryOn } from '@/components/ui/ARTryOn';
 import { useWishlistStore } from '@/store/useWishlistStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useAddressStore } from '@/store/useAddressStore';
+import AddressManager from '@/components/checkout/AddressManager';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -22,7 +24,8 @@ export default function ProductDetailPage() {
   const [lensSettings, setLensSettings] = useState<any>(null);
   
   // Checkout Flow State
-  const [flowStep, setFlowStep] = useState<'initial' | 'lens_category' | 'lens_product' | 'power_input' | 'checkout' | 'success'>('initial');
+  const [flowStep, setFlowStep] = useState<'initial' | 'lens_category' | 'lens_product' | 'power_input' | 'address_selection' | 'checkout' | 'success'>('initial');
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   const [isFrameOnly, setIsFrameOnly] = useState(false);
   
   // Selections
@@ -75,7 +78,7 @@ export default function ProductDetailPage() {
       setFlowStep('power_input');
     } else {
       setHighPowerSurchargeApplied(false);
-      setFlowStep('checkout');
+      setFlowStep('address_selection');
     }
   };
 
@@ -90,7 +93,7 @@ export default function ProductDetailPage() {
     });
 
     setHighPowerSurchargeApplied(isHighPower);
-    setFlowStep('checkout');
+    setFlowStep('address_selection');
   };
 
   const calculateTotal = () => {
@@ -105,7 +108,15 @@ export default function ProductDetailPage() {
   };
 
   const handlePlaceOrder = async () => {
+    if (!selectedAddressId) {
+      alert("Please select a delivery address.");
+      return;
+    }
+    
     setIsPlacingOrder(true);
+    
+    const { getUserAddresses } = useAddressStore.getState();
+    const selectedAddress = getUserAddresses().find(a => a.id === selectedAddressId);
     
     const amount = calculateTotal();
     const orderDetails = {
@@ -114,7 +125,8 @@ export default function ProductDetailPage() {
       lensProduct: selectedLensProduct?.name,
       power: !isFrameOnly ? powerData : null,
       customerName: user?.name || 'Guest Customer',
-      userPhone: user?.phone || 'N/A'
+      userPhone: user?.phone || 'N/A',
+      address: selectedAddress
     };
 
     try {
@@ -320,7 +332,8 @@ export default function ProductDetailPage() {
               <button onClick={() => {
                 if (flowStep === 'lens_product') setFlowStep('lens_category');
                 else if (flowStep === 'power_input') setFlowStep('lens_product');
-                else if (flowStep === 'checkout' && !isFrameOnly) setFlowStep(selectedCategory?.hasPowerInput ? 'power_input' : 'lens_product');
+                else if (flowStep === 'address_selection' && !isFrameOnly) setFlowStep(selectedCategory?.hasPowerInput ? 'power_input' : 'lens_product');
+                else if (flowStep === 'checkout') setFlowStep('address_selection');
                 else setFlowStep('initial');
               }} className="flex items-center text-sm font-bold text-brand-navy mb-4 hover:underline">
                 <ArrowLeft size={16} className="mr-1" /> Back
@@ -331,7 +344,7 @@ export default function ProductDetailPage() {
             {flowStep === 'initial' && (
               <div className="space-y-4">
                 <button onClick={() => { setIsFrameOnly(false); setFlowStep('lens_category'); }} className="w-full bg-brand-navy text-white font-bold text-base rounded-full py-4 shadow-lg shadow-blue-900/20 hover:bg-blue-900 transition flex items-center justify-center gap-2"><Glasses size={18} /> BUY WITH LENSES</button>
-                <button onClick={() => { setIsFrameOnly(true); setFlowStep('checkout'); }} className="w-full bg-white border-2 border-gray-200 text-gray-800 font-bold text-base rounded-full py-4 hover:border-brand-navy hover:text-brand-navy transition flex items-center justify-center gap-2">BUY FRAME ONLY</button>
+                <button onClick={() => { setIsFrameOnly(true); setFlowStep('address_selection'); }} className="w-full bg-white border-2 border-gray-200 text-gray-800 font-bold text-base rounded-full py-4 hover:border-brand-navy hover:text-brand-navy transition flex items-center justify-center gap-2">BUY FRAME ONLY</button>
                 <button onClick={() => setIsARModalOpen(true)} className="w-full bg-blue-50 text-blue-700 font-bold py-3 rounded-full hover:bg-blue-100 transition flex items-center justify-center gap-2"><Camera size={18} /> TRY IN 3D</button>
               </div>
             )}
@@ -402,7 +415,33 @@ export default function ProductDetailPage() {
                 {renderPowerInput('le', 'Left Eye (OS)')}
 
                 <button onClick={handlePowerSubmit} className="w-full bg-brand-navy text-white font-bold py-3.5 rounded-xl transition shadow-md">
-                  Confirm Power & Review Price
+                  Continue to Delivery Address
+                </button>
+              </div>
+            )}
+
+            {/* STEP 4.5: ADDRESS SELECTION */}
+            {flowStep === 'address_selection' && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+                <AddressManager 
+                  selectedAddressId={selectedAddressId} 
+                  setSelectedAddressId={setSelectedAddressId} 
+                />
+                <button 
+                  onClick={() => {
+                    if (!selectedAddressId) {
+                      alert("Please select a delivery address.");
+                      return;
+                    }
+                    if (!user) {
+                       useAuthStore.getState().openLoginModal();
+                       return;
+                    }
+                    setFlowStep('checkout');
+                  }} 
+                  className="w-full bg-brand-navy text-white font-bold py-3.5 rounded-xl transition shadow-md disabled:opacity-50"
+                >
+                  Proceed to Payment
                 </button>
               </div>
             )}
