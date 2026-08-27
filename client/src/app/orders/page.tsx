@@ -10,8 +10,15 @@ export default function OrdersPage() {
   const { isLoggedIn, user, openLoginModal } = useAuthStore();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    
     if (!isLoggedIn) {
       router.push('/');
       setTimeout(() => openLoginModal(), 500);
@@ -20,7 +27,10 @@ export default function OrdersPage() {
 
     try {
       const storedOrders = JSON.parse(localStorage.getItem('eyevengers_mock_orders') || '[]');
-      const userOrders = storedOrders.filter((o: any) => o.userId === user?.id);
+      const userOrders = storedOrders.filter((o: any) => 
+        o.userId === user?.id || 
+        (user?.phone && o.details?.userPhone === user.phone)
+      );
       
       // Sort by newest first
       userOrders.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -31,9 +41,9 @@ export default function OrdersPage() {
       console.error(err);
       setLoading(false);
     }
-  }, [isLoggedIn, user, router, openLoginModal]);
+  }, [hydrated, isLoggedIn, user, router, openLoginModal]);
 
-  if (!isLoggedIn) return null;
+  if (!hydrated || !isLoggedIn) return null;
 
   if (loading) {
     return <div className="min-h-[60vh] flex items-center justify-center">Loading orders...</div>;

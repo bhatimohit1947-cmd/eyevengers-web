@@ -21,7 +21,14 @@ export default function WishlistPage() {
   const { isLoggedIn, openLoginModal } = useAuthStore();
   const [items, setItems] = useState<any[]>([]);
 
+  const [hydrated, setHydrated] = useState(false);
+
   useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
     if (!isLoggedIn) {
       setTimeout(() => openLoginModal(), 500);
       return;
@@ -43,6 +50,8 @@ export default function WishlistPage() {
     });
     toggleItem(item.id); // Remove from wishlist after moving
   };
+
+  if (!hydrated) return null;
 
   if (!isLoggedIn) {
     return (

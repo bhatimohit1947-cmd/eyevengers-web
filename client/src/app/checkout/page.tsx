@@ -30,8 +30,16 @@ export default function CheckoutPage() {
 
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    
     if (!isLoggedIn) {
       router.push('/cart');
       setTimeout(() => openLoginModal(), 500);
@@ -133,7 +141,7 @@ export default function CheckoutPage() {
     }, 1500);
   };
 
-  if (!isLoggedIn) return null;
+  if (!hydrated || !isLoggedIn) return null;
 
   if (orderSuccess) {
     return (
