@@ -10,18 +10,28 @@ interface AddressManagerProps {
 
 export default function AddressManager({ selectedAddressId, setSelectedAddressId }: AddressManagerProps) {
   const { user } = useAuthStore();
-  const { getUserAddresses, addAddress, removeAddress, setDefaultAddress, getDefaultAddress } = useAddressStore();
   
-  const addresses = getUserAddresses();
+  // Use a reactive selector to get addresses, which guarantees re-renders on state change
+  const allAddresses = useAddressStore(state => state.addresses);
+  const { addAddress, removeAddress, setDefaultAddress } = useAddressStore();
+  
+  // Compute user-specific addresses
+  const addresses = React.useMemo(() => {
+    if (!user) return [];
+    return allAddresses.filter(a => a.userId === user.id).sort((a, b) => {
+      if (a.isDefault && !b.isDefault) return -1;
+      if (!a.isDefault && b.isDefault) return 1;
+      return 0;
+    });
+  }, [allAddresses, user]);
   
   // Set default address initially if none is selected
   useEffect(() => {
     if (!selectedAddressId && addresses.length > 0) {
-      const defaultAddr = getDefaultAddress();
-      if (defaultAddr) setSelectedAddressId(defaultAddr.id);
-      else setSelectedAddressId(addresses[0].id);
+      const defaultAddr = addresses.find(a => a.isDefault) || addresses[0];
+      setSelectedAddressId(defaultAddr.id);
     }
-  }, [selectedAddressId, addresses, getDefaultAddress, setSelectedAddressId]);
+  }, [selectedAddressId, addresses, setSelectedAddressId]);
   
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [newAddress, setNewAddress] = useState({
@@ -44,7 +54,7 @@ export default function AddressManager({ selectedAddressId, setSelectedAddressId
     
     // If the selected address was deleted, reset selection
     if (selectedAddressId === id) {
-      const remaining = getUserAddresses().filter(a => a.id !== id);
+      const remaining = addresses.filter(a => a.id !== id);
       setSelectedAddressId(remaining.length > 0 ? remaining[0].id : '');
     }
   };
