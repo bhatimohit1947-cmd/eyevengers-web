@@ -37,7 +37,7 @@ export default function WishlistPage() {
     // Simulate fetching products by ID from API
     const fetchedItems = productIds.map(id => MOCK_PRODUCTS_DB[id] || { id, title: `Product ${id}`, price: 999 }).reverse();
     setItems(fetchedItems);
-  }, [productIds]);
+  }, [productIds, hydrated, isLoggedIn, openLoginModal]);
 
   const handleMoveToCart = (item: any) => {
     addItem({

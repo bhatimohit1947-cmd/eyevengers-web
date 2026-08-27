@@ -25,22 +25,40 @@ export default function OrdersPage() {
       return;
     }
 
-    try {
-      const storedOrders = JSON.parse(localStorage.getItem('eyevengers_mock_orders') || '[]');
-      const userOrders = storedOrders.filter((o: any) => 
-        o.userId === user?.id || 
-        (user?.phone && o.details?.userPhone === user.phone)
-      );
-      
-      // Sort by newest first
-      userOrders.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      
-      setOrders(userOrders);
-      setLoading(false);
-    } catch (err) {
-      console.error(err);
-      setLoading(false);
-    }
+    const fetchOrders = async () => {
+      try {
+        let apiOrders: any[] = [];
+        try {
+          const res = await fetch('/api/orders');
+          if (res.ok) apiOrders = await res.json();
+        } catch (e) {}
+
+        const storedOrders = JSON.parse(localStorage.getItem('eyevengers_mock_orders') || '[]');
+        
+        // Merge API and local orders
+        const map = new Map();
+        apiOrders.forEach((o: any) => map.set(o.id, o));
+        storedOrders.forEach((o: any) => map.set(o.id, { ...map.get(o.id), ...o }));
+        
+        const mergedOrders = Array.from(map.values());
+
+        const userOrders = mergedOrders.filter((o: any) => 
+          o.userId === user?.id || 
+          (user?.phone && o.details?.userPhone === user.phone)
+        );
+        
+        // Sort by newest first
+        userOrders.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        
+        setOrders(userOrders);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchOrders();
   }, [hydrated, isLoggedIn, user, router, openLoginModal]);
 
   if (!hydrated || !isLoggedIn) return null;

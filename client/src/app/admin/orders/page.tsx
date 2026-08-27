@@ -7,11 +7,33 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
-  const fetchOrders = () => {
-    fetch(`https://eyevengers-web.onrender.com/api/orders`)
-      .then(res => res.json())
-      .then(data => setOrders(data))
-      .catch(err => console.error("Error fetching orders:", err));
+  const fetchOrders = async () => {
+    try {
+      let backendOrders: any[] = [];
+      let fallbackOrders: any[] = [];
+      
+      try {
+        const res = await fetch(`https://eyevengers-web.onrender.com/api/orders`);
+        if (res.ok) backendOrders = await res.json();
+      } catch (e) {}
+
+      try {
+        const res2 = await fetch('/api/orders');
+        if (res2.ok) fallbackOrders = await res2.json();
+      } catch (e) {}
+
+      const map = new Map();
+      backendOrders.forEach(o => map.set(o.id, o));
+      fallbackOrders.forEach(o => map.set(o.id, { ...map.get(o.id), ...o }));
+      
+      const merged = Array.from(map.values());
+      // Sort by newest first
+      merged.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      setOrders(merged);
+    } catch (err) {
+      console.error("Error fetching orders:", err);
+    }
   };
 
   useEffect(() => {

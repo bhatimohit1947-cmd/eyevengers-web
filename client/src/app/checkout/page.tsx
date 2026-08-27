@@ -135,6 +135,13 @@ export default function CheckoutPage() {
         console.error("Failed to save mock order", e);
       }
 
+      // POST to the API so it goes to the Vercel memory cache (and Render backend if alive)
+      fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newOrder)
+      }).catch(console.error);
+
       setIsPlacingOrder(false);
       setOrderSuccess(true);
       clearCart();
