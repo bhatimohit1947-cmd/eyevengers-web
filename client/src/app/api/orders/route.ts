@@ -48,10 +48,20 @@ const saveFallbackOrder = (order: any) => {
 
 export async function GET() {
   let backendOrders = [];
+  
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3000);
+  
   try {
-    const res = await fetch('https://eyevengers-web.onrender.com/api/admin/orders');
+    const res = await fetch('https://eyevengers-web.onrender.com/api/admin/orders', {
+      signal: controller.signal
+    });
     if (res.ok) backendOrders = await res.json();
-  } catch (error) {}
+  } catch (error) {
+    // Ignore timeout errors
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const fallbackOrders = getFallbackOrders();
   
@@ -70,13 +80,19 @@ export async function POST(request: Request) {
     // Always save locally as a fallback
     saveFallbackOrder(order);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
     try {
       const res = await fetch('https://eyevengers-web.onrender.com/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(order)
+        body: JSON.stringify(order),
+        signal: controller.signal
       });
       
+      clearTimeout(timeoutId);
+
       if (!res.ok) {
         return NextResponse.json({ success: true, order, warning: 'Backend unavailable, saved locally' });
       }
@@ -84,6 +100,7 @@ export async function POST(request: Request) {
       const data = await res.json();
       return NextResponse.json(data);
     } catch (fetchError) {
+      clearTimeout(timeoutId);
       return NextResponse.json({ success: true, order, warning: 'Backend fetch failed, saved locally' });
     }
   } catch (error) {
