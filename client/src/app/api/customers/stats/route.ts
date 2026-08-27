@@ -6,7 +6,21 @@ export const dynamic = 'force-dynamic';
 
 const FALLBACK_DB_PATH = path.join(process.cwd(), 'mock_customers.json');
 
+// Vercel Serverless In-Memory Cache Fallback
+if (!(globalThis as any).mockCustomers) {
+  (globalThis as any).mockCustomers = [];
+}
+
 const updateFallbackStats = (id: string, cartCount?: number, wishlistCount?: number) => {
+  // Try memory first
+  const memCustomers = (globalThis as any).mockCustomers;
+  const memIdx = memCustomers.findIndex((c: any) => c.id === id);
+  if (memIdx >= 0) {
+    if (cartCount !== undefined) memCustomers[memIdx].cartCount = cartCount;
+    if (wishlistCount !== undefined) memCustomers[memIdx].wishlistCount = wishlistCount;
+  }
+
+  // Try FS
   try {
     if (fs.existsSync(FALLBACK_DB_PATH)) {
       const customers = JSON.parse(fs.readFileSync(FALLBACK_DB_PATH, 'utf-8'));

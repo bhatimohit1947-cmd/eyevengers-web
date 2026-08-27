@@ -46,9 +46,24 @@ export default function CustomersPage() {
     const fetchCustomers = async () => {
       try {
         const res = await fetch('/api/customers');
-        const mockCustomers = await res.json();
+        let apiCustomers = await res.json();
+        if (!Array.isArray(apiCustomers)) apiCustomers = [];
         
-        const formatted = Array.isArray(mockCustomers) ? mockCustomers.map((c: any) => ({
+        // Also load from local storage fallback (for immediate feedback when backend is down)
+        let localCustomers = [];
+        try {
+          if (typeof window !== 'undefined') {
+            localCustomers = JSON.parse(localStorage.getItem('eyevengers_mock_customers') || '[]');
+          }
+        } catch (e) {}
+        
+        // Merge them, preferring local storage if there's a clash (since local might be newer if API failed)
+        const map = new Map();
+        apiCustomers.forEach((c: any) => map.set(c.phone, c));
+        localCustomers.forEach((c: any) => map.set(c.phone, c));
+        const mergedCustomers = Array.from(map.values());
+
+        const formatted = mergedCustomers.map((c: any) => ({
           id: c.id,
           name: c.name,
           email: c.email,
@@ -56,11 +71,14 @@ export default function CustomersPage() {
           cartCount: c.cartCount || 0,
           wishlistCount: c.wishlistCount || 0,
           joinedAt: c.createdAt || new Date().toISOString()
-        })) : [];
+        }));
+        
+        // Sort by newest first
+        formatted.sort((a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime());
         
         setCustomers(formatted);
       } catch (err) {
-        console.error("Error loading mock customers:", err);
+        console.error("Error loading customers:", err);
       }
     };
     

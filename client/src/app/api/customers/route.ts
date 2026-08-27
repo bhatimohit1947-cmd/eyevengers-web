@@ -6,25 +6,43 @@ export const dynamic = 'force-dynamic';
 
 const FALLBACK_DB_PATH = path.join(process.cwd(), 'mock_customers.json');
 
+// Vercel Serverless In-Memory Cache Fallback
+if (!(globalThis as any).mockCustomers) {
+  (globalThis as any).mockCustomers = [];
+}
+
 const getFallbackCustomers = () => {
+  let fsCustomers = [];
   try {
     if (fs.existsSync(FALLBACK_DB_PATH)) {
-      return JSON.parse(fs.readFileSync(FALLBACK_DB_PATH, 'utf-8'));
+      fsCustomers = JSON.parse(fs.readFileSync(FALLBACK_DB_PATH, 'utf-8'));
     }
   } catch (e) {}
-  return [];
+  
+  // Merge fs and memory
+  const map = new Map();
+  fsCustomers.forEach((c: any) => map.set(c.phone, c));
+  (globalThis as any).mockCustomers.forEach((c: any) => map.set(c.phone, c));
+  return Array.from(map.values());
 };
 
 const saveFallbackCustomer = (customer: any) => {
+  // Save to memory
+  const memoryCustomers = (globalThis as any).mockCustomers;
+  const memIdx = memoryCustomers.findIndex((c: any) => c.phone === customer.phone);
+  if (memIdx >= 0) memoryCustomers[memIdx] = { ...memoryCustomers[memIdx], ...customer };
+  else memoryCustomers.push(customer);
+
+  // Save to FS
   try {
-    const customers = getFallbackCustomers();
-    const idx = customers.findIndex((c: any) => c.phone === customer.phone);
+    const fsCustomers = getFallbackCustomers();
+    const idx = fsCustomers.findIndex((c: any) => c.phone === customer.phone);
     if (idx >= 0) {
-      customers[idx] = { ...customers[idx], ...customer };
+      fsCustomers[idx] = { ...fsCustomers[idx], ...customer };
     } else {
-      customers.push(customer);
+      fsCustomers.push(customer);
     }
-    fs.writeFileSync(FALLBACK_DB_PATH, JSON.stringify(customers, null, 2));
+    fs.writeFileSync(FALLBACK_DB_PATH, JSON.stringify(fsCustomers, null, 2));
   } catch (e) {}
 };
 
