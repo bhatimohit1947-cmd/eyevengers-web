@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Search, Eye, Filter, X } from 'lucide-react';
+import { Search, Eye, Filter, X, Printer, MapPin } from 'lucide-react';
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -63,7 +63,7 @@ export default function OrdersPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 print:hidden">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Orders</h2>
           <p className="text-sm text-gray-500">View and manage customer orders and shipments.</p>
@@ -199,15 +199,38 @@ export default function OrdersPage() {
         </div>
       </div>
 
+      {/* CSS for printing */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @media print {
+          body * { visibility: hidden; }
+          .print-section, .print-section * { visibility: visible; }
+          .print-section { position: absolute; left: 0; top: 0; width: 100%; }
+          .print-hide { display: none !important; }
+          .print-section { 
+            background: white !important;
+            padding: 20px !important;
+            box-shadow: none !important;
+          }
+        }
+      `}} />
+
       {/* Order Details Modal */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl animate-in zoom-in-95">
-            <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between z-10">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in print:bg-white print:p-0">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl animate-in zoom-in-95 print-section print:max-h-none print:shadow-none print:w-full print:max-w-none">
+            <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between z-10 print:static print:border-none">
               <h3 className="text-xl font-bold text-gray-900">Order {selectedOrder.id}</h3>
-              <button onClick={() => setSelectedOrder(null)} className="p-2 hover:bg-gray-100 rounded-full transition text-gray-500">
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-2 print:hidden">
+                <button 
+                  onClick={() => window.print()}
+                  className="px-4 py-2 bg-brand-navy text-white text-sm font-bold rounded-lg hover:bg-blue-900 transition flex items-center gap-2"
+                >
+                  <Printer size={16} /> Print Details
+                </button>
+                <button onClick={() => setSelectedOrder(null)} className="p-2 hover:bg-gray-100 rounded-full transition text-gray-500">
+                  <X size={20} />
+                </button>
+              </div>
             </div>
             
             <div className="p-6 space-y-6">
@@ -242,13 +265,33 @@ export default function OrdersPage() {
               <div>
                 <h4 className="font-bold text-gray-900 mb-3 border-b border-gray-200 pb-2">Product Details</h4>
                 <div className="text-sm text-gray-700 space-y-2">
-                  <p><span className="font-medium">Frame:</span> {selectedOrder.details?.frame}</p>
+                  <p><span className="font-medium">Frame:</span> {selectedOrder.details?.frame || (selectedOrder.items && selectedOrder.items[0]?.title)}</p>
                   <p><span className="font-medium">Lens Category:</span> {selectedOrder.details?.lensCategory || 'Frame Only'}</p>
                   {selectedOrder.details?.lensProduct && (
                     <p><span className="font-medium">Lens Type:</span> {selectedOrder.details.lensProduct}</p>
                   )}
                 </div>
               </div>
+
+              {(selectedOrder.address || selectedOrder.details?.address) && (
+                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                  <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <MapPin size={18} className="text-brand-navy" /> Delivery Address
+                  </h4>
+                  {(() => {
+                    const addr = selectedOrder.address || selectedOrder.details?.address;
+                    return (
+                      <div className="text-sm text-gray-700">
+                        <p className="font-bold text-gray-900 mb-1">{selectedOrder.details?.customerName || 'Customer'}</p>
+                        <p>{addr.street}</p>
+                        <p>{addr.city}, {addr.state} - {addr.pincode}</p>
+                        {addr.label && <p className="mt-1 text-xs uppercase font-bold text-gray-500 bg-gray-200 inline-block px-1.5 py-0.5 rounded">{addr.label}</p>}
+                        <p className="mt-2 font-medium">Phone: {selectedOrder.details?.userPhone || 'N/A'}</p>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
 
               {selectedOrder.details?.power && (
                 <div>
