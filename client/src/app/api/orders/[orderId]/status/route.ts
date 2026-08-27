@@ -28,10 +28,11 @@ const updateFallbackStatus = (orderId: string, status: string) => {
   } catch (e) {}
 };
 
-export async function PUT(request: Request, { params }: { params: { orderId: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ orderId: string }> }) {
   try {
     const { status } = await request.json();
-    const orderId = params.orderId;
+    const resolvedParams = await params;
+    const orderId = resolvedParams.orderId;
 
     // Update Vercel fallback
     updateFallbackStatus(orderId, status);
