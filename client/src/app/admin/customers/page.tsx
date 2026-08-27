@@ -57,10 +57,26 @@ export default function CustomersPage() {
           }
         } catch (e) {}
         
-        // Merge them, preferring local storage if there's a clash (since local might be newer if API failed)
+        // Merge them intelligently, preserving the highest counts
         const map = new Map();
-        apiCustomers.forEach((c: any) => map.set(c.phone, c));
-        localCustomers.forEach((c: any) => map.set(c.phone, c));
+        
+        apiCustomers.forEach((c: any) => map.set(c.phone, { ...c }));
+        
+        localCustomers.forEach((c: any) => {
+          if (map.has(c.phone)) {
+            const existing = map.get(c.phone);
+            map.set(c.phone, {
+              ...existing,
+              ...c,
+              // Keep the highest stats if there's a discrepancy
+              cartCount: Math.max(existing.cartCount || 0, c.cartCount || 0),
+              wishlistCount: Math.max(existing.wishlistCount || 0, c.wishlistCount || 0)
+            });
+          } else {
+            map.set(c.phone, c);
+          }
+        });
+        
         const mergedCustomers = Array.from(map.values());
 
         const formatted = mergedCustomers.map((c: any) => ({

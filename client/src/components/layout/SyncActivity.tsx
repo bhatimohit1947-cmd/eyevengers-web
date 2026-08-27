@@ -23,6 +23,19 @@ export function SyncActivity() {
 
     previousCounts.current = { cartCount, wishlistCount };
 
+    // Update local storage fallback for immediate Admin panel reflection
+    try {
+      const localCustomers = JSON.parse(localStorage.getItem('eyevengers_mock_customers') || '[]');
+      const customerIndex = localCustomers.findIndex((c: any) => c.id === user.id);
+      if (customerIndex >= 0) {
+        localCustomers[customerIndex].cartCount = cartCount;
+        localCustomers[customerIndex].wishlistCount = wishlistCount;
+        localStorage.setItem('eyevengers_mock_customers', JSON.stringify(localCustomers));
+      }
+    } catch (e) {
+      console.error("Failed to update local storage stats", e);
+    }
+
     fetch('/api/customers/stats', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
