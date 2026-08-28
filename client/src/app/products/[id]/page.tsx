@@ -49,19 +49,41 @@ export default function ProductDetailPage() {
       .catch(err => console.error(err));
   }, []);
 
-  const product = {
-    name: "Midnight Blue Square Frame",
-    brand: "VINCENT CHASE",
-    mrp: 3500,
-    sellingPrice: 1500,
-    discountPercent: 57,
-    rating: 4.6,
-    reviewsCount: 342,
-    images: ["", "", "", ""],
-    size: "Medium",
-    color: "Midnight Blue",
-    shape: "Square",
-  };
+  const [product, setProduct] = useState<any>(null);
+  const [isLoadingProduct, setIsLoadingProduct] = useState(true);
+
+  useEffect(() => {
+    fetch('https://eyevengers-web.onrender.com/api/admin/products')
+      .then(res => res.json())
+      .then(data => {
+        const found = data.find((p: any) => p.id === id);
+        if (found) {
+          const rawImages = found.image_url || found.imageUrl || '';
+          const imagesArr = rawImages ? rawImages.split(',').map((u: string) => u.trim()) : [];
+          
+          setProduct({
+            id: found.id,
+            name: found.name,
+            brand: found.brand || 'Generic',
+            mrp: found.price * 2,
+            sellingPrice: found.price,
+            discountPercent: 50,
+            rating: 4.5,
+            reviewsCount: 128,
+            images: imagesArr.length > 0 ? imagesArr : ["", "", "", ""],
+            size: "Medium",
+            color: "Standard",
+            shape: found.category || "Standard",
+            imageUrl: imagesArr[0] || ''
+          });
+        }
+        setIsLoadingProduct(false);
+      })
+      .catch(err => {
+        console.error("Failed to load product", err);
+        setIsLoadingProduct(false);
+      });
+  }, [id]);
 
   const selectedCategory = lensSettings?.categories?.find((c: any) => c.id === selectedCategoryId);
   const availableProductsForCategory = lensSettings?.products?.filter((p: any) => p.categoryId === selectedCategoryId) || [];
@@ -262,6 +284,14 @@ export default function ProductDetailPage() {
     );
   };
 
+  if (isLoadingProduct) {
+    return <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50"><Loader2 className="animate-spin text-brand-navy mb-4" size={48} /><p className="text-gray-500 font-medium">Loading product details...</p></div>;
+  }
+
+  if (!product) {
+    return <div className="min-h-screen flex items-center justify-center bg-gray-50"><p className="text-xl font-bold text-gray-500">Product not found</p></div>;
+  }
+
   return (
     <div className="bg-white min-h-screen pb-32 md:pb-12">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
@@ -280,9 +310,17 @@ export default function ProductDetailPage() {
         {/* Left: Image Gallery */}
         <div className="w-full md:w-3/5 flex flex-col-reverse md:flex-row gap-4 md:sticky md:top-6">
           <div className="flex md:flex-col gap-2 px-4 md:px-0 overflow-x-auto no-scrollbar snap-x">
-            {product.images.map((_, i) => (
-              <div key={i} className="w-16 h-16 md:w-20 md:h-20 flex-shrink-0 bg-gray-100 rounded-xl border-2 border-transparent hover:border-brand-navy cursor-pointer flex items-center justify-center snap-center">
-                 <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            {product.images.map((img: string, i: number) => (
+              <div 
+                key={i} 
+                onClick={() => setActiveImage(i)}
+                className={`w-16 h-16 md:w-20 md:h-20 flex-shrink-0 bg-white rounded-xl border-2 cursor-pointer flex items-center justify-center snap-center overflow-hidden transition-all ${activeImage === i ? 'border-brand-navy shadow-sm' : 'border-gray-100 hover:border-gray-300'}`}
+              >
+                 {img ? (
+                   <img src={img} alt={`View ${i+1}`} className="w-full h-full object-contain mix-blend-multiply p-2" />
+                 ) : (
+                   <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                 )}
               </div>
             ))}
           </div>
@@ -294,9 +332,12 @@ export default function ProductDetailPage() {
               </button>
               <button className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md text-gray-600 hover:text-blue-500 transition-colors"><Share2 size={20} /></button>
             </div>
-            
-            <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-xl border-2 border-dashed border-gray-200">
-              <svg className="w-20 h-20 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            <div className="w-full h-full flex items-center justify-center bg-white rounded-xl border border-gray-100 overflow-hidden">
+              {product.images[activeImage] ? (
+                <img src={product.images[activeImage]} alt={product.name} className="w-full h-full object-contain mix-blend-multiply p-8" />
+              ) : (
+                <svg className="w-20 h-20 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              )}
             </div>
           </div>
         </div>
