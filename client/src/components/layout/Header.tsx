@@ -60,17 +60,6 @@ export function Header() {
               <User size={20} />
             )}
           </button>
-          
-          <div className="flex flex-col text-xs">
-            <div className="flex items-center text-green-600 font-bold">
-              <Zap size={12} className="mr-1 fill-current" />
-              <span>3 day delivery</span>
-            </div>
-            <button className="flex items-center text-gray-600 font-medium hover:text-brand-navy">
-              <span>342001 · Jodhpur, R...</span>
-              <ChevronDown size={14} className="ml-1" />
-            </button>
-          </div>
         </div>
 
         <div className="flex items-center gap-4">

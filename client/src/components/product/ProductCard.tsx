@@ -47,9 +47,6 @@ export function ProductCard({ product, appliedOffer }: ProductCardProps) {
       
       {/* Badges Overlay */}
       <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
-        <span className="bg-gray-900/80 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center shadow-sm w-fit">
-          Try in AR
-        </span>
         
         {/* Auto Generated Offer Badge */}
         {appliedOffer && (
