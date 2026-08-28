@@ -309,15 +309,16 @@ export default function ProductDetailPage() {
         
         {/* Left: Image Gallery */}
         <div className="w-full md:w-3/5 flex flex-col-reverse md:flex-row gap-4 md:sticky md:top-6">
-          <div className="flex md:flex-col gap-2 px-4 md:px-0 overflow-x-auto no-scrollbar snap-x">
+          {/* Thumbnails */}
+          <div className="flex md:flex-col gap-3 px-4 md:px-0 overflow-x-auto no-scrollbar snap-x py-2 md:py-0 w-full md:w-24">
             {product.images.map((img: string, i: number) => (
               <div 
                 key={i} 
                 onClick={() => setActiveImage(i)}
-                className={`w-16 h-16 md:w-20 md:h-20 flex-shrink-0 bg-white rounded-xl border-2 cursor-pointer flex items-center justify-center snap-center overflow-hidden transition-all ${activeImage === i ? 'border-brand-navy shadow-sm' : 'border-gray-100 hover:border-gray-300'}`}
+                className={`w-20 h-20 md:w-full md:h-24 flex-shrink-0 bg-white rounded-xl border-2 cursor-pointer flex items-center justify-center snap-center overflow-hidden transition-all ${activeImage === i ? 'border-brand-navy shadow-md ring-2 ring-brand-navy/20' : 'border-gray-200 hover:border-brand-navy/50 opacity-70 hover:opacity-100'}`}
               >
                  {img ? (
-                   <img src={img} alt={`View ${i+1}`} className="w-full h-full object-contain mix-blend-multiply p-2" />
+                   <img src={img} alt={`View ${i+1}`} className="w-full h-full object-cover mix-blend-multiply hover:scale-110 transition-transform duration-300" />
                  ) : (
                    <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                  )}
@@ -325,20 +326,24 @@ export default function ProductDetailPage() {
             ))}
           </div>
 
-          <div className="flex-1 bg-gray-50 relative aspect-square md:aspect-[4/3] max-h-[50vh] md:max-h-none md:rounded-2xl flex items-center justify-center p-4">
-            <div className="absolute top-4 right-4 flex flex-col gap-3 z-10">
-              <button onClick={() => toggleItem(id as string)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md text-gray-600 hover:text-red-500 transition-colors">
-                <Heart size={20} className={isWishlisted ? "fill-red-500 text-red-500" : ""} />
+          {/* Main Image */}
+          <div className="flex-1 bg-white relative aspect-square md:aspect-[4/3] w-full md:rounded-2xl border-b md:border border-gray-100 overflow-hidden flex items-center justify-center group">
+            
+            {/* Buttons inside the main image */}
+            <div className="absolute top-4 right-4 flex flex-col gap-3 z-10 opacity-100 transition-opacity">
+              <button onClick={() => toggleItem(id as string)} className="w-11 h-11 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg text-gray-600 hover:text-red-500 hover:bg-white transition-all transform hover:scale-105 border border-gray-100">
+                <Heart size={22} className={isWishlisted ? "fill-red-500 text-red-500 scale-110" : "transition-transform"} />
               </button>
-              <button className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md text-gray-600 hover:text-blue-500 transition-colors"><Share2 size={20} /></button>
+              <button className="w-11 h-11 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg text-gray-600 hover:text-brand-navy hover:bg-white transition-all transform hover:scale-105 border border-gray-100">
+                <Share2 size={22} />
+              </button>
             </div>
-            <div className="w-full h-full flex items-center justify-center bg-white rounded-xl border border-gray-100 overflow-hidden">
-              {product.images[activeImage] ? (
-                <img src={product.images[activeImage]} alt={product.name} className="w-full h-full object-contain mix-blend-multiply p-8" />
-              ) : (
-                <svg className="w-20 h-20 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-              )}
-            </div>
+            
+            {product.images[activeImage] ? (
+              <img src={product.images[activeImage]} alt={product.name} className="w-full h-full object-contain mix-blend-multiply p-4 md:p-8" />
+            ) : (
+              <svg className="w-32 h-32 text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            )}
           </div>
         </div>
 
