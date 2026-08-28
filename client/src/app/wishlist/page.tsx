@@ -7,13 +7,7 @@ import { useWishlistStore } from '@/store/useWishlistStore';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
 
-// In a real app, we'd fetch product details based on productIds from backend
-// For Phase 1, we mock a database
-const MOCK_PRODUCTS_DB: Record<string, any> = {
-  "prod_1": { id: "prod_1", title: "Matte Black Rectangle", price: 1200, imageUrl: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=400&q=80" },
-  "prod_2": { id: "prod_2", title: "Gold Rim Aviators", price: 2500, imageUrl: "https://images.unsplash.com/photo-1577803645773-f96470509666?auto=format&fit=crop&w=400&q=80" },
-  "prod_3": { id: "prod_3", title: "Clear Frame Wayfarer", price: 1500, imageUrl: "https://images.unsplash.com/photo-1591076482161-42ce6da69f67?auto=format&fit=crop&w=400&q=80" },
-};
+// MOCK_PRODUCTS_DB removed, we will fetch real data from backend
 
 export default function WishlistPage() {
   const { productIds, toggleItem } = useWishlistStore();
@@ -34,9 +28,28 @@ export default function WishlistPage() {
       return;
     }
     
-    // Simulate fetching products by ID from API
-    const fetchedItems = productIds.map(id => MOCK_PRODUCTS_DB[id] || { id, title: `Product ${id}`, price: 999 }).reverse();
-    setItems(fetchedItems);
+    // Fetch products from API and match with productIds
+    if (productIds.length > 0) {
+      fetch('https://eyevengers-web.onrender.com/api/admin/products')
+        .then(res => res.json())
+        .then(data => {
+          const fetchedItems = data
+            .filter((p: any) => productIds.includes(p.id))
+            .map((p: any) => {
+              const img = p.image_url || p.imageUrl || '';
+              return {
+                id: p.id,
+                title: p.name,
+                price: p.price,
+                imageUrl: img.split(',')[0].trim()
+              };
+            });
+          setItems(fetchedItems.reverse());
+        })
+        .catch(err => console.error("Failed to fetch wishlist products", err));
+    } else {
+      setItems([]);
+    }
   }, [productIds, hydrated, isLoggedIn, openLoginModal]);
 
   const handleMoveToCart = (item: any) => {
@@ -91,22 +104,24 @@ export default function WishlistPage() {
       
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {items.map((item) => (
-          <div key={item.id} className="bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
-            <div className="relative aspect-[4/3] bg-gray-50">
+          <div key={item.id} className="bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-lg transition-shadow flex flex-col relative group">
+            <Link href={`/products/${item.id}`} className="block relative aspect-[4/3] bg-gray-50 overflow-hidden">
               {item.imageUrl ? (
-                <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                <img src={item.imageUrl} alt={item.title} className="w-full h-full object-contain mix-blend-multiply p-4 transition-transform duration-500 group-hover:scale-105" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400">No Image</div>
               )}
-              <button 
-                onClick={() => toggleItem(item.id)}
-                className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-sm text-gray-400 hover:text-red-500 transition-colors"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
+            </Link>
+            <button 
+              onClick={(e) => { e.preventDefault(); toggleItem(item.id); }}
+              className="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-sm text-gray-400 hover:text-red-500 hover:bg-white transition-colors z-10"
+            >
+              <Trash2 size={16} />
+            </button>
             <div className="p-4 flex-1 flex flex-col">
-              <h3 className="font-bold text-gray-900 mb-1">{item.title}</h3>
+              <Link href={`/products/${item.id}`} className="block hover:text-brand-navy transition-colors">
+                <h3 className="font-bold text-gray-900 mb-1 line-clamp-1">{item.title}</h3>
+              </Link>
               <p className="text-brand-navy font-bold mb-4">₹{item.price}</p>
               
               <button 
