@@ -19,20 +19,26 @@ function ProductsContent() {
       .then(res => res.json())
       .then(data => {
         // Map backend data to ProductCard format
-        const formattedProducts = (data || []).map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          brand: p.brand,
-          imageUrl: p.image_url,
-          mrp: p.price * 2, // Dummy MRP for UI
-          sellingPrice: p.price,
-          discountPercent: 50,
-          rating: 4.5,
-          reviewsCount: 128,
-          tags: p.stock > 0 ? [] : ["Out of Stock"],
-          gender: p.gender,
-          category: p.category
-        }));
+        const formattedProducts = (data || []).map((p: any) => {
+          const hasDiscount = p.sku && p.sku.includes('|DISCOUNT:');
+          const discountPercent = hasDiscount ? Number(p.sku.split('|DISCOUNT:')[1]) : 0;
+          const mrp = discountPercent > 0 ? Math.round(p.price / (1 - (discountPercent / 100))) : p.price;
+
+          return {
+            id: p.id,
+            name: p.name,
+            brand: p.brand,
+            imageUrl: p.image_url,
+            mrp: mrp,
+            sellingPrice: p.price,
+            discountPercent: discountPercent,
+            rating: 4.5,
+            reviewsCount: 128,
+            tags: p.stock > 0 ? [] : ["Out of Stock"],
+            gender: p.gender,
+            category: p.category
+          };
+        });
         setProducts(formattedProducts);
         setIsLoading(false);
       })

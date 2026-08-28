@@ -60,14 +60,17 @@ export default function ProductDetailPage() {
         if (found) {
           const rawImages = found.image_url || found.imageUrl || '';
           const imagesArr = rawImages ? rawImages.split(',').map((u: string) => u.trim()) : [];
+          const hasDiscount = found.sku && found.sku.includes('|DISCOUNT:');
+          const discountPercent = hasDiscount ? Number(found.sku.split('|DISCOUNT:')[1]) : 0;
+          const mrp = discountPercent > 0 ? Math.round(found.price / (1 - (discountPercent / 100))) : found.price;
           
           setProduct({
             id: found.id,
             name: found.name,
             brand: found.brand || 'Generic',
-            mrp: found.price * 2,
+            mrp: mrp,
             sellingPrice: found.price,
-            discountPercent: 50,
+            discountPercent: discountPercent,
             rating: 4.5,
             reviewsCount: 128,
             images: imagesArr.length > 0 ? imagesArr : ["", "", "", ""],

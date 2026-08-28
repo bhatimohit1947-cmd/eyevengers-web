@@ -86,12 +86,12 @@ export function ProductCard({ product, appliedOffer }: ProductCardProps) {
       />
 
       {/* Image Container */}
-      <Link href={`/products/${product.id}`} className="block relative pt-[75%] bg-gray-50 overflow-hidden">
+      <Link href={`/products/${product.id}`} className="block relative pt-[75%] bg-gray-50 overflow-hidden group-hover:opacity-90 transition-opacity">
         {product.imageUrl ? (
           <img 
             src={product.imageUrl.split(',')[0].trim()} 
             alt={product.name}
-            className="absolute inset-0 w-full h-full object-contain p-4 mix-blend-multiply transition-transform duration-500 group-hover:scale-105"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-gray-300">

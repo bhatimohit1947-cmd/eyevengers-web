@@ -15,6 +15,7 @@ export default function ProductsManagement() {
     brand: '',
     gender: 'Unisex',
     price: '',
+    discount: '',
     stock: '',
     imageUrl: ''
   });
@@ -39,19 +40,24 @@ export default function ProductsManagement() {
 
   const openAddModal = () => {
     setEditingProductId(null);
-    setNewProduct({ name: '', sku: '', category: 'Eyeglasses', brand: '', gender: 'Unisex', price: '', stock: '', imageUrl: '' });
+    setNewProduct({ name: '', sku: '', category: 'Eyeglasses', brand: '', gender: 'Unisex', price: '', discount: '', stock: '', imageUrl: '' });
     setIsModalOpen(true);
   };
 
   const openEditModal = (product: any) => {
     setEditingProductId(product.id);
+    const hasDiscount = product.sku && product.sku.includes('|DISCOUNT:');
+    const realSku = hasDiscount ? product.sku.split('|DISCOUNT:')[0] : product.sku;
+    const discountVal = hasDiscount ? product.sku.split('|DISCOUNT:')[1] : '';
+    
     setNewProduct({
       name: product.name,
-      sku: product.sku,
+      sku: realSku,
       category: product.category,
       brand: product.brand || '',
       gender: product.gender || 'Unisex',
       price: product.price.toString(),
+      discount: discountVal,
       stock: product.stock.toString(),
       imageUrl: product.image_url || product.imageUrl || ''
     });
@@ -79,11 +85,16 @@ export default function ProductsManagement() {
       : `https://eyevengers-web.onrender.com/api/admin/products`;
     const method = editingProductId ? 'PUT' : 'POST';
 
+    // Store discount in SKU
+    const payloadSku = newProduct.discount ? `${newProduct.sku}|DISCOUNT:${newProduct.discount}` : newProduct.sku;
+    const { discount, ...restProduct } = newProduct;
+    const payload = { ...restProduct, sku: payloadSku };
+
     try {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newProduct)
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         const savedProduct = await res.json();
@@ -172,7 +183,9 @@ export default function ProductsManagement() {
                         <span className="font-medium text-gray-900">{product.name}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{product.sku}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                      {product.sku && product.sku.includes('|DISCOUNT:') ? product.sku.split('|DISCOUNT:')[0] : product.sku}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div>{product.category}</div>
                       <div className="text-xs text-gray-400 font-medium">{product.brand || 'Generic'}</div>
@@ -275,6 +288,10 @@ export default function ProductsManagement() {
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹)</label>
                   <input required type="number" value={newProduct.price} onChange={(e) => setNewProduct({...newProduct, price: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-navy" placeholder="0" />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Discount (%)</label>
+                  <input type="number" value={newProduct.discount} onChange={(e) => setNewProduct({...newProduct, discount: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-navy" placeholder="e.g. 50" />
                 </div>
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Stock</label>
