@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, Star, Clock } from 'lucide-react';
 import { useCountdown } from '@/hooks/useCountdown';
+import { WishlistButton } from '@/components/ui/WishlistButton';
 
 interface ProductCardProps {
   product: {
@@ -78,15 +79,17 @@ export function ProductCard({ product, appliedOffer }: ProductCardProps) {
         )}
       </div>
       
-      <button className="absolute top-3 right-3 z-10 p-2 rounded-full bg-white/80 backdrop-blur-sm text-gray-400 hover:text-red-500 hover:bg-white shadow-sm transition">
-        <Heart size={18} />
-      </button>
+      <WishlistButton 
+        productId={product.id} 
+        className="absolute top-3 right-3 z-10 bg-white/80 backdrop-blur-sm shadow-sm" 
+        size={18}
+      />
 
       {/* Image Container */}
       <Link href={`/products/${product.id}`} className="block relative pt-[75%] bg-gray-50 overflow-hidden">
         {product.imageUrl ? (
           <img 
-            src={product.imageUrl} 
+            src={product.imageUrl.split(',')[0].trim()} 
             alt={product.name}
             className="absolute inset-0 w-full h-full object-contain p-4 mix-blend-multiply transition-transform duration-500 group-hover:scale-105"
           />
