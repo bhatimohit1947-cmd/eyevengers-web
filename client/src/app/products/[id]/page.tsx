@@ -246,6 +246,24 @@ export default function ProductDetailPage() {
     setIsPlacingOrder(false);
   };
 
+  const handleShare = async () => {
+    const shareData = {
+      title: product?.name || 'Eyevengers',
+      text: `Check out this amazing ${product?.name} at Eyevengers!`,
+      url: window.location.href,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      alert('Link copied to clipboard!');
+    }
+  };
+
   const renderPowerInput = (eye: 're' | 'le', label: string) => {
     if (!selectedCategory) return null;
     return (
@@ -337,7 +355,7 @@ export default function ProductDetailPage() {
               <button onClick={() => toggleItem(id as string)} className="w-11 h-11 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg text-gray-600 hover:text-red-500 hover:bg-white transition-all transform hover:scale-105 border border-gray-100">
                 <Heart size={22} className={isWishlisted ? "fill-red-500 text-red-500 scale-110" : "transition-transform"} />
               </button>
-              <button className="w-11 h-11 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg text-gray-600 hover:text-brand-navy hover:bg-white transition-all transform hover:scale-105 border border-gray-100">
+              <button onClick={handleShare} className="w-11 h-11 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg text-gray-600 hover:text-brand-navy hover:bg-white transition-all transform hover:scale-105 border border-gray-100">
                 <Share2 size={22} />
               </button>
             </div>
