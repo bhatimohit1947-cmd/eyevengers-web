@@ -60,23 +60,24 @@ export function PosterSlider({ data }: PosterSliderProps) {
                 </svg>
               </div>
             )}
-            {/* Ribbon Badge */}
-            {poster.ribbonText && poster.ribbonText.trim() !== '' && (
-              <div className="absolute top-4 -right-10 bg-red-600 text-white text-[10px] md:text-xs font-black px-10 py-1 shadow-md z-20 transform rotate-45 text-center w-40 whitespace-nowrap overflow-hidden text-ellipsis">
-                {poster.ribbonText.trim()}
-              </div>
-            )}
+
             
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80"></div>
 
             <div className="absolute inset-0 p-6 flex flex-col justify-between">
               
-              {/* Logo Top */}
-              <div className="w-24 h-8 bg-white/20 backdrop-blur-md rounded border border-white/10"></div>
+              {/* Ribbon Top Left */}
+              <div>
+                {poster.ribbonText && poster.ribbonText.trim() !== '' && (
+                  <div className="inline-flex items-center justify-center h-8 bg-white/20 backdrop-blur-md rounded border border-white/10 text-[10px] md:text-xs font-black text-white px-4 shadow-sm uppercase tracking-wider">
+                    {poster.ribbonText.trim()}
+                  </div>
+                )}
+              </div>
               
               {/* CTA Bottom */}
               <div className="flex items-center text-white font-bold tracking-wider group-hover:text-brand-gold transition-colors">
-                <span className="uppercase text-sm mr-2">{poster.ctaText}</span>
+                <span className="uppercase text-sm mr-2">{poster.ctaText || (poster as any).label || (poster as any).title || (poster as any).headline || "Shop Now"}</span>
                 <ArrowRight size={16} className="transform group-hover:translate-x-1 transition-transform" />
               </div>
               
