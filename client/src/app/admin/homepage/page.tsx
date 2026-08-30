@@ -137,6 +137,23 @@ export default function HomepageBuilder() {
     }
   };
 
+  const handleDeleteSection = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this section?")) return;
+    try {
+      const res = await fetch(`https://eyevengers-web.onrender.com/api/cms/sections/${id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        fetchSections();
+        if (editingSection?.id === id) setEditingSection(null);
+      } else {
+        alert("Failed to delete section.");
+      }
+    } catch (err) {
+      console.error("Failed to delete section", err);
+    }
+  };
+
   const onDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
     
@@ -262,14 +279,23 @@ export default function HomepageBuilder() {
                             <button 
                               onClick={() => toggleVisibility(section.id, section.isVisible)}
                               className="p-2 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition"
+                              title="Toggle Visibility"
                             >
                               {section.isVisible ? <Eye size={18} /> : <EyeOff size={18} />}
                             </button>
                             <button 
                               onClick={() => openEditor(section)}
                               className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition"
+                              title="Edit Section"
                             >
                               <Edit size={18} />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteSection(section.id)}
+                              className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition"
+                              title="Delete Section"
+                            >
+                              <Trash2 size={18} />
                             </button>
                           </div>
                         </div>

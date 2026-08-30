@@ -61,9 +61,9 @@ export function PosterSlider({ data }: PosterSliderProps) {
               </div>
             )}
             {/* Ribbon Badge */}
-            {poster.ribbonText && (
+            {poster.ribbonText && poster.ribbonText.trim() !== '' && (
               <div className="absolute top-4 -right-10 bg-red-600 text-white text-[10px] md:text-xs font-black px-10 py-1 shadow-md z-20 transform rotate-45 text-center w-40 whitespace-nowrap overflow-hidden text-ellipsis">
-                {poster.ribbonText}
+                {poster.ribbonText.trim()}
               </div>
             )}
             
