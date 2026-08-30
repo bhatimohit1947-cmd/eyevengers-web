@@ -7,8 +7,13 @@ export interface ProductPricing {
 
 export interface UserContext {
   id?: string;
-  tier?: 'GUEST' | 'GOLD';
+  tier?: string;
   orderCount?: number;
+  membershipBenefits?: {
+    discountPercent?: number;
+    freeShipping?: boolean;
+    bogoOffer?: boolean;
+  };
 }
 
 export interface Offer {
@@ -43,10 +48,12 @@ export function getEffectivePrice(product: ProductPricing, user?: UserContext): 
   // 1. Calculate Base Membership Price
   let membershipPrice = product.sellingPrice;
   let appliedMembershipDiscount = false;
+  
+  const discountPercent = user?.membershipBenefits?.discountPercent || 0;
 
-  if (user?.tier === 'GOLD') {
-    // Gold members get 10% off the base selling price
-    membershipPrice = product.sellingPrice * 0.9;
+  if (user?.tier && user.tier !== 'none' && user.tier !== 'GUEST' && discountPercent > 0) {
+    // Apply dynamic membership discount
+    membershipPrice = product.sellingPrice * (1 - discountPercent / 100);
     appliedMembershipDiscount = true;
   }
 
@@ -87,7 +94,7 @@ export function getEffectivePrice(product: ProductPricing, user?: UserContext): 
 
   // 3. Apply Stacking Logic (Enhancement 3)
   let finalPrice = membershipPrice;
-  let finalReason = appliedMembershipDiscount ? "Gold Member Discount applied" : "Standard Price";
+  let finalReason = appliedMembershipDiscount ? `Membership ${discountPercent}% Discount applied` : "Standard Price";
   let finalOfferName: string | undefined = undefined;
 
   if (bestOffer) {
@@ -100,21 +107,21 @@ export function getEffectivePrice(product: ProductPricing, user?: UserContext): 
           finalReason = `Best available price applied (${bestOffer.name})`;
           finalOfferName = bestOffer.name;
           appliedMembershipDiscount = false;
-        } else if (user?.tier === 'GOLD') {
+        } else if (appliedMembershipDiscount) {
           finalPrice = membershipPrice;
-          finalReason = "Gold Membership gives a better price than current offers";
+          finalReason = "Membership gives a better price than current offers";
         }
         break;
 
       case 'stack_with_membership':
-        if (user?.tier === 'GOLD') {
+        if (appliedMembershipDiscount) {
           // Apply offer on top of membership price
           if (bestOffer.discountType === 'percentage') {
             finalPrice = membershipPrice * (1 - bestOffer.discountValue / 100);
           } else {
             finalPrice = Math.max(0, membershipPrice - bestOffer.discountValue);
           }
-          finalReason = `Stacked: Gold Discount + ${bestOffer.name}`;
+          finalReason = `Stacked: Membership Discount + ${bestOffer.name}`;
           finalOfferName = bestOffer.name;
         } else {
           finalPrice = bestOfferPrice;
@@ -131,9 +138,9 @@ export function getEffectivePrice(product: ProductPricing, user?: UserContext): 
         break;
 
       case 'not_applicable_to_members':
-        if (user?.tier === 'GOLD') {
+        if (user?.tier && user.tier !== 'none' && user.tier !== 'GUEST') {
           finalPrice = membershipPrice;
-          finalReason = `Offer ${bestOffer.name} is not applicable to Gold Members`;
+          finalReason = `Offer ${bestOffer.name} is not applicable to Members`;
           finalOfferName = undefined;
         } else {
           finalPrice = bestOfferPrice;

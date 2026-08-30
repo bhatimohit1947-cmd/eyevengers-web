@@ -12,6 +12,7 @@ interface MembershipPlan {
   price: number;
   durationMonths: number;
   benefits: string[];
+  benefitsJson?: any;
 }
 
 function MembershipPageContent() {
@@ -95,8 +96,9 @@ function MembershipPageContent() {
       return;
     }
     
-    // Simulate purchase
-    purchaseMembership(plan.tier as any);
+    // In a real app, this would call a payment gateway
+    // Then on success update the user profile
+    purchaseMembership(plan.tier as any, plan.benefitsJson);
     alert(`Successfully purchased ${plan.name}! Your shiny new badge is active.`);
   };
 

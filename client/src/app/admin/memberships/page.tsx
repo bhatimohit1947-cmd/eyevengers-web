@@ -10,6 +10,11 @@ interface MembershipPlan {
   price: number;
   durationMonths: number;
   benefits: string[];
+  benefitsJson?: {
+    discountPercent?: number;
+    freeShipping?: boolean;
+    bogoOffer?: boolean;
+  };
 }
 
 export default function MembershipsAdminPage() {
@@ -72,7 +77,11 @@ export default function MembershipsAdminPage() {
       tier: 'bronze',
       price: 999,
       durationMonths: 12,
-      benefits: ['Benefit 1', 'Benefit 2']
+      benefits: ['Benefit 1', 'Benefit 2'],
+      benefitsJson: {
+        discountPercent: 0,
+        freeShipping: false
+      }
     });
   };
 
@@ -222,6 +231,39 @@ export default function MembershipsAdminPage() {
                       </button>
                     </div>
                   ))}
+                </div>
+              </div>
+              <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
+                <h3 className="font-bold text-purple-900 mb-3 text-sm uppercase flex items-center gap-2">
+                  <Crown size={14} /> Smart Rules (Benefits Engine)
+                </h3>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-gray-700">Discount Percentage (%)</label>
+                    <input 
+                      type="number" 
+                      value={editingPlan.benefitsJson?.discountPercent || 0}
+                      onChange={e => setEditingPlan({
+                        ...editingPlan, 
+                        benefitsJson: { ...editingPlan.benefitsJson, discountPercent: Number(e.target.value) }
+                      })}
+                      className="w-20 border border-gray-300 rounded p-1 text-center"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-gray-700">Free Shipping</label>
+                    <input 
+                      type="checkbox" 
+                      checked={editingPlan.benefitsJson?.freeShipping || false}
+                      onChange={e => setEditingPlan({
+                        ...editingPlan, 
+                        benefitsJson: { ...editingPlan.benefitsJson, freeShipping: e.target.checked }
+                      })}
+                      className="w-5 h-5 accent-brand-navy"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

@@ -16,14 +16,19 @@ interface AuthState {
   user: User | null;
   isLoggedIn: boolean;
   membershipTier: 'none' | 'bronze' | 'silver' | 'gold' | 'platinum';
+  membershipBenefits?: {
+    discountPercent?: number;
+    freeShipping?: boolean;
+    bogoOffer?: boolean;
+  };
   isLoginModalOpen: boolean;
   pendingAction: (() => void) | null;
   
   // Actions
-  login: (userData: User, tier?: 'none' | 'bronze' | 'silver' | 'gold' | 'platinum') => void;
+  login: (userData: User, tier?: 'none' | 'bronze' | 'silver' | 'gold' | 'platinum', benefits?: any) => void;
   logout: () => void;
-  setMembershipTier: (tier: 'none' | 'bronze' | 'silver' | 'gold' | 'platinum') => void;
-  purchaseMembership: (tier: 'bronze' | 'silver' | 'gold' | 'platinum') => void;
+  setMembershipTier: (tier: 'none' | 'bronze' | 'silver' | 'gold' | 'platinum', benefits?: any) => void;
+  purchaseMembership: (tier: 'bronze' | 'silver' | 'gold' | 'platinum', benefits?: any) => void;
   openLoginModal: (pendingAction?: () => void) => void;
   closeLoginModal: () => void;
   executePendingAction: () => void;
@@ -35,14 +40,16 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isLoggedIn: false,
       membershipTier: 'none',
+      membershipBenefits: undefined,
       isLoginModalOpen: false,
       pendingAction: null,
 
-      login: (userData, tier = 'none') => {
+      login: (userData, tier = 'none', benefits = undefined) => {
         set({ 
           user: userData, 
           isLoggedIn: true, 
-          membershipTier: tier 
+          membershipTier: tier,
+          membershipBenefits: benefits
         });
         useCartStore.getState().switchUser(userData.id);
         useWishlistStore.getState().switchUser(userData.id);
@@ -53,15 +60,16 @@ export const useAuthStore = create<AuthState>()(
           user: null, 
           isLoggedIn: false, 
           membershipTier: 'none',
+          membershipBenefits: undefined,
           pendingAction: null
         });
         useCartStore.getState().switchUser(null);
         useWishlistStore.getState().switchUser(null);
       },
       
-      setMembershipTier: (tier) => set({ membershipTier: tier }),
+      setMembershipTier: (tier, benefits) => set({ membershipTier: tier, membershipBenefits: benefits }),
       
-      purchaseMembership: (tier) => set({ membershipTier: tier }),
+      purchaseMembership: (tier, benefits) => set({ membershipTier: tier, membershipBenefits: benefits }),
       
       openLoginModal: (pendingAction = undefined) => set({ 
         isLoginModalOpen: true, 
@@ -87,7 +95,8 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({ 
         user: state.user, 
         isLoggedIn: state.isLoggedIn, 
-        membershipTier: state.membershipTier 
+        membershipTier: state.membershipTier,
+        membershipBenefits: state.membershipBenefits
       }), // only persist user state, not UI state like login modal
     }
   )

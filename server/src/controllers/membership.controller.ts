@@ -40,16 +40,33 @@ export const getMembershipPlans = async (req: Request, res: Response) => {
     const { data, error } = await supabase.from('memberships').select('*');
     if (error) throw error;
     
-    // Map snake_case to camelCase
-    const formatted = data.map(p => ({
-      id: p.id,
-      name: p.name,
-      price: p.price,
-      durationMonths: p.validity_months,
-      benefits: p.features || [],
-      isActive: p.is_active,
-      tier: p.badge_text || 'standard'
-    }));
+    // Map snake_case to camelCase and extract benefitsJson
+    const formatted = data.map(p => {
+      let benefitsJson = {};
+      const displayFeatures = [];
+      const featuresArr = p.features || [];
+      
+      for (const feature of featuresArr) {
+        if (typeof feature === 'string' && feature.startsWith('__BENEFITS_JSON__:')) {
+          try {
+            benefitsJson = JSON.parse(feature.replace('__BENEFITS_JSON__:', ''));
+          } catch (e) {}
+        } else {
+          displayFeatures.push(feature);
+        }
+      }
+
+      return {
+        id: p.id,
+        name: p.name,
+        price: p.price,
+        durationMonths: p.validity_months,
+        benefits: displayFeatures,
+        benefitsJson,
+        isActive: p.is_active,
+        tier: p.badge_text || 'standard'
+      };
+    });
     
     res.json(formatted);
   } catch (error) {
@@ -58,12 +75,17 @@ export const getMembershipPlans = async (req: Request, res: Response) => {
 };
 
 export const createMembershipPlan = async (req: Request, res: Response) => {
+  const features = req.body.benefits || [];
+  if (req.body.benefitsJson) {
+    features.push(`__BENEFITS_JSON__:${JSON.stringify(req.body.benefitsJson)}`);
+  }
+
   const newPlan = {
     id: `plan_${Date.now()}`,
     name: req.body.name,
     price: req.body.price,
     validity_months: req.body.durationMonths,
-    features: req.body.benefits,
+    features: features,
     is_active: true,
     badge_text: req.body.tier
   };
@@ -79,11 +101,16 @@ export const createMembershipPlan = async (req: Request, res: Response) => {
 
 export const updateMembershipPlan = async (req: Request, res: Response) => {
   const { id } = req.params;
+  const features = req.body.benefits || [];
+  if (req.body.benefitsJson) {
+    features.push(`__BENEFITS_JSON__:${JSON.stringify(req.body.benefitsJson)}`);
+  }
+
   const updates = {
     name: req.body.name,
     price: req.body.price,
     validity_months: req.body.durationMonths,
-    features: req.body.benefits,
+    features: features,
     is_active: req.body.isActive !== false,
     badge_text: req.body.tier
   };
