@@ -6,17 +6,45 @@ import { format } from 'date-fns';
 
 export default function AdminDashboard() {
   const [members, setMembers] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
 
   useEffect(() => {
+    // Fetch Membership Customers
     fetch(`https://eyevengers-web.onrender.com/api/memberships/customers`)
       .then(res => res.json())
-      .then(data => setMembers(data))
+      .then(data => setMembers(Array.isArray(data) ? data : []))
+      .catch(err => console.error(err));
+
+    // Fetch Orders
+    fetch(`https://eyevengers-web.onrender.com/api/orders`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          // Sort newest first
+          data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setOrders(data);
+        }
+      })
+      .catch(err => console.error(err));
+
+    // Fetch Customers
+    fetch(`https://eyevengers-web.onrender.com/api/admin/customers`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setCustomers(data);
+      })
       .catch(err => console.error(err));
   }, []);
+
+  // Compute Stats
+  const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+  const formattedRevenue = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(totalRevenue);
+  
   const stats = [
-    { label: 'Total Revenue', value: '₹2,45,000', icon: IndianRupee, color: 'bg-blue-100 text-blue-600' },
-    { label: 'Total Orders', value: '142', icon: ShoppingCart, color: 'bg-green-100 text-green-600' },
-    { label: 'Active Customers', value: '890', icon: Users, color: 'bg-purple-100 text-purple-600' },
+    { label: 'Total Revenue', value: formattedRevenue, icon: IndianRupee, color: 'bg-blue-100 text-blue-600' },
+    { label: 'Total Orders', value: orders.length.toString(), icon: ShoppingCart, color: 'bg-green-100 text-green-600' },
+    { label: 'Active Customers', value: customers.length.toString(), icon: Users, color: 'bg-purple-100 text-purple-600' },
     { label: 'Conversion Rate', value: '3.2%', icon: TrendingUp, color: 'bg-orange-100 text-orange-600' },
   ];
 
@@ -57,19 +85,32 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {[1, 2, 3, 4].map((item) => (
-                <tr key={item} className="border-b border-gray-50 last:border-0">
-                  <td className="px-4 py-4 font-medium text-gray-900">#ORD-2026-{8430 + item}</td>
-                  <td className="px-4 py-4">Rahul Sharma</td>
-                  <td className="px-4 py-4">Aug 14, 2026</td>
-                  <td className="px-4 py-4">₹1,500</td>
+              {orders.slice(0, 5).map((order) => (
+                <tr key={order.id || order._id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
+                  <td className="px-4 py-4 font-medium text-gray-900 truncate max-w-[150px]">#{order.id || order._id}</td>
                   <td className="px-4 py-4">
-                    <span className="bg-yellow-100 text-yellow-800 px-2.5 py-0.5 rounded-full text-xs font-medium">
-                      Processing
+                    <div className="font-bold text-gray-900">{order.shippingAddress?.fullName || 'Guest User'}</div>
+                  </td>
+                  <td className="px-4 py-4">{format(new Date(order.createdAt), 'MMM dd, yyyy')}</td>
+                  <td className="px-4 py-4 font-medium">₹{order.totalAmount}</td>
+                  <td className="px-4 py-4">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                      order.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                      order.status === 'Processing' ? 'bg-blue-100 text-blue-800' :
+                      order.status === 'Shipped' ? 'bg-indigo-100 text-indigo-800' :
+                      order.status === 'Delivered' ? 'bg-green-100 text-green-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {order.status || 'Processing'}
                     </span>
                   </td>
                 </tr>
               ))}
+              {orders.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500">No orders found.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

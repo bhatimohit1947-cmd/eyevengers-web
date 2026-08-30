@@ -24,7 +24,7 @@ export function SpecialsGrid({ data }: SpecialsGridProps) {
       <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-6">{data.title}</h2>
       
       <div className="grid grid-cols-4 gap-3 md:gap-6">
-        {data.items.map((item, index) => (
+        {data.items?.map((item, index) => (
           <Link 
             key={index}
             href={item.targetUrl || (item.linkedOfferId ? `/offers/${item.linkedOfferId}` : '#')}

@@ -29,7 +29,7 @@ export function CollectionCardsGrid({ data }: CollectionGridProps) {
       </div>
       
       <div className="grid grid-cols-2 gap-4 md:gap-6">
-        {data.cards.map((card, index) => (
+        {data.cards?.map((card, index) => (
           <Link 
             key={index}
             href={`/products?${card.filterQuery}`}

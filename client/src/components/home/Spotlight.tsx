@@ -28,7 +28,7 @@ export function Spotlight({ data }: SpotlightProps) {
         </div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-        {data.cards.map((card, index) => (
+        {data.cards?.map((card, index) => (
           <Link 
             key={index} 
             href={card.ctaUrl}

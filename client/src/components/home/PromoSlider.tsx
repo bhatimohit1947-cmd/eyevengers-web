@@ -60,7 +60,7 @@ export function PromoSlider({ data }: PromoSliderProps) {
         className="flex overflow-x-auto snap-x snap-mandatory flex-nowrap w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         style={{ scrollBehavior: 'smooth' }}
       >
-        {data.slides.map((slide, index) => (
+        {data.slides?.map((slide, index) => (
           <Link 
             key={index}
             href={slide.targetUrl || slide.ctaUrl || (slide.linkedOfferId ? `/offers/${slide.linkedOfferId}` : '/')}
@@ -99,8 +99,8 @@ export function PromoSlider({ data }: PromoSliderProps) {
       
       {/* Dots Indicator */}
       {data.slides.length > 1 && (
-        <div className="flex justify-center gap-1.5 mt-4">
-          {data.slides.map((_, idx) => (
+        <div className="absolute -bottom-4 md:bottom-2 left-0 right-0 flex justify-center gap-2 pointer-events-none">
+          {data.slides?.map((_, idx) => (
             <div 
               key={idx} 
               className={`h-1.5 rounded-full transition-all duration-300 ${

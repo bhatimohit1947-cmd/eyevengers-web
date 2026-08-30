@@ -486,8 +486,8 @@ export default function HomepageBuilder() {
                                      onChange={(e) => {
                                        try {
                                          const newConfig = JSON.parse(editConfigText);
-                                         // Support both badgeText (CategoryRail) and ribbonText (SpecialsGrid)
-                                         if ('ribbonText' in newConfig[arrayKey][idx] || editingSection.sectionType === 'SpecialsGrid') {
+                                         // Support both badgeText and ribbonText
+                                         if (['specials_grid', 'poster_slider', 'SpecialsGrid', 'PosterSlider'].includes(editingSection.sectionType) || 'ribbonText' in newConfig[arrayKey][idx]) {
                                            newConfig[arrayKey][idx].ribbonText = e.target.value;
                                          } else {
                                            newConfig[arrayKey][idx].badgeText = e.target.value;

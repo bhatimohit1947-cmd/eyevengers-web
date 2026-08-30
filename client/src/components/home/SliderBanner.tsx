@@ -44,7 +44,7 @@ export function SliderBanner({ data }: SliderBannerProps) {
           className="flex transition-transform duration-500 ease-out h-full"
           style={{ transform: `translateX(-${currentSlide * 100}%)` }}
         >
-          {data.slides.map((slide, index) => (
+          {data.slides?.map((slide, index) => (
             <div key={index} className="w-full flex-shrink-0 relative">
               {/* Background */}
               {slide.imageUrl ? (
@@ -119,7 +119,7 @@ export function SliderBanner({ data }: SliderBannerProps) {
         {/* Dots */}
         {(data.dots !== false && data.slides.length > 1) && (
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
-            {data.slides.map((_, i) => (
+            {data.slides?.map((_, i) => (
               <button 
                 key={i}
                 onClick={() => setCurrentSlide(i)}

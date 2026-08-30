@@ -22,21 +22,21 @@ export default function AdminEyeTestsPage() {
       ]);
       if (resSettings.error) {
         setSettings({ 
-          store: { isAvailable: false, title: '', price: 0, description: '', features: [] }, 
-          home: { isAvailable: false, title: '', price: 0, description: '', features: [] } 
+          store: { isAvailable: false, title: '', price: 0, description: '', features: [], imageUrl: '' }, 
+          home: { isAvailable: false, title: '', price: 0, description: '', features: [], imageUrl: '' } 
         });
       } else {
         setSettings({
-          store: resSettings.store || { isAvailable: false, title: '', price: 0, description: '', features: [] },
-          home: resSettings.home || { isAvailable: false, title: '', price: 0, description: '', features: [] }
+          store: resSettings.store || { isAvailable: false, title: '', price: 0, description: '', features: [], imageUrl: '' },
+          home: resSettings.home || { isAvailable: false, title: '', price: 0, description: '', features: [], imageUrl: '' }
         });
       }
       setBookings(Array.isArray(resBookings) ? resBookings : []);
     } catch (error) {
       console.error(error);
       setSettings({ 
-        store: { isAvailable: false, title: '', price: 0, description: '', features: [] }, 
-        home: { isAvailable: false, title: '', price: 0, description: '', features: [] } 
+        store: { isAvailable: false, title: '', price: 0, description: '', features: [], imageUrl: '' }, 
+        home: { isAvailable: false, title: '', price: 0, description: '', features: [], imageUrl: '' } 
       });
       setBookings([]);
     }
@@ -108,6 +108,10 @@ export default function AdminEyeTestsPage() {
                   <input type="text" value={settings.store.title} onChange={e => setSettings({...settings, store: {...settings.store, title: e.target.value}})} className="w-full border border-gray-300 rounded p-2 text-sm" />
                 </div>
                 <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Image/Video URL</label>
+                  <input type="text" value={settings.store.imageUrl || ''} onChange={e => setSettings({...settings, store: {...settings.store, imageUrl: e.target.value}})} className="w-full border border-gray-300 rounded p-2 text-sm" placeholder="https://..." />
+                </div>
+                <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Price (₹)</label>
                   <input type="number" value={settings.store.price} onChange={e => setSettings({...settings, store: {...settings.store, price: Number(e.target.value)}})} className="w-full border border-gray-300 rounded p-2 text-sm" />
                 </div>
@@ -138,6 +142,10 @@ export default function AdminEyeTestsPage() {
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Title</label>
                   <input type="text" value={settings.home.title} onChange={e => setSettings({...settings, home: {...settings.home, title: e.target.value}})} className="w-full border border-gray-300 rounded p-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Image/Video URL</label>
+                  <input type="text" value={settings.home.imageUrl || ''} onChange={e => setSettings({...settings, home: {...settings.home, imageUrl: e.target.value}})} className="w-full border border-gray-300 rounded p-2 text-sm" placeholder="https://..." />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Price (₹)</label>

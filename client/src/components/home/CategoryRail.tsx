@@ -34,7 +34,7 @@ export function CategoryRail({ data }: CategoryRailProps) {
 
       {/* Tiles Rail (Grid Layout to fill screen on all devices) */}
       <div className="grid grid-cols-4 gap-2 md:gap-6 px-4 md:px-0 pb-4 w-full">
-        {data.tiles.map((tile, index) => {
+        {data.tiles?.map((tile, index) => {
           const finalUrl = tile.targetUrl || (tile.linkedOfferId ? `/offers/${tile.linkedOfferId}` : '#');
           return (
           <Link 

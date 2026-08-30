@@ -93,10 +93,10 @@ export default function EyeTestPage() {
 
   // Fallback if settings fail to load
   const storeData = settings?.store || {
-    isAvailable: true, title: "At Store Eye Test", description: "Visit our nearest store for a free 12-step eye examination using advanced automated equipment.", features: ["12-Step Checkup", "Expert Optometrists", "Free of Cost"], price: 0
+    isAvailable: true, title: "At Store Eye Test", description: "Visit our nearest store for a free 12-step eye examination using advanced automated equipment.", features: ["12-Step Checkup", "Expert Optometrists", "Free of Cost"], price: 0, imageUrl: ""
   };
   const homeData = settings?.home || {
-    isAvailable: true, title: "Home Eye Test", description: "Can't visit? We'll bring the clinic to you. Get your eyes tested at home with portable advanced tech.", features: ["Certified Professional Visit", "Try 100+ Frames at Home", "Just ₹199 (Refundable)"], price: 199
+    isAvailable: true, title: "Home Eye Test", description: "Can't visit? We'll bring the clinic to you. Get your eyes tested at home with portable advanced tech.", features: ["Certified Professional Visit", "Try 100+ Frames at Home", "Just ₹199 (Refundable)"], price: 199, imageUrl: ""
   };
 
   return (
@@ -133,9 +133,19 @@ export default function EyeTestPage() {
                 <span className="bg-red-100 text-red-800 font-bold px-4 py-2 rounded-full text-sm">Currently Unavailable</span>
               </div>
             )}
-            <div className={`w-12 h-12 md:w-16 md:h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-4 md:mb-6 transition-transform ${storeData.isAvailable ? 'group-hover:scale-110' : ''}`}>
-              <MapPin className="w-6 h-6 md:w-8 md:h-8 text-brand-navy" />
-            </div>
+            {storeData.imageUrl ? (
+              <div className={`w-full aspect-[16/9] mb-4 md:mb-6 rounded-2xl overflow-hidden transition-transform ${storeData.isAvailable ? 'group-hover:scale-105' : ''}`}>
+                {storeData.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+                  <video src={storeData.imageUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
+                ) : (
+                  <img src={storeData.imageUrl} alt={storeData.title} className="w-full h-full object-cover" />
+                )}
+              </div>
+            ) : (
+              <div className={`w-12 h-12 md:w-16 md:h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-4 md:mb-6 transition-transform ${storeData.isAvailable ? 'group-hover:scale-110' : ''}`}>
+                <MapPin className="w-6 h-6 md:w-8 md:h-8 text-brand-navy" />
+              </div>
+            )}
             <h2 className="text-xl md:text-2xl font-black text-gray-900 mb-2">{storeData.title}</h2>
             <p className="text-sm md:text-base text-gray-500 mb-6 flex-grow">{storeData.description}</p>
             <ul className="space-y-2 md:space-y-3 mb-6 md:mb-8">
@@ -163,9 +173,19 @@ export default function EyeTestPage() {
                 <span className="bg-red-100 text-red-800 font-bold px-4 py-2 rounded-full text-sm">Currently Unavailable</span>
               </div>
             )}
-            <div className={`w-12 h-12 md:w-16 md:h-16 bg-yellow-50 rounded-2xl flex items-center justify-center mb-4 md:mb-6 transition-transform ${homeData.isAvailable ? 'group-hover:scale-110' : ''}`}>
-              <HomeIcon className="w-6 h-6 md:w-8 md:h-8 text-yellow-600" />
-            </div>
+            {homeData.imageUrl ? (
+              <div className={`w-full aspect-[16/9] mb-4 md:mb-6 rounded-2xl overflow-hidden transition-transform ${homeData.isAvailable ? 'group-hover:scale-105' : ''}`}>
+                {homeData.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+                  <video src={homeData.imageUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
+                ) : (
+                  <img src={homeData.imageUrl} alt={homeData.title} className="w-full h-full object-cover" />
+                )}
+              </div>
+            ) : (
+              <div className={`w-12 h-12 md:w-16 md:h-16 bg-yellow-50 rounded-2xl flex items-center justify-center mb-4 md:mb-6 transition-transform ${homeData.isAvailable ? 'group-hover:scale-110' : ''}`}>
+                <HomeIcon className="w-6 h-6 md:w-8 md:h-8 text-yellow-600" />
+              </div>
+            )}
             <h2 className="text-xl md:text-2xl font-black text-gray-900 mb-2">{homeData.title}</h2>
             <p className="text-sm md:text-base text-gray-500 mb-6 flex-grow">{homeData.description}</p>
             <ul className="space-y-2 md:space-y-3 mb-6 md:mb-8">

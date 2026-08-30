@@ -27,7 +27,7 @@ export function GuideSlider({ data }: GuideSliderProps) {
       </div>
 
       <div className="flex overflow-x-auto gap-4 md:gap-6 pb-6 px-4 md:px-0 max-w-7xl mx-auto no-scrollbar snap-x">
-        {data.guides.map((guide, index) => (
+        {data.guides?.map((guide, index) => (
           <div 
             key={index}
             className="relative flex-shrink-0 w-[55vw] md:w-[350px] aspect-[4/5] rounded-[24px] overflow-hidden snap-center group flex flex-col justify-between p-6"
