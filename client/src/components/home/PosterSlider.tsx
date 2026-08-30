@@ -69,7 +69,7 @@ export function PosterSlider({ data }: PosterSliderProps) {
               {/* Ribbon Top Left */}
               <div>
                 {poster.ribbonText && poster.ribbonText.trim() !== '' && (
-                  <div className="inline-flex items-center justify-center h-8 bg-white/20 backdrop-blur-md rounded border border-white/10 text-[10px] md:text-xs font-black text-white px-4 shadow-sm uppercase tracking-wider">
+                  <div className="inline-flex items-center justify-center h-8 bg-red-600 rounded border border-red-500 text-[10px] md:text-xs font-black text-white px-4 shadow-sm uppercase tracking-wider">
                     {poster.ribbonText.trim()}
                   </div>
                 )}
