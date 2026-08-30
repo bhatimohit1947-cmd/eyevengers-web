@@ -339,7 +339,11 @@ export default function ProductDetailPage() {
                 className={`w-20 h-20 md:w-full md:h-24 flex-shrink-0 bg-white rounded-xl border-2 cursor-pointer flex items-center justify-center snap-center overflow-hidden transition-all ${activeImage === i ? 'border-brand-navy shadow-md ring-2 ring-brand-navy/20' : 'border-gray-200 hover:border-brand-navy/50 opacity-70 hover:opacity-100'}`}
               >
                  {img ? (
-                   <img src={img} alt={`View ${i+1}`} className="w-full h-full object-cover mix-blend-multiply hover:scale-110 transition-transform duration-300" />
+                   img.match(/\.(mp4|webm|ogg)$/i) ? (
+                     <video src={img} className="w-full h-full object-cover mix-blend-multiply hover:scale-110 transition-transform duration-300" autoPlay loop muted playsInline />
+                   ) : (
+                     <img src={img} alt={`View ${i+1}`} className="w-full h-full object-cover mix-blend-multiply hover:scale-110 transition-transform duration-300" />
+                   )
                  ) : (
                    <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                  )}
@@ -361,7 +365,11 @@ export default function ProductDetailPage() {
             </div>
             
             {product.images[activeImage] ? (
-              <img src={product.images[activeImage]} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
+              product.images[activeImage].match(/\.(mp4|webm|ogg)$/i) ? (
+                <video src={product.images[activeImage]} className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" autoPlay loop muted playsInline />
+              ) : (
+                <img src={product.images[activeImage]} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
+              )
             ) : (
               <svg className="w-32 h-32 text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             )}

@@ -85,11 +85,19 @@ export function ProductCard({ product, appliedOffer }: ProductCardProps) {
       {/* Image Container */}
       <Link href={`/products/${product.id}`} className="block relative pt-[75%] bg-gray-50 overflow-hidden group-hover:opacity-90 transition-opacity">
         {product.imageUrl ? (
-          <img 
-            src={product.imageUrl.split(',')[0].trim()} 
-            alt={product.name}
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-          />
+          product.imageUrl.split(',')[0].trim().match(/\.(mp4|webm|ogg)$/i) ? (
+            <video 
+              src={product.imageUrl.split(',')[0].trim()} 
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              autoPlay loop muted playsInline
+            />
+          ) : (
+            <img 
+              src={product.imageUrl.split(',')[0].trim()} 
+              alt={product.name}
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            />
+          )
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-gray-300">
             <svg className="w-16 h-16 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
