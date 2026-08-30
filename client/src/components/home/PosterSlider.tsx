@@ -39,11 +39,19 @@ export function PosterSlider({ data }: PosterSliderProps) {
           >
             {/* Background Image */}
             {poster.imageUrl ? (
-              <img 
-                src={poster.imageUrl} 
-                alt={poster.ctaText} 
-                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              />
+              poster.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+                <video 
+                  src={poster.imageUrl} 
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  autoPlay loop muted playsInline
+                />
+              ) : (
+                <img 
+                  src={poster.imageUrl} 
+                  alt={poster.ctaText} 
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                />
+              )
             ) : (
               <div className="absolute inset-0 bg-gray-200 flex items-center justify-center group-hover:scale-105 transition-transform duration-700">
                  <svg className="w-20 h-20 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

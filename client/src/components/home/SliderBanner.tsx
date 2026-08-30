@@ -48,11 +48,19 @@ export function SliderBanner({ data }: SliderBannerProps) {
             <div key={index} className="w-full flex-shrink-0 relative">
               {/* Background */}
               {slide.imageUrl ? (
-                <img 
-                  src={slide.imageUrl}
-                  alt={slide.headline}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
+                slide.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+                  <video 
+                    src={slide.imageUrl}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    autoPlay loop muted playsInline
+                  />
+                ) : (
+                  <img 
+                    src={slide.imageUrl}
+                    alt={slide.headline}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                )
               ) : (
                 <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
                   <svg className="w-24 h-24 text-white/10" fill="none" viewBox="0 0 24 24" stroke="currentColor">

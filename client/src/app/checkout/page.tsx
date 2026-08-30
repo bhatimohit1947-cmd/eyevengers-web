@@ -138,7 +138,11 @@ export default function CheckoutPage() {
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-gray-100 rounded flex-shrink-0 overflow-hidden relative">
                         {item.imageUrl ? (
-                          <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+                          item.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+                            <video src={item.imageUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
+                          ) : (
+                            <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+                          )
                         ) : (
                           <div className="w-full h-full bg-gray-200"></div>
                         )}

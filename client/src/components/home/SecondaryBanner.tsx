@@ -58,11 +58,19 @@ export function SecondaryBanner({ data }: SecondaryBannerProps) {
           
           {/* If an image poster is provided */}
           {data.bannerImageUrl ? (
-            <img 
-              src={data.bannerImageUrl} 
-              alt="Banner Poster" 
-              className="w-full h-full object-cover object-center absolute inset-0 z-0"
-            />
+            data.bannerImageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+              <video 
+                src={data.bannerImageUrl} 
+                className="w-full h-full object-cover object-center absolute inset-0 z-0"
+                autoPlay loop muted playsInline
+              />
+            ) : (
+              <img 
+                src={data.bannerImageUrl} 
+                alt="Banner Poster" 
+                className="w-full h-full object-cover object-center absolute inset-0 z-0"
+              />
+            )
           ) : (
             /* Fallback HTML Layout exactly matching the "hustlr CLUB" screenshot */
             <div className="absolute inset-0 z-0 flex items-center justify-between px-6 py-5">

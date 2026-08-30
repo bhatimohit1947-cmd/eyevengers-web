@@ -36,14 +36,21 @@ export function SpecialsGrid({ data }: SpecialsGridProps) {
               </div>
             )}
             
-            {/* Icon */}
             {item.iconImageUrl ? (
               <div className="w-12 h-12 md:w-16 md:h-16 mb-2 group-hover:scale-110 transition-transform">
-                <img 
-                  src={item.iconImageUrl} 
-                  alt={item.label}
-                  className="w-full h-full object-contain"
-                />
+                {item.iconImageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+                  <video 
+                    src={item.iconImageUrl} 
+                    className="w-full h-full object-contain"
+                    autoPlay loop muted playsInline
+                  />
+                ) : (
+                  <img 
+                    src={item.iconImageUrl} 
+                    alt={item.label}
+                    className="w-full h-full object-contain"
+                  />
+                )}
               </div>
             ) : (
               <div className="w-12 h-12 md:w-16 md:h-16 mb-2 text-gray-300 group-hover:scale-110 transition-transform">
