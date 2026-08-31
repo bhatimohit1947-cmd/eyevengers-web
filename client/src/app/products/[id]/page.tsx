@@ -18,7 +18,7 @@ export default function ProductDetailPage() {
   const { hasItem, toggleItem } = useWishlistStore();
   const isWishlisted = hasItem(id as string);
   
-  const { user } = useAuthStore();
+  const { user, membershipBenefits } = useAuthStore();
   
   // Lens Settings from Admin
   const [lensSettings, setLensSettings] = useState<any>(null);
@@ -131,7 +131,7 @@ export default function ProductDetailPage() {
     }
     
     // Apply membership discount
-    const discountPercent = user?.membershipBenefits?.discountPercent || 0;
+    const discountPercent = membershipBenefits?.discountPercent || 0;
     if (discountPercent > 0) {
       total = total - (total * (discountPercent / 100));
     }
