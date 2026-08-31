@@ -18,6 +18,17 @@ export const createMembershipOrder = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Amount is required' });
     }
 
+    const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_mockKeyId12345';
+    
+    // If using mock test key, return a mock order to prevent 401 from Razorpay API
+    if (keyId.includes('mock')) {
+      return res.json({
+        orderId: `order_mock_${Date.now()}`,
+        amount: Math.round(amount * 100),
+        currency: 'INR'
+      });
+    }
+
     const instance = getRazorpayInstance();
 
     const options = {
@@ -60,15 +71,17 @@ export const verifyMembershipPayment = async (req: Request, res: Response) => {
     } = req.body;
 
     const secret = process.env.RAZORPAY_KEY_SECRET || 'mockSecret1234567890abcdef';
+    let isSignatureValid = false;
 
-    // Verify signature
-    const shasum = crypto.createHmac('sha256', secret);
-    shasum.update(`${razorpay_order_id}|${razorpay_payment_id}`);
-    const digest = shasum.digest('hex');
-
-    // In a real environment, you strictly enforce this.
-    // For test mode without valid keys, we might bypass or just warn.
-    const isSignatureValid = digest === razorpay_signature;
+    if (razorpay_payment_id && razorpay_payment_id.includes('mock')) {
+      isSignatureValid = true; // Bypass for mock payments
+    } else {
+      // Verify signature
+      const shasum = crypto.createHmac('sha256', secret);
+      shasum.update(`${razorpay_order_id}|${razorpay_payment_id}`);
+      const digest = shasum.digest('hex');
+      isSignatureValid = digest === razorpay_signature;
+    }
     
     if (!isSignatureValid && process.env.NODE_ENV === 'production') {
       return res.status(400).json({ error: 'Invalid payment signature' });

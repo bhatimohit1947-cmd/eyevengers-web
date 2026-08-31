@@ -142,8 +142,37 @@ function MembershipPageContent() {
       }
 
       // 2. Open Razorpay Checkout
+      const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_mockKeyId12345';
+      
+      // If using mock test key, bypass Razorpay UI and simulate successful payment
+      if (keyId.includes('mock')) {
+        const verifyRes = await fetch('https://eyevengers-web.onrender.com/api/payments/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            razorpay_order_id: orderData.orderId,
+            razorpay_payment_id: 'pay_mock_' + Date.now(),
+            razorpay_signature: 'mock_signature',
+            planId: plan.id,
+            tier: plan.tier,
+            userId: useAuthStore.getState().user?.id,
+            durationMonths: plan.durationMonths
+          })
+        });
+
+        const verifyData = await verifyRes.json();
+
+        if (verifyRes.ok) {
+          purchaseMembership(plan.tier as any, plan.benefitsJson);
+          alert(`(TEST MODE) Payment Successful! Welcome to ${plan.name} Membership.`);
+        } else {
+          alert('Payment verification failed: ' + verifyData.error);
+        }
+        return;
+      }
+
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_mockKeyId12345',
+        key: keyId,
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'Eyevengers',
