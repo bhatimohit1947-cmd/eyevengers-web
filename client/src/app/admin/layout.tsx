@@ -54,6 +54,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Eye Tests', href: '/admin/eye-tests', icon: Stethoscope, badge: counts.eyeTests },
     { name: 'Customers', href: '/admin/customers', icon: Users },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
+    { name: 'Policies', href: '/admin/settings/policies', icon: Settings },
   ];
 
   return (
