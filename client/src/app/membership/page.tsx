@@ -4,6 +4,13 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Crown, Medal, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
+import Script from 'next/script';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 interface MembershipPlan {
   id: string;
@@ -107,20 +114,91 @@ function MembershipPageContent() {
     return basePrice;
   };
 
-  const handlePurchase = (plan: MembershipPlan) => {
+  const handlePurchase = async (plan: MembershipPlan) => {
     if (!isLoggedIn) {
       openLoginModal(() => handlePurchase(plan));
       return;
     }
-    
-    // In a real app, this would call a payment gateway
-    // Then on success update the user profile
-    purchaseMembership(plan.tier as any, plan.benefitsJson);
-    alert(`Successfully purchased ${plan.name}! Your shiny new badge is active.`);
+
+    const amount = calculatePrice(plan);
+
+    try {
+      // 1. Create order on backend
+      const res = await fetch('https://eyevengers-web.onrender.com/api/payments/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planId: plan.id,
+          amount: amount,
+          userId: useAuthStore.getState().user?.id
+        })
+      });
+
+      const orderData = await res.json();
+
+      if (!res.ok) {
+        alert(orderData.error || 'Failed to initialize payment');
+        return;
+      }
+
+      // 2. Open Razorpay Checkout
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_mockKeyId12345',
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'Eyevengers',
+        description: `${plan.name} Membership`,
+        order_id: orderData.orderId,
+        handler: async function (response: any) {
+          // 3. Verify Payment on Backend
+          const verifyRes = await fetch('https://eyevengers-web.onrender.com/api/payments/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              planId: plan.id,
+              tier: plan.tier,
+              userId: useAuthStore.getState().user?.id,
+              durationMonths: plan.durationMonths
+            })
+          });
+
+          const verifyData = await verifyRes.json();
+
+          if (verifyRes.ok) {
+            // Update auth store with new membership benefits
+            purchaseMembership(plan.tier as any, plan.benefitsJson);
+            alert(`Payment Successful! Welcome to ${plan.name} Membership.`);
+          } else {
+            alert('Payment verification failed: ' + verifyData.error);
+          }
+        },
+        prefill: {
+          name: useAuthStore.getState().user?.name || '',
+          email: useAuthStore.getState().user?.email || '',
+        },
+        theme: {
+          color: '#0B1550'
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response: any) {
+        alert('Payment failed: ' + response.error.description);
+      });
+      rzp.open();
+
+    } catch (err) {
+      console.error(err);
+      alert('Something went wrong initializing payment');
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-12">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <h1 className="text-3xl md:text-5xl font-black text-brand-navy mb-4 uppercase tracking-tight">

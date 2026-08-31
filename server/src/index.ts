@@ -7,6 +7,7 @@ import offersRoutes from './routes/offers.routes';
 import adminRoutes from './routes/admin.routes';
 import membershipRoutes from './routes/membership.routes';
 import orderRoutes from './routes/order.routes';
+import paymentRoutes from './routes/payment.routes';
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.use('/api/offers', offersRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/memberships', membershipRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/payments', paymentRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Eyevengers API is running' });
