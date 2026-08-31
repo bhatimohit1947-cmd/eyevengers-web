@@ -32,7 +32,25 @@ export default function MembershipsAdminPage() {
     try {
       const res = await fetch(`https://eyevengers-web.onrender.com/api/memberships/plans`);
       if (res.ok) {
-        const data = await res.json();
+        let data = await res.json();
+        // Fallback parse just in case backend is outdated or hasn't deployed
+        data = data.map((plan: any) => {
+          if (!plan.benefitsJson && plan.benefits) {
+             const displayBenefits: string[] = [];
+             let parsedJson = undefined;
+             for (const b of plan.benefits) {
+               if (typeof b === 'string' && b.startsWith('__BENEFITS_JSON__:')) {
+                 try { parsedJson = JSON.parse(b.replace('__BENEFITS_JSON__:', '')); } catch(e){}
+               } else {
+                 displayBenefits.push(b);
+               }
+             }
+             if (parsedJson) {
+               return { ...plan, benefits: displayBenefits, benefitsJson: parsedJson };
+             }
+          }
+          return plan;
+        });
         setPlans(data);
       }
     } catch (err) {
