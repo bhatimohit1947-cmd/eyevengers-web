@@ -15,6 +15,9 @@ export const createMembershipOrder = async (req: Request, res: Response) => {
     const { planId, amount, userId } = req.body;
 
     if (!amount) {
+      return res.status(400).json({ error: 'Amount is required' });
+    }
+
     const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_T34XmzvqjTeeXs';
 
     const instance = getRazorpayInstance();
