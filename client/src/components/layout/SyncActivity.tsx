@@ -6,7 +6,7 @@ import { useCartStore } from '@/store/useCartStore';
 import { useWishlistStore } from '@/store/useWishlistStore';
 
 export function SyncActivity() {
-  const { user, isLoggedIn } = useAuthStore();
+  const { user, isLoggedIn, membershipTier, membershipBenefits, setMembershipTier } = useAuthStore();
   const cartCount = useCartStore(state => state.totalCount);
   const { productIds } = useWishlistStore();
   const wishlistCount = productIds.length;
@@ -46,6 +46,33 @@ export function SyncActivity() {
       })
     }).catch(console.error);
   }, [user, isLoggedIn, cartCount, wishlistCount]);
+
+  // Sync membership benefits on load in case they were updated in admin but local storage is stale
+  useEffect(() => {
+    if (isLoggedIn && membershipTier && membershipTier !== 'none') {
+      fetch('https://eyevengers-web.onrender.com/api/memberships/plans')
+        .then(res => res.json())
+        .then(data => {
+          const plan = data.find((p: any) => p.tier === membershipTier.toLowerCase());
+          if (plan) {
+            let parsedBenefits = plan.benefitsJson;
+            if (!parsedBenefits && plan.benefits) {
+              for (const b of plan.benefits) {
+                if (typeof b === 'string' && b.startsWith('__BENEFITS_JSON__:')) {
+                  try { parsedBenefits = JSON.parse(b.replace('__BENEFITS_JSON__:', '')); } catch(e){}
+                }
+              }
+            }
+            
+            // If benefits changed or were missing, update store
+            if (JSON.stringify(membershipBenefits) !== JSON.stringify(parsedBenefits)) {
+              setMembershipTier(membershipTier, parsedBenefits);
+            }
+          }
+        })
+        .catch(console.error);
+    }
+  }, [isLoggedIn, membershipTier]);
 
   return null;
 }
