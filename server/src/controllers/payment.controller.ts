@@ -5,8 +5,8 @@ import { supabase } from '../supabaseClient';
 
 const getRazorpayInstance = () => {
   return new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_mockKeyId12345',
-    key_secret: process.env.RAZORPAY_KEY_SECRET || 'mockSecret1234567890abcdef',
+    key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_T34XmzvqjTeeXs',
+    key_secret: process.env.RAZORPAY_KEY_SECRET || 'QEUwA7d1cV8AdBaloTJQClni',
   });
 };
 
@@ -15,19 +15,7 @@ export const createMembershipOrder = async (req: Request, res: Response) => {
     const { planId, amount, userId } = req.body;
 
     if (!amount) {
-      return res.status(400).json({ error: 'Amount is required' });
-    }
-
-    const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_mockKeyId12345';
-    
-    // If using mock test key, return a mock order to prevent 401 from Razorpay API
-    if (keyId.includes('mock')) {
-      return res.json({
-        orderId: `order_mock_${Date.now()}`,
-        amount: Math.round(amount * 100),
-        currency: 'INR'
-      });
-    }
+    const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_T34XmzvqjTeeXs';
 
     const instance = getRazorpayInstance();
 
@@ -70,18 +58,13 @@ export const verifyMembershipPayment = async (req: Request, res: Response) => {
       durationMonths
     } = req.body;
 
-    const secret = process.env.RAZORPAY_KEY_SECRET || 'mockSecret1234567890abcdef';
-    let isSignatureValid = false;
+    const secret = process.env.RAZORPAY_KEY_SECRET || 'QEUwA7d1cV8AdBaloTJQClni';
 
-    if (razorpay_payment_id && razorpay_payment_id.includes('mock')) {
-      isSignatureValid = true; // Bypass for mock payments
-    } else {
-      // Verify signature
-      const shasum = crypto.createHmac('sha256', secret);
-      shasum.update(`${razorpay_order_id}|${razorpay_payment_id}`);
-      const digest = shasum.digest('hex');
-      isSignatureValid = digest === razorpay_signature;
-    }
+    // Verify signature
+    const shasum = crypto.createHmac('sha256', secret);
+    shasum.update(`${razorpay_order_id}|${razorpay_payment_id}`);
+    const digest = shasum.digest('hex');
+    const isSignatureValid = digest === razorpay_signature;
     
     if (!isSignatureValid && process.env.NODE_ENV === 'production') {
       return res.status(400).json({ error: 'Invalid payment signature' });
