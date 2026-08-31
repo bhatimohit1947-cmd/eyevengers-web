@@ -3,6 +3,7 @@ import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { supabase } from '../supabaseClient';
 import { createNotification } from './admin.controller';
+import { sendEmail } from '../utils/email';
 
 // Use the API Keys provided by the user
 const razorpay = new Razorpay({
@@ -81,6 +82,13 @@ export const createOrder = async (req: Request, res: Response) => {
     // Trigger Notification
     await createNotification('Order', 'New COD Order', `Order ${newOrder.id} placed for ₹${amount} via COD.`);
 
+    // Send Email Notification (if email is available, otherwise this will fail silently or skip if not configured)
+    await sendEmail(
+      orderDetails?.email || 'support@eyevengers.com',
+      `Order Confirmed - ${newOrder.id}`,
+      `<h2>Thank you for your order!</h2><p>Your COD order for ₹${amount} has been successfully placed.</p>`
+    );
+
     // format for frontend
     const formattedOrder = {
       ...newOrder,
@@ -120,6 +128,14 @@ export const verifyPayment = async (req: Request, res: Response) => {
         .eq('razorpay_order_id', razorpay_order_id);
         
       if (error) throw error;
+      
+      // Fetch order details to get customer email if possible, or send to admin
+      await sendEmail(
+        'support@eyevengers.com', // Sending to admin by default unless we query the user's email
+        `Payment Received - ${razorpay_order_id}`,
+        `<h2>Payment Successful!</h2><p>Payment for order ${razorpay_order_id} has been verified.</p>`
+      );
+
       return res.json({ success: true, message: "Payment verified successfully" });
     } else {
       return res.status(400).json({ success: false, message: "Invalid signature sent!" });

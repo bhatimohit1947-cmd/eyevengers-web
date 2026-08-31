@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
 import { supabase } from '../supabaseClient';
+import { sendEmail } from '../utils/email';
 
 const getRazorpayInstance = () => {
   return new Razorpay({
@@ -88,6 +89,13 @@ export const verifyMembershipPayment = async (req: Request, res: Response) => {
       expiry_date: expiryDate.toISOString(),
       status: 'active'
     };
+    
+    // Send email notification for membership
+    await sendEmail(
+      'support@eyevengers.com', // To admin or user if we had their email
+      `New Membership Activated!`,
+      `<h2>Membership Alert</h2><p>User ${userId} has successfully activated the ${planId} membership.</p>`
+    );
 
     // For now, we will just return success so the frontend authStore can update.
     res.json({ 

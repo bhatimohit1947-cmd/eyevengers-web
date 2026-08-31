@@ -96,9 +96,12 @@ export function Footer() {
 
         <div className="mt-10 flex flex-col md:flex-row justify-between items-center text-xs text-gray-500 pt-6 border-t border-gray-200">
           <p>© 2026 Eyevengers. All Rights Reserved.</p>
-          <div className="flex gap-4 mt-4 md:mt-0">
-            <Link href="#" className="hover:text-gray-900">Terms & Conditions</Link>
-            <Link href="#" className="hover:text-gray-900">Privacy Policy</Link>
+          <div className="flex gap-4 mt-4 md:mt-0 flex-wrap justify-center">
+            <Link href="/terms" className="hover:text-gray-900">Terms & Conditions</Link>
+            <Link href="/privacy" className="hover:text-gray-900">Privacy Policy</Link>
+            <Link href="/refund" className="hover:text-gray-900">Refund Policy</Link>
+            <Link href="/shipping" className="hover:text-gray-900">Shipping Policy</Link>
+            <Link href="/contact" className="hover:text-gray-900">Contact Us</Link>
           </div>
           <p className="mt-4 md:mt-0">Version 1.0.0</p>
         </div>
