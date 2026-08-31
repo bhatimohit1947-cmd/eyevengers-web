@@ -18,7 +18,9 @@ export default function CheckoutPage() {
   
   const discountPercent = membershipBenefits?.discountPercent || 0;
   const membershipDiscountAmount = discountPercent > 0 ? (baseTotalPrice * (discountPercent / 100)) : 0;
-  const finalTotalPrice = baseTotalPrice - membershipDiscountAmount;
+  const hasFreeShipping = membershipBenefits?.freeShipping === true;
+  const shippingCharge = hasFreeShipping ? 0 : 50;
+  const finalTotalPrice = baseTotalPrice + shippingCharge - membershipDiscountAmount;
   
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
@@ -174,7 +176,14 @@ export default function CheckoutPage() {
                 )}
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
-                  <span className="text-green-600 font-medium">FREE</span>
+                  {hasFreeShipping ? (
+                    <div className="flex items-center gap-2">
+                      <span className="line-through text-xs text-gray-400">₹50</span>
+                      <span className="text-green-600 font-medium">FREE</span>
+                    </div>
+                  ) : (
+                    <span>₹{shippingCharge}</span>
+                  )}
                 </div>
                 <div className="flex justify-between text-xl font-bold text-gray-900 pt-2 border-t border-gray-100">
                   <span>Total Payable</span>

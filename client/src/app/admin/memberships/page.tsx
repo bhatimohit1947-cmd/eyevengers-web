@@ -71,6 +71,12 @@ export default function MembershipsAdminPage() {
       const method = editingPlan.id ? 'PUT' : 'POST';
       
       const payload = { ...editingPlan };
+      
+      // Inject benefitsJson into benefits array so backend saves it even if not updated
+      if (payload.benefitsJson) {
+         payload.benefits = [...payload.benefits, `__BENEFITS_JSON__:${JSON.stringify(payload.benefitsJson)}`];
+      }
+      
       if (!payload.id) delete (payload as any).id; // Remove temporary ID for new plan
 
       const res = await fetch(url, {

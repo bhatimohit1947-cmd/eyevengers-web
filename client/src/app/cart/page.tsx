@@ -22,6 +22,9 @@ export default function CartPage() {
   
   const discountPercent = membershipBenefits?.discountPercent || 0;
   const membershipDiscountAmount = discountPercent > 0 ? (totalAmount * (discountPercent / 100)) : 0;
+  
+  const hasFreeShipping = membershipBenefits?.freeShipping === true;
+  const shippingCharge = hasFreeShipping ? 0 : 50;
 
   const [couponCode, setCouponCode] = useState("");
   const [couponState, setCouponState] = useState<{type: 'none' | 'success' | 'error', message: string, discount: number}>({
@@ -200,6 +203,17 @@ export default function CartPage() {
                   <span>-₹{totalDiscount}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
+                  <span>Shipping Charges</span>
+                  {hasFreeShipping ? (
+                    <div className="flex items-center gap-2">
+                      <span className="line-through text-xs text-gray-400">₹50</span>
+                      <span className="text-green-600 font-bold">FREE</span>
+                    </div>
+                  ) : (
+                    <span>₹{shippingCharge}</span>
+                  )}
+                </div>
+                <div className="flex justify-between text-gray-600">
                   <span>Taxes & Fees</span>
                   <span>₹0</span>
                 </div>
@@ -219,7 +233,7 @@ export default function CartPage() {
 
               <div className="flex justify-between font-bold text-lg text-gray-900 mb-6">
                 <span>Total Payable</span>
-                <span>₹{(totalAmount - couponState.discount - membershipDiscountAmount).toFixed(0)}</span>
+                <span>₹{(totalAmount + shippingCharge - couponState.discount - membershipDiscountAmount).toFixed(0)}</span>
               </div>
 
               <button 
