@@ -132,10 +132,22 @@ export default function ProductDetailPage() {
     
     // Apply membership discount
     const discountPercent = membershipBenefits?.discountPercent || 0;
-    if (discountPercent > 0) {
-      total = total - (total * (discountPercent / 100));
-    }
+    const membershipDiscountAmount = discountPercent > 0 ? (total * (discountPercent / 100)) : 0;
     
+    const hasFreeShipping = membershipBenefits?.freeShipping === true;
+    const shippingCharge = hasFreeShipping ? 0 : 50;
+    
+    return total + shippingCharge - membershipDiscountAmount;
+  };
+  
+  const getBaseTotal = () => {
+    let total = product?.sellingPrice || 0;
+    if (!isFrameOnly && selectedLensProduct && selectedCategory) {
+      total += selectedLensProduct.basePrice;
+      if (highPowerSurchargeApplied) {
+        total += selectedCategory.highPowerSurcharge;
+      }
+    }
     return total;
   };
 
@@ -549,9 +561,29 @@ export default function ProductDetailPage() {
                       <span className="font-bold">₹{selectedCategory.highPowerSurcharge}</span>
                     </div>
                   )}
+                  
+                  {membershipBenefits?.discountPercent && (
+                    <div className="flex justify-between text-sm mb-3 text-brand-gold font-medium">
+                      <span>Member Discount ({membershipBenefits.discountPercent}%)</span>
+                      <span>-₹{(getBaseTotal() * (membershipBenefits.discountPercent / 100)).toFixed(0)}</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between text-sm mb-3 text-gray-600">
+                    <span>Shipping Charges</span>
+                    {membershipBenefits?.freeShipping ? (
+                      <div className="flex items-center gap-2">
+                        <span className="line-through text-xs text-gray-400">₹50</span>
+                        <span className="text-green-600 font-bold">FREE</span>
+                      </div>
+                    ) : (
+                      <span>₹50</span>
+                    )}
+                  </div>
+                  
                   <div className="flex justify-between text-base font-black text-gray-900 mt-4 pt-4 border-t border-gray-200">
                     <span>Total Amount</span>
-                    <span>₹{calculateTotal()}</span>
+                    <span>₹{calculateTotal().toFixed(0)}</span>
                   </div>
                 </div>
 
@@ -576,10 +608,10 @@ export default function ProductDetailPage() {
                 <button 
                   onClick={handlePlaceOrder} 
                   disabled={isPlacingOrder}
-                  className="w-full bg-brand-navy text-white font-bold py-4 rounded-full shadow-lg hover:bg-blue-900 transition text-lg flex items-center justify-center disabled:opacity-70"
+                  className="w-full bg-brand-navy text-white font-bold py-4 rounded-xl shadow-lg hover:bg-[#002b4d] transition-colors text-lg flex items-center justify-center disabled:opacity-70 mt-4"
                 >
                   {isPlacingOrder ? <Loader2 className="animate-spin mr-2" /> : null}
-                  Place Order • ₹{calculateTotal()}
+                  Place Order • ₹{calculateTotal().toFixed(0)}
                 </button>
               </div>
             )}
