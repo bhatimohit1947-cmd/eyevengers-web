@@ -129,6 +129,13 @@ export default function ProductDetailPage() {
         total += selectedCategory.highPowerSurcharge;
       }
     }
+    
+    // Apply membership discount
+    const discountPercent = user?.membershipBenefits?.discountPercent || 0;
+    if (discountPercent > 0) {
+      total = total - (total * (discountPercent / 100));
+    }
+    
     return total;
   };
 

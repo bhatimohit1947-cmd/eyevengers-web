@@ -10,11 +10,15 @@ import AddressManager from '@/components/checkout/AddressManager';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { isLoggedIn, user, openLoginModal } = useAuthStore();
-  const { items: cartItems, totalPrice, clearCart } = useCartStore();
+  const { isLoggedIn, user, openLoginModal, membershipBenefits } = useAuthStore();
+  const { items: cartItems, totalPrice: baseTotalPrice, clearCart } = useCartStore();
   const { getUserAddresses } = useAddressStore();
 
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
+  
+  const discountPercent = membershipBenefits?.discountPercent || 0;
+  const membershipDiscountAmount = discountPercent > 0 ? (baseTotalPrice * (discountPercent / 100)) : 0;
+  const finalTotalPrice = baseTotalPrice - membershipDiscountAmount;
   
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
@@ -51,7 +55,7 @@ export default function CheckoutPage() {
         id: `ORD-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
         userId: user?.id,
         createdAt: new Date().toISOString(),
-        amount: totalPrice,
+        amount: finalTotalPrice,
         status: 'Order Placed',
         paymentMethod: 'cod',
         paymentStatus: 'Pending',
@@ -160,15 +164,21 @@ export default function CheckoutPage() {
               <div className="border-t border-gray-100 pt-4 space-y-3 mb-6">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
-                  <span>₹{totalPrice}</span>
+                  <span>₹{baseTotalPrice}</span>
                 </div>
+                {membershipDiscountAmount > 0 && (
+                  <div className="flex justify-between text-brand-gold font-medium">
+                    <span>Member Discount ({discountPercent}%)</span>
+                    <span>-₹{membershipDiscountAmount.toFixed(0)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
                   <span className="text-green-600 font-medium">FREE</span>
                 </div>
                 <div className="flex justify-between text-xl font-bold text-gray-900 pt-2 border-t border-gray-100">
                   <span>Total Payable</span>
-                  <span>₹{totalPrice}</span>
+                  <span>₹{finalTotalPrice.toFixed(0)}</span>
                 </div>
               </div>
               

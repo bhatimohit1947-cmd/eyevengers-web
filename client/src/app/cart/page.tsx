@@ -5,18 +5,23 @@ import { useRouter } from 'next/navigation';
 import { Minus, Plus, Trash2, ShieldCheck, ChevronRight, Tag, ShoppingBag } from 'lucide-react';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthGate } from '@/hooks/useAuthGate';
+import { useAuthStore } from '@/store/useAuthStore';
 import Link from 'next/link';
 
 export default function CartPage() {
   const router = useRouter();
   const { items: cartItems, removeItem, updateQuantity, totalPrice } = useCartStore();
   const { requireAuth } = useAuthGate();
+  const { membershipBenefits } = useAuthStore();
 
   // We are assuming mrp is some fixed percentage higher for UI mock purposes, 
   // since useCartStore only stores `price`. Let's mock MRP as price * 1.5
   const totalMrp = cartItems.reduce((acc, item) => acc + (item.price * 1.5 * item.qty), 0);
   const totalDiscount = cartItems.reduce((acc, item) => acc + ((item.price * 1.5 - item.price) * item.qty), 0);
   const totalAmount = totalPrice;
+  
+  const discountPercent = membershipBenefits?.discountPercent || 0;
+  const membershipDiscountAmount = discountPercent > 0 ? (totalAmount * (discountPercent / 100)) : 0;
 
   const [couponCode, setCouponCode] = useState("");
   const [couponState, setCouponState] = useState<{type: 'none' | 'success' | 'error', message: string, discount: number}>({
@@ -204,11 +209,17 @@ export default function CartPage() {
                     <span>-₹{couponState.discount.toFixed(0)}</span>
                   </div>
                 )}
+                {membershipDiscountAmount > 0 && (
+                  <div className="flex justify-between text-brand-gold font-bold">
+                    <span>Member Discount ({discountPercent}%)</span>
+                    <span>-₹{membershipDiscountAmount.toFixed(0)}</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-between font-bold text-lg text-gray-900 mb-6">
                 <span>Total Payable</span>
-                <span>₹{(totalAmount - couponState.discount).toFixed(0)}</span>
+                <span>₹{(totalAmount - couponState.discount - membershipDiscountAmount).toFixed(0)}</span>
               </div>
 
               <button 
