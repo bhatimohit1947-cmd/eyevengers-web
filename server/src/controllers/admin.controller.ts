@@ -158,22 +158,24 @@ export const getOrders = async (req: Request, res: Response) => {
 // ==========================
 // CUSTOMERS
 // ==========================
-import { prisma } from '../index';
-
+// Removed prisma import
 export const getCustomers = async (req: Request, res: Response) => {
   try {
-    const users = await prisma.user.findMany({
-      orderBy: { createdAt: 'desc' }
-    });
-    
-    // Fetch stats and PINs from global_settings in Supabase
-    const { data: settingsData } = await supabase.from('global_settings').select('*');
+    // Fetch everything from global_settings in Supabase
+    const { data: settingsData, error } = await supabase.from('global_settings').select('*');
+    if (error) throw error;
+
+    const users: any[] = [];
     const statsMap: Record<string, any> = {};
     const pinMap: Record<string, string> = {};
 
     if (settingsData) {
       settingsData.forEach(row => {
-        if (row.key.startsWith('stats_')) {
+        if (row.key.startsWith('user_')) {
+          try {
+            users.push(JSON.parse(row.value));
+          } catch(e) {}
+        } else if (row.key.startsWith('stats_')) {
           try {
             statsMap[row.key.replace('stats_', '')] = JSON.parse(row.value);
           } catch(e) {}
@@ -188,12 +190,15 @@ export const getCustomers = async (req: Request, res: Response) => {
       name: u.name,
       phone: u.phone,
       email: u.email,
-      pin: pinMap[u.id] || '0000', // Default fallback PIN if not found
+      pin: u.pin || pinMap[u.id] || '0000', // Use stored pin or fallback
       cartCount: statsMap[u.id]?.cartCount || 0,
       wishlistCount: statsMap[u.id]?.wishlistCount || 0,
       joinedAt: u.createdAt,
       createdAt: u.createdAt
     }));
+    
+    // Sort by createdAt desc
+    formatted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
     res.json(formatted);
   } catch (error) {
@@ -206,33 +211,47 @@ export const createOrUpdateCustomer = async (req: Request, res: Response) => {
   try {
     const { id, name, email, phone, pin } = req.body;
     let user;
-    if (id && id.startsWith('CUST-')) {
-      user = await prisma.user.findUnique({ where: { phone } });
-    } else if (id) {
-      user = await prisma.user.findUnique({ where: { id } });
-    }
+    
+    const userKey = `user_${phone}`;
+    const { data: existingData } = await supabase
+      .from('global_settings')
+      .select('value')
+      .eq('key', userKey)
+      .single();
 
-    if (user) {
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: { name, email: email || null, phone }
-      });
+    if (existingData) {
+      try {
+        user = JSON.parse(existingData.value);
+        user.name = name;
+        user.email = email || user.email;
+        if (pin) user.pin = pin;
+      } catch (e) {}
     } else {
-      user = await prisma.user.create({
-        data: { name, email: email || null, phone }
-      });
+      user = {
+        id: id || `CUST-${Date.now()}`,
+        name,
+        email: email || null,
+        phone,
+        pin,
+        createdAt: new Date().toISOString()
+      };
     }
 
-    // Save PIN to global_settings if provided
+    // Save to global_settings
+    await supabase.from('global_settings').upsert({
+      key: userKey,
+      value: JSON.stringify(user)
+    });
+
+    // Save PIN separately for backward compatibility with old stats logic
     if (pin) {
-      const key = `pin_${user.id}`;
       await supabase.from('global_settings').upsert({
-        key,
+        key: `pin_${user.id}`,
         value: pin
       });
     }
 
-    res.json({ success: true, customer: { ...user, pin } });
+    res.json({ success: true, customer: user });
   } catch (error) {
     console.error('Failed to save customer:', error);
     res.status(500).json({ error: 'Failed to save customer' });

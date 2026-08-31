@@ -90,6 +90,12 @@ export const verifyMembershipPayment = async (req: Request, res: Response) => {
       status: 'active'
     };
     
+    // Save to Supabase global_settings
+    await supabase.from('global_settings').upsert({
+      key: `membership_${userId}`,
+      value: JSON.stringify(membershipUpdate)
+    });
+
     // Send email notification for membership
     await sendEmail(
       'support@eyevengers.com', // To admin or user if we had their email
@@ -97,7 +103,6 @@ export const verifyMembershipPayment = async (req: Request, res: Response) => {
       `<h2>Membership Alert</h2><p>User ${userId} has successfully activated the ${planId} membership.</p>`
     );
 
-    // For now, we will just return success so the frontend authStore can update.
     res.json({ 
       success: true, 
       message: 'Payment verified successfully',

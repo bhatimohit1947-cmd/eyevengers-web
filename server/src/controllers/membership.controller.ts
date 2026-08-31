@@ -125,5 +125,46 @@ export const updateMembershipPlan = async (req: Request, res: Response) => {
 };
 
 export const getMembershipCustomers = async (req: Request, res: Response) => {
-  res.json(MOCK_MEMBERSHIP_CUSTOMERS);
+  try {
+    const { data: settingsData, error } = await supabase.from('global_settings').select('*');
+    if (error) throw error;
+    
+    const memberships: any[] = [];
+    const usersMap: Record<string, any> = {};
+
+    if (settingsData) {
+      settingsData.forEach(row => {
+        if (row.key.startsWith('membership_')) {
+          try {
+            memberships.push(JSON.parse(row.value));
+          } catch(e) {}
+        } else if (row.key.startsWith('user_')) {
+          try {
+            const user = JSON.parse(row.value);
+            usersMap[user.id] = user;
+          } catch(e) {}
+        }
+      });
+    }
+
+    const formattedCustomers = memberships.map((m: any) => {
+      const user = usersMap[m.user_id] || {};
+      return {
+        id: m.user_id,
+        name: user.name || 'Unknown User',
+        email: user.email || 'N/A',
+        phone: user.phone || 'N/A',
+        planId: m.plan_id,
+        tier: m.tier,
+        startDate: m.start_date,
+        expiryDate: m.expiry_date,
+        status: m.status
+      };
+    });
+
+    res.json(formattedCustomers);
+  } catch (err) {
+    console.error('Failed to fetch membership customers:', err);
+    res.status(500).json({ error: 'Failed to fetch membership customers' });
+  }
 };

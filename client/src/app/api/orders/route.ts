@@ -84,7 +84,7 @@ export async function POST(request: Request) {
     const timeoutId = setTimeout(() => controller.abort(), 3000);
 
     try {
-      const res = await fetch('https://eyevengers-web.onrender.com/api/orders', {
+      const res = await fetch('https://eyevengers-web.onrender.com/api/orders/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(order),
