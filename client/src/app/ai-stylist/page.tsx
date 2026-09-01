@@ -93,20 +93,23 @@ export default function AIStylistPage() {
         })
       });
 
-      if (!response.ok) throw new Error('Failed to fetch response');
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.reply || 'Failed to fetch response');
+      }
 
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'model',
         content: data.reply
       }]);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        content: "I'm sorry, I couldn't process that right now. Please try again later."
+        content: error.message || "I'm sorry, I couldn't process that right now. Please try again later."
       }]);
     } finally {
       setIsTyping(false);
