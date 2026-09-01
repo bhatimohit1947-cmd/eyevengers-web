@@ -102,19 +102,19 @@ export function SideDrawer() {
           <nav className="flex flex-col">
             {/* Shopping Categories */}
             <div className="px-6 pb-2 pt-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Shop</div>
-            <Link href="/collections/eyeglasses" onClick={closeMenu} className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 group">
+            <Link href="/products?category=eyeglasses" onClick={closeMenu} className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 group">
               <div className="flex items-center gap-3 font-medium text-gray-700 group-hover:text-brand-navy">
                 <Glasses size={20} /> Eyeglasses
               </div>
               <ChevronRight size={16} className="text-gray-300 group-hover:text-brand-navy" />
             </Link>
-            <Link href="/collections/sunglasses" onClick={closeMenu} className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 group">
+            <Link href="/products?category=sunglasses" onClick={closeMenu} className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 group">
               <div className="flex items-center gap-3 font-medium text-gray-700 group-hover:text-brand-navy">
                 <Glasses size={20} /> Sunglasses
               </div>
               <ChevronRight size={16} className="text-gray-300 group-hover:text-brand-navy" />
             </Link>
-            <Link href="/collections/contact-lenses" onClick={closeMenu} className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 group">
+            <Link href="/products?category=contact-lenses" onClick={closeMenu} className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 group">
               <div className="flex items-center gap-3 font-medium text-gray-700 group-hover:text-brand-navy">
                 <div className="w-5 h-5 rounded-full border-2 border-current"></div> Contact Lenses
               </div>
