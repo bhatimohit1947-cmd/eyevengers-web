@@ -13,6 +13,7 @@ export default function ProductsManagement() {
     sku: '',
     category: 'Eyeglasses',
     brand: '',
+    shape: '',
     gender: 'Unisex',
     price: '',
     discount: '',
@@ -20,8 +21,16 @@ export default function ProductsManagement() {
     imageUrl: ''
   });
 
-  const fetchProducts = () => {
+  // Global Attributes State
+  const [globalBrands, setGlobalBrands] = useState<string[]>([]);
+  const [globalShapes, setGlobalShapes] = useState<string[]>([]);
+  const [isAttrModalOpen, setIsAttrModalOpen] = useState(false);
+  const [editingAttrKey, setEditingAttrKey] = useState<'storeBrands' | 'storeShapes'>('storeBrands');
+  const [attrInputValue, setAttrInputValue] = useState('');
+
+  const fetchProductsAndSettings = () => {
     setIsLoading(true);
+    // Fetch Products
     fetch(`https://eyevengers-web.onrender.com/api/admin/products`)
       .then(res => res.json())
       .then(data => {
@@ -32,29 +41,55 @@ export default function ProductsManagement() {
         console.error("Error fetching products:", err);
         setIsLoading(false);
       });
+      
+    // Fetch Settings
+    fetch(`https://eyevengers-web.onrender.com/api/admin/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.storeBrands) setGlobalBrands(JSON.parse(data.storeBrands));
+        else setGlobalBrands(["EYEVENGERS", "Ray-Ban", "Oakley", "Lenskart"]);
+        
+        if (data.storeShapes) setGlobalShapes(JSON.parse(data.storeShapes));
+        else setGlobalShapes(["Rectangle", "Round", "Aviator", "Wayfarer", "Cat Eye"]);
+      })
+      .catch(err => console.error("Error fetching settings:", err));
   };
 
   useEffect(() => {
-    fetchProducts();
+    fetchProductsAndSettings();
   }, []);
 
   const openAddModal = () => {
     setEditingProductId(null);
-    setNewProduct({ name: '', sku: '', category: 'Eyeglasses', brand: '', gender: 'Unisex', price: '', discount: '', stock: '', imageUrl: '' });
+    setNewProduct({ name: '', sku: '', category: 'Eyeglasses', brand: globalBrands[0] || '', shape: globalShapes[0] || '', gender: 'Unisex', price: '', discount: '', stock: '', imageUrl: '' });
     setIsModalOpen(true);
   };
 
   const openEditModal = (product: any) => {
     setEditingProductId(product.id);
-    const hasDiscount = product.sku && product.sku.includes('|DISCOUNT:');
-    const realSku = hasDiscount ? product.sku.split('|DISCOUNT:')[0] : product.sku;
-    const discountVal = hasDiscount ? product.sku.split('|DISCOUNT:')[1] : '';
+    
+    let realSku = product.sku || '';
+    let discountVal = '';
+    let shapeVal = '';
+    
+    if (realSku.includes('|SHAPE:')) {
+      const parts = realSku.split('|SHAPE:');
+      shapeVal = parts[1].split('|')[0];
+      realSku = realSku.replace(`|SHAPE:${shapeVal}`, '');
+    }
+    
+    if (realSku.includes('|DISCOUNT:')) {
+      const parts = realSku.split('|DISCOUNT:');
+      discountVal = parts[1].split('|')[0];
+      realSku = realSku.replace(`|DISCOUNT:${discountVal}`, '');
+    }
     
     setNewProduct({
       name: product.name,
       sku: realSku,
       category: product.category,
       brand: product.brand || '',
+      shape: shapeVal,
       gender: product.gender || 'Unisex',
       price: product.price.toString(),
       discount: discountVal,
@@ -85,9 +120,12 @@ export default function ProductsManagement() {
       : `https://eyevengers-web.onrender.com/api/admin/products`;
     const method = editingProductId ? 'PUT' : 'POST';
 
-    // Store discount in SKU
-    const payloadSku = newProduct.discount ? `${newProduct.sku}|DISCOUNT:${newProduct.discount}` : newProduct.sku;
-    const { discount, ...restProduct } = newProduct;
+    // Store discount and shape in SKU
+    let payloadSku = newProduct.sku;
+    if (newProduct.discount) payloadSku += `|DISCOUNT:${newProduct.discount}`;
+    if (newProduct.shape) payloadSku += `|SHAPE:${newProduct.shape}`;
+    
+    const { discount, shape, ...restProduct } = newProduct;
     const payload = { ...restProduct, sku: payloadSku };
 
     try {
@@ -117,13 +155,21 @@ export default function ProductsManagement() {
           <h2 className="text-2xl font-bold text-gray-900">Products</h2>
           <p className="text-sm text-gray-500">Manage your inventory, prices, and product details.</p>
         </div>
-        <button 
-          onClick={openAddModal}
-          className="bg-brand-navy text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-blue-900 transition shadow-sm whitespace-nowrap"
-        >
-          <Plus size={18} />
-          Add Product
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setIsAttrModalOpen(true)}
+            className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-gray-50 transition shadow-sm whitespace-nowrap"
+          >
+            Manage Attributes
+          </button>
+          <button 
+            onClick={openAddModal}
+            className="bg-brand-navy text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-blue-900 transition shadow-sm whitespace-nowrap"
+          >
+            <Plus size={18} />
+            Add Product
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -270,10 +316,20 @@ export default function ProductsManagement() {
                 </div>
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Brand Name</label>
-                  <input type="text" value={newProduct.brand || ''} onChange={(e) => setNewProduct({...newProduct, brand: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-navy" placeholder="e.g. Ray-Ban" />
+                  <select value={newProduct.brand} onChange={(e) => setNewProduct({...newProduct, brand: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-navy">
+                    <option value="">Select Brand</option>
+                    {globalBrands.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
                 </div>
               </div>
               <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Shape</label>
+                  <select value={newProduct.shape} onChange={(e) => setNewProduct({...newProduct, shape: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-navy">
+                    <option value="">Select Shape</option>
+                    {globalShapes.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
                   <select value={newProduct.gender} onChange={(e) => setNewProduct({...newProduct, gender: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-navy">
@@ -304,6 +360,85 @@ export default function ProductsManagement() {
                 <button type="submit" className="px-4 py-2 bg-brand-navy text-white rounded-lg hover:bg-blue-900 font-medium shadow-sm">Save Product</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Attributes Modal */}
+      {isAttrModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900">Manage Attributes</h3>
+              <button onClick={() => setIsAttrModalOpen(false)} className="p-1 text-gray-400 hover:bg-gray-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-4 flex flex-col gap-4">
+              <div className="flex gap-2 border-b border-gray-200">
+                <button 
+                  onClick={() => setEditingAttrKey('storeBrands')} 
+                  className={`pb-2 px-2 font-medium text-sm ${editingAttrKey === 'storeBrands' ? 'border-b-2 border-brand-navy text-brand-navy' : 'text-gray-500'}`}
+                >
+                  Brands
+                </button>
+                <button 
+                  onClick={() => setEditingAttrKey('storeShapes')} 
+                  className={`pb-2 px-2 font-medium text-sm ${editingAttrKey === 'storeShapes' ? 'border-b-2 border-brand-navy text-brand-navy' : 'text-gray-500'}`}
+                >
+                  Shapes
+                </button>
+              </div>
+
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={attrInputValue}
+                  onChange={(e) => setAttrInputValue(e.target.value)}
+                  placeholder={`Add new ${editingAttrKey === 'storeBrands' ? 'Brand' : 'Shape'}...`} 
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && attrInputValue.trim()) {
+                      const newList = editingAttrKey === 'storeBrands' ? [...globalBrands, attrInputValue.trim()] : [...globalShapes, attrInputValue.trim()];
+                      if (editingAttrKey === 'storeBrands') setGlobalBrands(newList); else setGlobalShapes(newList);
+                      fetch(`https://eyevengers-web.onrender.com/api/admin/settings`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [editingAttrKey]: JSON.stringify(newList) }) });
+                      setAttrInputValue('');
+                    }
+                  }}
+                />
+                <button 
+                  onClick={() => {
+                    if (!attrInputValue.trim()) return;
+                    const newList = editingAttrKey === 'storeBrands' ? [...globalBrands, attrInputValue.trim()] : [...globalShapes, attrInputValue.trim()];
+                    if (editingAttrKey === 'storeBrands') setGlobalBrands(newList); else setGlobalShapes(newList);
+                    fetch(`https://eyevengers-web.onrender.com/api/admin/settings`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [editingAttrKey]: JSON.stringify(newList) }) });
+                    setAttrInputValue('');
+                  }}
+                  className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800"
+                >
+                  Add
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-2 max-h-64 overflow-y-auto mt-2">
+                {(editingAttrKey === 'storeBrands' ? globalBrands : globalShapes).map((attr, idx) => (
+                  <div key={idx} className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
+                    <span className="text-sm font-medium text-gray-700">{attr}</span>
+                    <button 
+                      onClick={() => {
+                        const newList = (editingAttrKey === 'storeBrands' ? globalBrands : globalShapes).filter((_, i) => i !== idx);
+                        if (editingAttrKey === 'storeBrands') setGlobalBrands(newList); else setGlobalShapes(newList);
+                        fetch(`https://eyevengers-web.onrender.com/api/admin/settings`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [editingAttrKey]: JSON.stringify(newList) }) });
+                      }}
+                      className="text-red-500 hover:text-red-700 p-1"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
