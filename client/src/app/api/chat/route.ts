@@ -18,7 +18,14 @@ export async function POST(req: Request) {
     // Fetch products context to feed the AI
     let productsContext = "No specific products found right now, but you can still give general advice.";
     try {
-      const response = await fetch('https://eyevengers-web.onrender.com/api/products');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+      
+      const response = await fetch('https://eyevengers-web.onrender.com/api/products', {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
       if (response.ok) {
         const products = await response.json();
         const simplifiedProducts = products.map((p: any) => 
@@ -68,10 +75,13 @@ ${productsContext}
 
     return NextResponse.json({ reply: responseText });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Chat API Error:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error', reply: "I'm having a little trouble connecting right now. Please try again in a moment." },
+      { 
+        error: 'Internal Server Error', 
+        reply: `I'm having a little trouble connecting right now. (Error: ${error?.message || 'Unknown'})` 
+      },
       { status: 500 }
     );
   }
