@@ -48,6 +48,21 @@ export default function AdminDashboard() {
     { label: 'Conversion Rate', value: '3.2%', icon: TrendingUp, color: 'bg-orange-100 text-orange-600' },
   ];
 
+  const updateMembershipStatus = async (id: string, newStatus: string) => {
+    try {
+      const res = await fetch(`https://eyevengers-web.onrender.com/api/memberships/customers/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        setMembers(members.map(m => m.id === id ? { ...m, status: newStatus } : m));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-900">Dashboard Overview</h2>
@@ -89,10 +104,10 @@ export default function AdminDashboard() {
                 <tr key={order.id || order._id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
                   <td className="px-4 py-4 font-medium text-gray-900 truncate max-w-[150px]">#{order.id || order._id}</td>
                   <td className="px-4 py-4">
-                    <div className="font-bold text-gray-900">{order.shippingAddress?.fullName || 'Guest User'}</div>
+                    <div className="font-bold text-gray-900">{order.details?.customerName || order.address?.name || 'Guest User'}</div>
                   </td>
                   <td className="px-4 py-4">{format(new Date(order.createdAt), 'MMM dd, yyyy')}</td>
-                  <td className="px-4 py-4 font-medium">₹{order.totalAmount}</td>
+                  <td className="px-4 py-4 font-medium">₹{order.amount || 0}</td>
                   <td className="px-4 py-4">
                     <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
                       order.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
@@ -142,15 +157,25 @@ export default function AdminDashboard() {
                     {member.tier}
                   </td>
                   <td className="px-4 py-4 text-gray-900 font-medium">
-                    {member.planId.replace('_', ' ').toUpperCase()}
+                    {member.planName || member.planId.replace('_', ' ').toUpperCase()}
                   </td>
                   <td className="px-4 py-4">
                     {format(new Date(member.startDate), 'MMM dd, yyyy')}
                   </td>
                   <td className="px-4 py-4">
-                    <span className="bg-green-100 text-green-800 px-2.5 py-0.5 rounded-full text-xs font-medium">
-                      {member.status}
-                    </span>
+                    <select
+                      value={member.status}
+                      onChange={(e) => updateMembershipStatus(member.id, e.target.value)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-bold outline-none cursor-pointer border-none appearance-none pr-4 ${
+                        member.status === 'active' ? 'bg-green-100 text-green-800' :
+                        member.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
+                        'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="expired">Expired</option>
+                    </select>
                   </td>
                 </tr>
               ))}

@@ -147,6 +147,12 @@ export const getMembershipCustomers = async (req: Request, res: Response) => {
       });
     }
 
+    const { data: plansData } = await supabase.from('memberships').select('id, name');
+    const plansMap: Record<string, string> = {};
+    if (plansData) {
+      plansData.forEach(p => plansMap[p.id] = p.name);
+    }
+
     const formattedCustomers = memberships.map((m: any) => {
       const user = usersMap[m.user_id] || {};
       return {
@@ -155,6 +161,7 @@ export const getMembershipCustomers = async (req: Request, res: Response) => {
         email: user.email || 'N/A',
         phone: user.phone || 'N/A',
         planId: m.plan_id,
+        planName: plansMap[m.plan_id] || m.plan_id,
         tier: m.tier,
         startDate: m.start_date,
         expiryDate: m.expiry_date,
@@ -166,5 +173,39 @@ export const getMembershipCustomers = async (req: Request, res: Response) => {
   } catch (err) {
     console.error('Failed to fetch membership customers:', err);
     res.status(500).json({ error: 'Failed to fetch membership customers' });
+  }
+};
+
+export const updateMembershipCustomerStatus = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  
+  try {
+    const key = `membership_${id}`;
+    
+    // First fetch existing
+    const { data, error } = await supabase
+      .from('global_settings')
+      .select('value')
+      .eq('key', key)
+      .single();
+      
+    if (error || !data) {
+      return res.status(404).json({ error: 'Membership not found' });
+    }
+    
+    const membership = JSON.parse(data.value);
+    membership.status = status;
+    
+    const { error: updateError } = await supabase
+      .from('global_settings')
+      .upsert({ key, value: JSON.stringify(membership) });
+      
+    if (updateError) throw updateError;
+    
+    res.json({ success: true, status });
+  } catch (err) {
+    console.error('Failed to update membership status:', err);
+    res.status(500).json({ error: 'Failed to update membership status' });
   }
 };
