@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export async function POST(req: Request) {
   try {
@@ -11,9 +10,6 @@ export async function POST(req: Request) {
         reply: "Sorry, the AI Stylist is currently unavailable. Please ask the administrator to configure the GEMINI_API_KEY." 
       });
     }
-
-    // Initialize Gemini API inside the handler to always fetch the latest env variable
-    const genAI = new GoogleGenerativeAI(apiKey);
 
     // Fetch products context to feed the AI
     let productsContext = "No specific products found right now, but you can still give general advice.";
@@ -51,28 +47,42 @@ IMPORTANT RULES:
 ${productsContext}
 `;
 
-    // Initialize the model
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-flash',
-      systemInstruction: systemInstruction 
-    });
-
-    // Start a chat session with history
-    const chat = model.startChat({
-      history: history.map((msg: any) => ({
+    // Construct the payload for Gemini REST API
+    const contents = [
+      ...history.map((msg: any) => ({
         role: msg.role === 'model' ? 'model' : 'user',
-        parts: msg.parts,
+        parts: msg.parts
       })),
+      { role: 'user', parts: [{ text: message }] }
+    ];
+
+    const geminiPayload = {
+      systemInstruction: { parts: [{ text: systemInstruction }] },
+      contents: contents,
       generationConfig: {
         maxOutputTokens: 500,
         temperature: 0.7,
+      }
+    };
+
+    // Use native fetch to bypass SDK key format issues (the new AQ. keys expect header auth)
+    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey
       },
+      body: JSON.stringify(geminiPayload)
     });
 
-    // Send the new message
-    const result = await chat.sendMessage(message);
-    const responseText = result.response.text();
+    const data = await geminiResponse.json();
 
+    if (!geminiResponse.ok) {
+      console.error('Gemini REST Error:', data);
+      throw new Error(data.error?.message || 'Failed to generate response from Gemini');
+    }
+
+    const responseText = data.candidates[0].content.parts[0].text;
     return NextResponse.json({ reply: responseText });
 
   } catch (error: any) {
