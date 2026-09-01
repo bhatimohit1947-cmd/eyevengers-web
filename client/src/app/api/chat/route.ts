@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize Gemini API
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-
 export async function POST(req: Request) {
   try {
     const { message, history } = await req.json();
 
-    if (!process.env.GEMINI_API_KEY) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
       return NextResponse.json({ 
         reply: "Sorry, the AI Stylist is currently unavailable. Please ask the administrator to configure the GEMINI_API_KEY." 
       });
     }
+
+    // Initialize Gemini API inside the handler to always fetch the latest env variable
+    const genAI = new GoogleGenerativeAI(apiKey);
 
     // Fetch products context to feed the AI
     let productsContext = "No specific products found right now, but you can still give general advice.";
