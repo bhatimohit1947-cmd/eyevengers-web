@@ -135,10 +135,19 @@ export function SideDrawer() {
                 <MapPin size={20} /> Find a Store
               </div>
             </Link>
-            {membershipTier === 'none' && (
+            {membershipTier === 'none' ? (
               <Link href="/membership" onClick={closeMenu} className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 group bg-yellow-50/50">
                 <div className="flex items-center gap-3 font-bold text-yellow-700">
                   <Crown size={20} /> Get Membership
+                </div>
+              </Link>
+            ) : (
+              <Link href="/membership" onClick={closeMenu} className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 group bg-brand-navy/5">
+                <div className="flex items-center gap-3 font-bold text-brand-navy capitalize">
+                  <Crown size={20} className="text-yellow-500" /> {membershipTier} Member
+                </div>
+                <div className="text-xs text-brand-navy bg-brand-navy/10 px-2 py-1 rounded-full font-bold uppercase">
+                  Active
                 </div>
               </Link>
             )}

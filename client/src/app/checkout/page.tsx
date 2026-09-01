@@ -120,6 +120,10 @@ export default function CheckoutPage() {
     );
   }
 
+  if (!hydrated) {
+    return <div className="bg-gray-50 min-h-screen pb-24 md:pb-12"></div>;
+  }
+
   return (
     <div className="bg-gray-50 min-h-screen pb-24 md:pb-12">
       <div className="max-w-6xl mx-auto px-4 py-8">
