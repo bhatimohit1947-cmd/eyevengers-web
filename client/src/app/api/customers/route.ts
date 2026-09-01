@@ -49,7 +49,7 @@ const saveFallbackCustomer = (customer: any) => {
 export async function GET() {
   let backendCustomers = [];
   try {
-    const res = await fetch('https://eyevengers-web.onrender.com/api/admin/customers');
+    const res = await fetch('https://eyevengers-web.onrender.com/api/admin/customers', { cache: 'no-store' });
     if (res.ok) backendCustomers = await res.json();
   } catch (error) {}
 

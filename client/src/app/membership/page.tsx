@@ -56,7 +56,7 @@ function MembershipPageContent() {
 
   const fetchPlans = async () => {
     try {
-      const res = await fetch(`https://eyevengers-web.onrender.com/api/memberships/plans`);
+      const res = await fetch(`https://eyevengers-web.onrender.com/api/memberships/plans`, { cache: 'no-store' });
       if (res.ok) {
         let data = await res.json();
         data = data.map((plan: any) => {

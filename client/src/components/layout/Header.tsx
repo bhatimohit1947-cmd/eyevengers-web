@@ -40,6 +40,26 @@ export function Header() {
     setIsHydrated(true);
   }, []);
 
+  // Background sync user state
+  useEffect(() => {
+    if (isHydrated && isLoggedIn && user?.phone) {
+      fetch('/api/customers', { cache: 'no-store' })
+        .then(res => res.json())
+        .then(customers => {
+          if (Array.isArray(customers)) {
+            const currentUser = customers.find(c => c.phone === user.phone);
+            if (currentUser && currentUser.membershipTier) {
+              const store = useAuthStore.getState();
+              if (store.membershipTier !== currentUser.membershipTier) {
+                store.setMembershipTier(currentUser.membershipTier, currentUser.membershipBenefits);
+              }
+            }
+          }
+        })
+        .catch(console.error);
+    }
+  }, [isHydrated, isLoggedIn, user?.phone]);
+
   // Rotating search placeholder
   useEffect(() => {
     const interval = setInterval(() => {

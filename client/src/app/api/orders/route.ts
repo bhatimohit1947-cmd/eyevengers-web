@@ -54,6 +54,7 @@ export async function GET() {
   
   try {
     const res = await fetch('https://eyevengers-web.onrender.com/api/orders', {
+      cache: 'no-store',
       signal: controller.signal
     });
     if (res.ok) backendOrders = await res.json();
