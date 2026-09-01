@@ -454,8 +454,29 @@ export default function HomepageBuilder() {
                                    </button>
                                    
                                    <label className="text-xs font-bold text-gray-700 mb-1">
-                                     {item.label || item.title || item.headline || `Item ${idx+1}`}
+                                     {item.label || item.title || item.headline || item.ctaText || `Item ${idx+1}`}
                                    </label>
+                                   
+                                   {/* Text / Label Input */}
+                                   <input 
+                                     type="text"
+                                     placeholder="Item Text (Title / Label / CTA Text)"
+                                     className="w-full mb-2 border border-gray-200 rounded p-1.5 text-xs font-medium focus:ring-1 focus:ring-purple-400"
+                                     value={item.ctaText || item.label || item.title || item.headline || ''}
+                                     onChange={(e) => {
+                                       try {
+                                         const newConfig = JSON.parse(editConfigText);
+                                         const target = newConfig[arrayKey][idx];
+                                         
+                                         if (arrayKey === 'posters' || 'ctaText' in target) target.ctaText = e.target.value;
+                                         else if (arrayKey === 'slides' || 'headline' in target) target.headline = e.target.value;
+                                         else if (arrayKey === 'tiles' || arrayKey === 'items' || 'label' in target) target.label = e.target.value;
+                                         else target.title = e.target.value;
+                                         
+                                         setEditConfigText(JSON.stringify(newConfig, null, 2));
+                                       } catch (err) {}
+                                     }}
+                                   />
                                    
                                    {/* Image URL */}
                                    <input 
