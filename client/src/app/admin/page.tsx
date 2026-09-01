@@ -9,6 +9,8 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [plansMap, setPlansMap] = useState<Record<string, number>>({});
+  const [eyeTests, setEyeTests] = useState<any[]>([]);
+  const [eyeTestSettings, setEyeTestSettings] = useState<any>({});
   const [timeFilter, setTimeFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
 
   useEffect(() => {
@@ -49,6 +51,18 @@ export default function AdminDashboard() {
         }
       })
       .catch(err => console.error(err));
+
+    // Fetch Eye Test Bookings
+    fetch(`https://eyevengers-web.onrender.com/api/admin/eye-test/bookings`)
+      .then(res => res.json())
+      .then(data => setEyeTests(Array.isArray(data) ? data : []))
+      .catch(console.error);
+
+    // Fetch Eye Test Settings for pricing
+    fetch(`https://eyevengers-web.onrender.com/api/admin/eye-test/settings`)
+      .then(res => res.json())
+      .then(data => setEyeTestSettings(data || {}))
+      .catch(console.error);
   }, []);
 
   // Filter Data
@@ -70,24 +84,33 @@ export default function AdminDashboard() {
 
   const filteredOrders = orders.filter(o => filterByTime(o.createdAt));
   const filteredMembers = members.filter(m => filterByTime(m.startDate || m.createdAt));
+  const filteredEyeTests = eyeTests.filter(et => filterByTime(et.created_at || et.createdAt));
 
   // Compute Revenue Splits
-  const productRevenue = filteredOrders.reduce((sum, order) => sum + (order.amount || order.totalAmount || 0), 0);
-  const membershipRevenue = filteredMembers.reduce((sum, member) => sum + (plansMap[member.planId] || 0), 0);
-  const totalRevenue = productRevenue + membershipRevenue;
-
-  // Compute Order Status Breakdown
   const actualRevenue = filteredOrders.filter(o => ['Delivered', 'Completed'].includes(o.status)).reduce((sum, order) => sum + (order.amount || 0), 0);
   const pendingRevenue = filteredOrders.filter(o => ['Order Placed', 'Pending', 'Processing', 'Shipped', 'In Transit'].includes(o.status)).reduce((sum, order) => sum + (order.amount || 0), 0);
   const lostRevenue = filteredOrders.filter(o => ['Cancelled', 'Returned', 'Refunded'].includes(o.status)).reduce((sum, order) => sum + (order.amount || 0), 0);
 
+  const productRevenue = actualRevenue; // Product revenue is only confirmed orders
+  const membershipRevenue = filteredMembers.reduce((sum, member) => sum + (plansMap[member.planId] || 0), 0);
+  
+  // Eye Test Revenue (Only Completed/Done)
+  const homePrice = eyeTestSettings?.home?.price ?? 199;
+  const storePrice = eyeTestSettings?.store?.price ?? 0;
+  const eyeTestRevenue = filteredEyeTests
+    .filter(et => ['Completed', 'Done', 'Confirmed'].includes(et.status)) // Including Confirmed as successful booking for now
+    .reduce((sum, et) => sum + (et.type === 'home' ? homePrice : storePrice), 0);
+
+  // Total Revenue includes Actual Product Revenue + Memberships + Eye Tests
+  const totalRevenue = productRevenue + membershipRevenue + eyeTestRevenue;
+
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
   
   const stats = [
-    { label: 'Total Revenue', value: formatCurrency(totalRevenue), icon: IndianRupee, color: 'bg-blue-100 text-blue-600' },
-    { label: 'Product Sales', value: formatCurrency(productRevenue), icon: ShoppingCart, color: 'bg-green-100 text-green-600' },
+    { label: 'Total Confirmed Revenue', value: formatCurrency(totalRevenue), icon: IndianRupee, color: 'bg-blue-100 text-blue-600' },
+    { label: 'Product Sales (Delivered)', value: formatCurrency(productRevenue), icon: ShoppingCart, color: 'bg-green-100 text-green-600' },
+    { label: 'Eye Tests (Completed)', value: formatCurrency(eyeTestRevenue), icon: IndianRupee, color: 'bg-indigo-100 text-indigo-600' },
     { label: 'Membership Sales', value: formatCurrency(membershipRevenue), icon: Crown, color: 'bg-yellow-100 text-yellow-600' },
-    { label: 'Active Customers', value: customers.length.toString(), icon: Users, color: 'bg-purple-100 text-purple-600' },
   ];
 
   const updateMembershipStatus = async (id: string, newStatus: string) => {
