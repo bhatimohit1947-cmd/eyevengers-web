@@ -66,7 +66,7 @@ ${productsContext}
     };
 
     // Use native fetch to bypass SDK key format issues (the new AQ. keys expect header auth)
-    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`, {
+    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
