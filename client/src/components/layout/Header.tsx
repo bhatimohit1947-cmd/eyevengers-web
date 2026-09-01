@@ -28,12 +28,17 @@ const SEARCH_PLACEHOLDERS = [
 
 export function Header() {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [isHydrated, setIsHydrated] = useState(false);
   
   const { openMenu } = useUIStore();
   const { isLoggedIn, user, membershipTier, openLoginModal } = useAuthStore();
   const { totalCount } = useCartStore();
   const { productIds } = useWishlistStore();
   const { requireAuth } = useAuthGate();
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   // Rotating search placeholder
   useEffect(() => {
@@ -75,10 +80,10 @@ export function Header() {
                 : 'bg-gradient-to-r from-[#0B1550] to-[#D4AF37] text-white hover:shadow-md'
             }`}
           >
-            {membershipTier === 'gold' && <><Crown size={12} className="mr-0.5 sm:mr-1 sm:w-3.5 sm:h-3.5"/> GOLD MEMBER</>}
-            {membershipTier === 'silver' && <><Medal size={12} className="mr-0.5 sm:mr-1 sm:w-3.5 sm:h-3.5"/> SILVER MEMBER</>}
-            {membershipTier === 'bronze' && <><Medal size={12} className="mr-0.5 sm:mr-1 sm:w-3.5 sm:h-3.5"/> BRONZE MEMBER</>}
-            {membershipTier === 'none' && 'GET MEMBERSHIP'}
+            {isHydrated && membershipTier === 'gold' && <><Crown size={12} className="mr-0.5 sm:mr-1 sm:w-3.5 sm:h-3.5"/> GOLD MEMBER</>}
+            {isHydrated && membershipTier === 'silver' && <><Medal size={12} className="mr-0.5 sm:mr-1 sm:w-3.5 sm:h-3.5"/> SILVER MEMBER</>}
+            {isHydrated && membershipTier === 'bronze' && <><Medal size={12} className="mr-0.5 sm:mr-1 sm:w-3.5 sm:h-3.5"/> BRONZE MEMBER</>}
+            {(!isHydrated || membershipTier === 'none') && 'GET MEMBERSHIP'}
           </Link>
           
           <Link href="/wishlist" className="text-gray-700 hover:text-brand-navy transition relative">

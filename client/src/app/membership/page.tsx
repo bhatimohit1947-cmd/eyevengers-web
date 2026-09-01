@@ -31,10 +31,12 @@ function MembershipPageContent() {
   const [loading, setLoading] = useState(true);
   const [offerDetails, setOfferDetails] = useState<any>(null);
   const [hasAutoTriggered, setHasAutoTriggered] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   
   const { membershipTier, purchaseMembership, isLoggedIn, openLoginModal } = useAuthStore();
   
   useEffect(() => {
+    setIsHydrated(true);
     fetchPlans();
     if (offerId) {
       fetchOffer(offerId);
@@ -230,7 +232,7 @@ function MembershipPageContent() {
               const discountedPrice = calculatePrice(plan);
               const hasDiscount = discountedPrice < plan.price;
               
-              const isCurrentPlan = membershipTier === plan.tier;
+              const isCurrentPlan = isHydrated && membershipTier === plan.tier;
               const isHighlighted = autoBuyTier === plan.tier;
               
               return (
@@ -292,7 +294,7 @@ function MembershipPageContent() {
                           : 'bg-brand-navy text-white hover:bg-brand-navy/90'
                     }`}
                   >
-                    {isCurrentPlan ? 'Current Plan' : 'Get Membership'}
+                    {isCurrentPlan ? `${plan.name} Activated` : 'Get Membership'}
                   </button>
                 </div>
               );
