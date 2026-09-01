@@ -168,6 +168,7 @@ export const getCustomers = async (req: Request, res: Response) => {
     const users: any[] = [];
     const statsMap: Record<string, any> = {};
     const pinMap: Record<string, string> = {};
+    const membershipMap: Record<string, any> = {};
 
     if (settingsData) {
       settingsData.forEach(row => {
@@ -181,21 +182,48 @@ export const getCustomers = async (req: Request, res: Response) => {
           } catch(e) {}
         } else if (row.key.startsWith('pin_')) {
           pinMap[row.key.replace('pin_', '')] = row.value;
+        } else if (row.key.startsWith('membership_')) {
+          try {
+            membershipMap[row.key.replace('membership_', '')] = JSON.parse(row.value);
+          } catch(e) {}
         }
       });
     }
 
-    const formatted = users.map(u => ({
-      id: u.id,
-      name: u.name,
-      phone: u.phone,
-      email: u.email,
-      pin: u.pin || pinMap[u.id] || '0000', // Use stored pin or fallback
-      cartCount: statsMap[u.id]?.cartCount || 0,
-      wishlistCount: statsMap[u.id]?.wishlistCount || 0,
-      joinedAt: u.createdAt,
-      createdAt: u.createdAt
-    }));
+    // Fetch plans to get benefits
+    const { data: plansData } = await supabase.from('memberships').select('*');
+    const plansBenefitsMap: Record<string, any> = {};
+    if (plansData) {
+      plansData.forEach(p => {
+        let benefitsJson = undefined;
+        const featuresArr = p.features || [];
+        for (const f of featuresArr) {
+          if (typeof f === 'string' && f.startsWith('__BENEFITS_JSON__:')) {
+            try { benefitsJson = JSON.parse(f.replace('__BENEFITS_JSON__:', '')); } catch(e) {}
+          }
+        }
+        plansBenefitsMap[p.id] = benefitsJson;
+      });
+    }
+
+
+    const formatted = users.map(u => {
+      const userMembership = membershipMap[u.id];
+      const isActive = userMembership?.status === 'active';
+      return {
+        id: u.id,
+        name: u.name,
+        phone: u.phone,
+        email: u.email,
+        pin: u.pin || pinMap[u.id] || '0000', // Use stored pin or fallback
+        cartCount: statsMap[u.id]?.cartCount || 0,
+        wishlistCount: statsMap[u.id]?.wishlistCount || 0,
+        joinedAt: u.createdAt,
+        createdAt: u.createdAt,
+        membershipTier: isActive ? userMembership.tier : 'none',
+        membershipBenefits: isActive ? plansBenefitsMap[userMembership.plan_id] : undefined
+      };
+    });
     
     // Sort by createdAt desc
     formatted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

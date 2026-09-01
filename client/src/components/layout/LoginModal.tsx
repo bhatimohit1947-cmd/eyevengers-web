@@ -25,6 +25,8 @@ interface CustomerRecord {
   wishlist?: string[];
   orders?: any[];
   addresses?: Address[];
+  membershipTier?: 'none' | 'bronze' | 'silver' | 'gold' | 'platinum';
+  membershipBenefits?: any;
 }
 
 class ModalErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -140,7 +142,7 @@ export function LoginModal() {
       name: customer.name,
       email: customer.email || '',
       phone: customer.phone,
-    }, 'none');
+    }, customer.membershipTier || 'none', customer.membershipBenefits);
     
     // Simulate backend login notification API call
     fetch(`https://eyevengers-web.onrender.com/api/admin/login-event`, {
