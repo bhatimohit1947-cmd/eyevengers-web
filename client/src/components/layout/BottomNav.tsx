@@ -8,7 +8,7 @@ import { Home, MapPin, ScanFace, Stethoscope, Clock } from 'lucide-react';
 const navItems = [
   { label: 'Home', icon: Home, href: '/' },
   { label: 'Stores', icon: MapPin, href: '/stores' },
-  { label: 'AR Try-on', icon: ScanFace, href: '/ar-try-on' },
+  { label: 'AI Stylist', icon: ScanFace, href: '/ai-stylist' },
   { label: 'Eye Test', icon: Stethoscope, href: '/eye-test' },
   { label: 'Orders', icon: Clock, href: '/orders' },
 ];
