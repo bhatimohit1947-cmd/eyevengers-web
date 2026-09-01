@@ -53,7 +53,7 @@ export default function CheckoutPage() {
     setTimeout(() => {
       const addresses = getUserAddresses();
       const selectedAddress = addresses.find(a => a.id === selectedAddressId);
-      const newOrder = {
+      const orderPayload = {
         id: `ORD-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
         userId: user?.id,
         createdAt: new Date().toISOString(),
@@ -63,19 +63,20 @@ export default function CheckoutPage() {
         paymentStatus: 'Pending',
         items: cartItems,
         address: selectedAddress,
-        details: {
+        orderDetails: {
           frame: cartItems[0]?.title || 'Eyeglasses',
           lensCategory: cartItems[0]?.lensConfig?.lensCategory || 'Frame Only',
           lensProduct: cartItems[0]?.lensConfig?.lensType,
           power: cartItems[0]?.lensConfig?.power,
           customerName: user?.name || 'Guest Customer',
-          userPhone: user?.phone || 'N/A'
+          userPhone: user?.phone || 'N/A',
+          email: user?.email || undefined
         }
       };
 
       try {
         const storedOrders = JSON.parse(localStorage.getItem('eyevengers_mock_orders') || '[]');
-        storedOrders.push(newOrder);
+        storedOrders.push(orderPayload);
         localStorage.setItem('eyevengers_mock_orders', JSON.stringify(storedOrders));
       } catch (e) {
         console.error("Failed to save mock order", e);
@@ -85,14 +86,14 @@ export default function CheckoutPage() {
       fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newOrder)
+        body: JSON.stringify(orderPayload)
       }).catch(console.error);
 
       // POST directly to Render from the browser so it doesn't get killed by Vercel's 10s timeout
-      fetch('https://eyevengers-web.onrender.com/api/orders', {
+      fetch('https://eyevengers-web.onrender.com/api/orders/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newOrder)
+        body: JSON.stringify(orderPayload)
       }).catch(console.error);
 
       setIsPlacingOrder(false);
