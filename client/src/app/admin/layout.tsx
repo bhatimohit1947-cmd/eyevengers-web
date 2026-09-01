@@ -22,6 +22,20 @@ import {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [counts, setCounts] = useState({ notifications: 0, orders: 0, eyeTests: 0 });
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  // Login Form States
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+
+  useEffect(() => {
+    setIsHydrated(true);
+    if (localStorage.getItem('eyevengers_admin_auth') === 'true') {
+      setIsAuthenticated(true);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchCounts = async () => {
@@ -56,6 +70,90 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Settings', href: '/admin/settings', icon: Settings },
     { name: 'Policies', href: '/admin/settings/policies', icon: Settings },
   ];
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      (email === 'bhatipradeep420@gmail.com' && password === 'Heygoogle420@123') ||
+      (email === 'bhatimohit1947@gmail.com' && password === 'Heygoogle1947@123')
+    ) {
+      localStorage.setItem('eyevengers_admin_auth', 'true');
+      setIsAuthenticated(true);
+      setLoginError('');
+    } else {
+      setLoginError('Invalid email or password. Access Denied.');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('eyevengers_admin_auth');
+    setIsAuthenticated(false);
+    setEmail('');
+    setPassword('');
+  };
+
+  if (!isHydrated) return <div className="min-h-screen bg-gray-100 flex items-center justify-center"><div className="w-8 h-8 border-4 border-brand-navy border-t-transparent rounded-full animate-spin"></div></div>;
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl shadow-xl border border-gray-100">
+          <div>
+            <h2 className="mt-2 text-center text-3xl font-black tracking-widest text-brand-navy uppercase">
+              Eyevengers
+            </h2>
+            <h3 className="mt-4 text-center text-xl font-bold text-gray-900">
+              Admin Portal Access
+            </h3>
+            <p className="mt-2 text-center text-sm text-gray-500">
+              Please enter your authorized credentials to continue
+            </p>
+          </div>
+          <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-bold text-gray-700 block mb-2">Admin Email</label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-navy transition-all"
+                  placeholder="admin@example.com"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-bold text-gray-700 block mb-2">Password</label>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-navy transition-all"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+
+            {loginError && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm font-medium text-center border border-red-100">
+                {loginError}
+              </div>
+            )}
+
+            <div>
+              <button
+                type="submit"
+                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-brand-navy hover:bg-[#002b4d] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-navy transition-all shadow-md hover:shadow-lg"
+              >
+                Secure Login
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row font-sans">
@@ -96,7 +194,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
 
         <div className="p-4 border-t border-white/10 hidden md:block">
-          <button className="flex items-center text-gray-400 hover:text-white w-full px-2 py-2 transition-colors">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center text-gray-400 hover:text-white w-full px-2 py-2 transition-colors"
+          >
             <LogOut size={20} className="mr-3" />
             <span>Sign Out</span>
           </button>
