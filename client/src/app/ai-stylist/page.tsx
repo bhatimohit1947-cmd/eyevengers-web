@@ -88,7 +88,11 @@ export default function AIStylistPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          history: messages.map(m => ({ role: m.role, parts: [{ text: m.content }] })),
+          // Gemini requires history to start with a 'user' message. 
+          // We filter out the first message if it's the model's initial greeting.
+          history: messages
+            .filter((m, idx) => !(idx === 0 && m.role === 'model'))
+            .map(m => ({ role: m.role, parts: [{ text: m.content }] })),
           message: userMessage.content
         })
       });
