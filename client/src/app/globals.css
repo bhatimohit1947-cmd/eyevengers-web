@@ -31,6 +31,15 @@ body {
   color: var(--foreground);
 }
 
+/* Ensure all form inputs have black text globally to fix visibility issues on mobile/dark mode */
+input, textarea, select {
+  color: #171717 !important;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #9ca3af !important;
+}
+
 /* Hide scrollbar for Chrome, Safari and Opera */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
