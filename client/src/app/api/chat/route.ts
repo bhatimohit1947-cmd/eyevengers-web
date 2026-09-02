@@ -15,19 +15,27 @@ export async function POST(req: Request) {
     let productsContext = "No specific products found right now, but you can still give general advice.";
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout (Render can be slow)
       
-      const response = await fetch('https://eyevengers-web.onrender.com/api/products', {
-        signal: controller.signal
+      const response = await fetch('https://eyevengers-web.onrender.com/api/admin/products', {
+        signal: controller.signal,
+        cache: 'no-store'
       });
       clearTimeout(timeoutId);
       
       if (response.ok) {
         const products = await response.json();
-        const simplifiedProducts = products.map((p: any) => 
-          `- ${p.name} (Shape: ${p.shape || 'Standard'}, Material: ${p.material || 'Standard'}, Price: ₹${p.price || p.basePrice || 1000}) - Ideal for ${p.idealFor || 'everyone'}.`
-        ).join('\n');
-        productsContext = `Here are the currently available products in the store:\n${simplifiedProducts}`;
+        const simplifiedProducts = (products || []).map((p: any) => {
+          const hasDiscount = p.sku && p.sku.includes('|DISCOUNT:');
+          const hasShape = p.sku && p.sku.includes('|SHAPE:');
+          const discountPercent = hasDiscount ? Number(p.sku.split('|DISCOUNT:')[1].split('|')[0]) : 0;
+          const shapeVal = hasShape ? p.sku.split('|SHAPE:')[1].split('|')[0] : '';
+          const originalPrice = discountPercent > 0 ? Math.round(p.price / (1 - (discountPercent / 100))) : p.price;
+          
+          return `- **${p.name}** (Category: ${p.category}, Brand: ${p.brand || 'Generic'}, Shape: ${shapeVal || 'Standard'}, Gender: ${p.gender || 'Unisex'}). Selling Price: ₹${p.price} (Original MRP: ₹${originalPrice}, Discount: ${discountPercent}% OFF). Stock: ${p.stock > 0 ? 'In Stock' : 'Out of Stock'}.`;
+        }).join('\n');
+        
+        productsContext = `Here is the LIVE catalog of all available products in the store right now:\n${simplifiedProducts}`;
       }
     } catch (e) {
       console.warn("Could not fetch products for AI context", e);
@@ -39,11 +47,14 @@ You speak in a friendly, professional, and empathetic tone.
 You MUST speak in Hindi, English, or Hinglish depending on how the user speaks to you. If they say "hi, mujhe chasma chahiye", reply in Hinglish.
 Your main job is to help users find the perfect glasses based on their face shape, needs, or budget. 
 You also explain lens types (like anti-glare, blue-cut, bifocal, progressive) simply.
-IMPORTANT RULES:
-1. Only recommend products from the list provided below. Do not make up product names.
-2. If a user asks for something outside of eyewear, politely redirect them back to eyewear.
-3. Keep your answers concise, scannable, and use bullet points when listing products. Use markdown for bolding **important words**.
 
+IMPORTANT RULES:
+1. ONLY recommend products from the live catalog provided below. Do NOT make up any product names or prices.
+2. If a user asks for "fayde wali deal" or offers, find products from the list that have the highest Discount % and recommend them enthusiastically.
+3. When you recommend a specific product, YOU MUST ALWAYS format its name as a Markdown link pointing to the products page so the user can click it. Format: [Product Name](/products). For example: "Aapke liye [Square Matt](/products) best rahega, jo ki ₹999 ka hai!"
+4. Keep your answers concise, scannable, and use bullet points when listing products.
+
+LIVE STORE CATALOG:
 ${productsContext}
 `;
 
