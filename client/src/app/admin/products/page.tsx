@@ -190,6 +190,11 @@ export default function ProductsManagement() {
               <option>All Categories</option>
               <option>Eyeglasses</option>
               <option>Sunglasses</option>
+              <option>Contact Lenses</option>
+              <option>Lens Cleaner</option>
+              <option>Contact Lens Solution</option>
+              <option>Kids</option>
+              <option>Eyevengers Special</option>
             </select>
             <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white">
               <option>All Statuses</option>
@@ -309,8 +314,10 @@ export default function ProductsManagement() {
                   <select value={newProduct.category} onChange={(e) => setNewProduct({...newProduct, category: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-navy">
                     <option value="Eyeglasses">Eyeglasses</option>
                     <option value="Sunglasses">Sunglasses</option>
-                    <option value="Kids">Kids</option>
                     <option value="Contact Lenses">Contact Lenses</option>
+                    <option value="Lens Cleaner">Lens Cleaner</option>
+                    <option value="Contact Lens Solution">Contact Lens Solution</option>
+                    <option value="Kids">Kids</option>
                     <option value="Eyevengers Special">Eyevengers Special</option>
                   </select>
                 </div>
