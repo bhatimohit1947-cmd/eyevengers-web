@@ -11,20 +11,21 @@ export async function POST(req: Request) {
       });
     }
 
-    // Fetch products context to feed the AI
+    // Fetch products and plans context to feed the AI
     let productsContext = "No specific products found right now, but you can still give general advice.";
+    let plansContext = "No membership plans found right now.";
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout (Render can be slow)
       
-      const response = await fetch('https://eyevengers-web.onrender.com/api/admin/products', {
-        signal: controller.signal,
-        cache: 'no-store'
-      });
+      const [prodRes, plansRes] = await Promise.allSettled([
+        fetch('https://eyevengers-web.onrender.com/api/admin/products', { signal: controller.signal, cache: 'no-store' }),
+        fetch('https://eyevengers-web.onrender.com/api/memberships/plans', { signal: controller.signal, cache: 'no-store' })
+      ]);
       clearTimeout(timeoutId);
       
-      if (response.ok) {
-        const products = await response.json();
+      if (prodRes.status === 'fulfilled' && prodRes.value.ok) {
+        const products = await prodRes.value.json();
         const simplifiedProducts = (products || []).map((p: any) => {
           const hasDiscount = p.sku && p.sku.includes('|DISCOUNT:');
           const hasShape = p.sku && p.sku.includes('|SHAPE:');
@@ -37,8 +38,16 @@ export async function POST(req: Request) {
         
         productsContext = `Here is the LIVE catalog of all available products in the store right now:\n${simplifiedProducts}`;
       }
+
+      if (plansRes.status === 'fulfilled' && plansRes.value.ok) {
+        const plans = await plansRes.value.json();
+        const simplifiedPlans = (plans || []).map((p: any) => {
+          return `- **${p.name} Plan** (Price: ₹${p.price}, Duration: ${p.durationMonths} months): ${p.description || 'Exclusive membership benefits'}.`;
+        }).join('\n');
+        plansContext = `Here are the LIVE Eyevengers Membership Plans available right now:\n${simplifiedPlans}`;
+      }
     } catch (e) {
-      console.warn("Could not fetch products for AI context", e);
+      console.warn("Could not fetch products/plans for AI context", e);
     }
 
     const systemInstruction = `
@@ -56,6 +65,9 @@ IMPORTANT RULES:
 
 LIVE STORE CATALOG:
 ${productsContext}
+
+MEMBERSHIP PLANS:
+${plansContext}
 `;
 
     // Construct the payload for Gemini REST API
@@ -98,10 +110,19 @@ ${productsContext}
 
   } catch (error: any) {
     console.error('Chat API Error:', error);
+    
+    // Check if it's the Google Gemini high demand 503 error
+    const errorMessage = error?.message || 'Unknown';
+    if (errorMessage.includes('high demand') || errorMessage.includes('503')) {
+      return NextResponse.json({ 
+        reply: "Maaf kijiye, abhi bohot saare log mujhse chat kar rahe hain isliye system thoda busy hai. Kripya 1-2 minute baad dobara try karein! 🙏" 
+      });
+    }
+
     return NextResponse.json(
       { 
         error: 'Internal Server Error', 
-        reply: `I'm having a little trouble connecting right now. (Error: ${error?.message || 'Unknown'})` 
+        reply: `I'm having a little trouble connecting right now. (Error: ${errorMessage})` 
       },
       { status: 500 }
     );
