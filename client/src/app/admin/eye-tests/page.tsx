@@ -1,5 +1,5 @@
-import { fetchWithAuth } from '@/utils/fetchWithAuth';
 "use client";
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 import React, { useState, useEffect } from 'react';
 import { Settings, Calendar, Save, RefreshCw, X, Check, Edit2 } from 'lucide-react';
 

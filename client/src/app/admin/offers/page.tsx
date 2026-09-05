@@ -1,5 +1,5 @@
-import { fetchWithAuth } from '@/utils/fetchWithAuth';
 "use client";
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { Plus, Tag, Settings, Save, AlertCircle, Calendar, BarChart3, TrendingUp, DollarSign, Link as LinkIcon, Trash2 } from 'lucide-react';

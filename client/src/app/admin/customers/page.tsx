@@ -1,5 +1,5 @@
-import { fetchWithAuth } from '@/utils/fetchWithAuth';
 "use client";
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 
 import React, { useState, useEffect } from 'react';
 import { Search, Eye, Filter, User, X, ShoppingBag, Heart, ShoppingCart } from 'lucide-react';

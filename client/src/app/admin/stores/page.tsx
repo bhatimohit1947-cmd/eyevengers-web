@@ -1,5 +1,5 @@
-import { fetchWithAuth } from '@/utils/fetchWithAuth';
 "use client";
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 import React, { useState, useEffect } from 'react';
 import { MapPin, Plus, Trash2, Map as MapIcon, Phone, RefreshCw } from 'lucide-react';
 
