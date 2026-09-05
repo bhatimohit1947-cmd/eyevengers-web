@@ -1,3 +1,4 @@
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -15,13 +16,13 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     // Fetch Membership Customers
-    fetch(`https://eyevengers-web.onrender.com/api/memberships/customers`)
+    fetchWithAuth(`https://eyevengers-web.onrender.com/api/memberships/customers`)
       .then(res => res.json())
       .then(data => setMembers(Array.isArray(data) ? data : []))
       .catch(err => console.error(err));
 
     // Fetch Orders
-    fetch(`https://eyevengers-web.onrender.com/api/orders`)
+    fetchWithAuth(`https://eyevengers-web.onrender.com/api/orders`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -33,7 +34,7 @@ export default function AdminDashboard() {
       .catch(err => console.error(err));
 
     // Fetch Customers
-    fetch(`https://eyevengers-web.onrender.com/api/admin/customers`)
+    fetchWithAuth(`https://eyevengers-web.onrender.com/api/admin/customers`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setCustomers(data);
@@ -41,7 +42,7 @@ export default function AdminDashboard() {
       .catch(err => console.error(err));
 
     // Fetch Plans for pricing
-    fetch(`https://eyevengers-web.onrender.com/api/memberships/plans`)
+    fetchWithAuth(`https://eyevengers-web.onrender.com/api/memberships/plans`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -53,13 +54,13 @@ export default function AdminDashboard() {
       .catch(err => console.error(err));
 
     // Fetch Eye Test Bookings
-    fetch(`https://eyevengers-web.onrender.com/api/admin/eye-test/bookings`)
+    fetchWithAuth(`https://eyevengers-web.onrender.com/api/admin/eye-test/bookings`)
       .then(res => res.json())
       .then(data => setEyeTests(Array.isArray(data) ? data : []))
       .catch(console.error);
 
     // Fetch Eye Test Settings for pricing
-    fetch(`https://eyevengers-web.onrender.com/api/admin/eye-test/settings`)
+    fetchWithAuth(`https://eyevengers-web.onrender.com/api/admin/eye-test/settings`)
       .then(res => res.json())
       .then(data => setEyeTestSettings(data || {}))
       .catch(console.error);
@@ -115,7 +116,7 @@ export default function AdminDashboard() {
 
   const updateMembershipStatus = async (id: string, newStatus: string) => {
     try {
-      const res = await fetch(`https://eyevengers-web.onrender.com/api/memberships/customers/${id}/status`, {
+      const res = await fetchWithAuth(`https://eyevengers-web.onrender.com/api/memberships/customers/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })

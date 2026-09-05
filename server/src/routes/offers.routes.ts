@@ -10,6 +10,7 @@ import {
   getOfferAnalytics,
   getOfferUsages
 } from '../controllers/offers.controller';
+import { authenticateAdmin } from '../middlewares/auth.middleware';
 
 const router = Router();
 
@@ -18,11 +19,11 @@ router.get('/calendar', getCalendarOffers);
 
 router.get('/', getOffers);
 router.get('/:id', getOfferById);
-router.get('/:id/analytics', getOfferAnalytics);
-router.get('/:id/usages', getOfferUsages);
-router.post('/', createOffer);
-router.put('/:id', updateOffer);
-router.delete('/:id', deleteOffer);
+router.get('/:id/analytics', authenticateAdmin, getOfferAnalytics);
+router.get('/:id/usages', authenticateAdmin, getOfferUsages);
+router.post('/', authenticateAdmin, createOffer);
+router.put('/:id', authenticateAdmin, updateOffer);
+router.delete('/:id', authenticateAdmin, deleteOffer);
 
 // Coupon endpoints
 router.post('/validate-coupon', validateCoupon);

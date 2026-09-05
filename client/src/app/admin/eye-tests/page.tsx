@@ -1,3 +1,4 @@
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 "use client";
 import React, { useState, useEffect } from 'react';
 import { Settings, Calendar, Save, RefreshCw, X, Check, Edit2 } from 'lucide-react';
@@ -17,8 +18,8 @@ export default function AdminEyeTestsPage() {
     setLoading(true);
     try {
       const [resSettings, resBookings] = await Promise.all([
-        fetch(`https://eyevengers-web.onrender.com/api/admin/eye-test/settings`).then(r => r.json()),
-        fetch(`https://eyevengers-web.onrender.com/api/admin/eye-test/bookings`).then(r => r.json())
+        fetchWithAuth(`https://eyevengers-web.onrender.com/api/admin/eye-test/settings`).then(r => r.json()),
+        fetchWithAuth(`https://eyevengers-web.onrender.com/api/admin/eye-test/bookings`).then(r => r.json())
       ]);
       if (resSettings.error) {
         setSettings({ 
@@ -46,7 +47,7 @@ export default function AdminEyeTestsPage() {
   const handleSaveSettings = async () => {
     setSaving(true);
     try {
-      await fetch(`https://eyevengers-web.onrender.com/api/admin/eye-test/settings`, {
+      await fetchWithAuth(`https://eyevengers-web.onrender.com/api/admin/eye-test/settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)
@@ -222,7 +223,7 @@ export default function AdminEyeTestsPage() {
                           value={booking.status}
                           onChange={async (e) => {
                             try {
-                              const res = await fetch(`https://eyevengers-web.onrender.com/api/admin/eye-test/bookings/${booking.id}/status`, {
+                              const res = await fetchWithAuth(`https://eyevengers-web.onrender.com/api/admin/eye-test/bookings/${booking.id}/status`, {
                                 method: 'PUT',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ status: e.target.value })

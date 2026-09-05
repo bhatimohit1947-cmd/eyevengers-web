@@ -1,3 +1,4 @@
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -24,7 +25,7 @@ export default function AdminPoliciesPage() {
   const fetchPolicy = async (slug: string) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`https://eyevengers-web.onrender.com/api/cms/pages/${slug}`);
+      const res = await fetchWithAuth(`https://eyevengers-web.onrender.com/api/cms/pages/${slug}`);
       if (res.ok) {
         const data = await res.json();
         
@@ -62,7 +63,7 @@ export default function AdminPoliciesPage() {
     setSaveSuccess(false);
 
     try {
-      const res = await fetch(`https://eyevengers-web.onrender.com/api/cms/sections/${activeSectionId}`, {
+      const res = await fetchWithAuth(`https://eyevengers-web.onrender.com/api/cms/sections/${activeSectionId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

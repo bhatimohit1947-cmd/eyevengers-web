@@ -1,3 +1,4 @@
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -63,7 +64,7 @@ export default function HomepageBuilder() {
 
   const fetchSections = async () => {
     try {
-      const res = await fetch(`https://eyevengers-web.onrender.com/api/cms/pages/home`);
+      const res = await fetchWithAuth(`https://eyevengers-web.onrender.com/api/cms/pages/home`);
       const data = await res.json();
       setSections(data.sections || []);
     } catch (error) {
@@ -75,7 +76,7 @@ export default function HomepageBuilder() {
 
   useEffect(() => {
     fetchSections();
-    fetch(`https://eyevengers-web.onrender.com/api/offers`)
+    fetchWithAuth(`https://eyevengers-web.onrender.com/api/offers`)
       .then(r => r.json())
       .then(data => setOffers(data));
   }, []);
@@ -83,7 +84,7 @@ export default function HomepageBuilder() {
   const toggleVisibility = async (id: string, currentVis: boolean) => {
     try {
       setSections(sections.map(s => s.id === id ? { ...s, isVisible: !currentVis } : s));
-      await fetch(`https://eyevengers-web.onrender.com/api/cms/sections/${id}`, {
+      await fetchWithAuth(`https://eyevengers-web.onrender.com/api/cms/sections/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isVisible: !currentVis })
@@ -106,7 +107,7 @@ export default function HomepageBuilder() {
       setSections(sections.map(s => s.id === editingSection.id ? { ...s, configJson: parsedConfig } : s));
       setEditingSection(null);
 
-      await fetch(`https://eyevengers-web.onrender.com/api/cms/sections/${editingSection.id}`, {
+      await fetchWithAuth(`https://eyevengers-web.onrender.com/api/cms/sections/${editingSection.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ configJson: parsedConfig })
@@ -119,7 +120,7 @@ export default function HomepageBuilder() {
 
   const handleAddSection = async () => {
     try {
-      const res = await fetch(`https://eyevengers-web.onrender.com/api/cms/sections`, {
+      const res = await fetchWithAuth(`https://eyevengers-web.onrender.com/api/cms/sections`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -140,7 +141,7 @@ export default function HomepageBuilder() {
   const handleDeleteSection = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this section?")) return;
     try {
-      const res = await fetch(`https://eyevengers-web.onrender.com/api/cms/sections/${id}`, {
+      const res = await fetchWithAuth(`https://eyevengers-web.onrender.com/api/cms/sections/${id}`, {
         method: 'DELETE',
       });
       if (res.ok) {
@@ -181,7 +182,7 @@ export default function HomepageBuilder() {
     try {
       await Promise.all(
         updatedSections.map(sec => 
-          fetch(`https://eyevengers-web.onrender.com/api/cms/sections/${sec.id}`, {
+          fetchWithAuth(`https://eyevengers-web.onrender.com/api/cms/sections/${sec.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ order: sec.order })

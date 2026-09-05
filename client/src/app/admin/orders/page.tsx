@@ -1,3 +1,4 @@
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -13,12 +14,12 @@ export default function OrdersPage() {
       let fallbackOrders: any[] = [];
       
       try {
-        const res = await fetch(`https://eyevengers-web.onrender.com/api/orders`);
+        const res = await fetchWithAuth(`https://eyevengers-web.onrender.com/api/orders`);
         if (res.ok) backendOrders = await res.json();
       } catch (e) {}
 
       try {
-        const res2 = await fetch('/api/orders');
+        const res2 = await fetchWithAuth('/api/orders');
         if (res2.ok) fallbackOrders = await res2.json();
       } catch (e) {}
 
@@ -43,14 +44,14 @@ export default function OrdersPage() {
   const updateStatus = async (orderId: string, newStatus: string) => {
     try {
       // 1. Update Vercel fast-cache so customers see it instantly
-      fetch(`/api/orders/${orderId}/status`, {
+      fetchWithAuth(`/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       }).catch(console.error);
 
       // 2. Update Render backend directly from browser to avoid Vercel 10s timeouts
-      const res = await fetch(`https://eyevengers-web.onrender.com/api/orders/${orderId}/status`, {
+      const res = await fetchWithAuth(`https://eyevengers-web.onrender.com/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })

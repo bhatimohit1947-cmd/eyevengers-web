@@ -9,10 +9,17 @@ import {
   getStores, createStore, deleteStore,
   getLensSettings, updateLensSettings,
   getNotifications, markNotificationRead, recordLoginEvent,
-  getSidebarCounts
+  getSidebarCounts, loginAdmin
 } from '../controllers/admin.controller';
+import { authenticateAdmin } from '../middlewares/auth.middleware';
 
 const router = express.Router();
+
+// Public route for login
+router.post('/login', loginAdmin);
+
+// Protect all following routes with authentication
+router.use(authenticateAdmin);
 
 router.get('/sidebar-counts', getSidebarCounts);
 router.post('/login-event', recordLoginEvent);

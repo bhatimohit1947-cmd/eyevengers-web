@@ -1,3 +1,4 @@
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -40,7 +41,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     const fetchCounts = async () => {
       try {
-        const res = await fetch(`https://eyevengers-web.onrender.com/api/admin/sidebar-counts`);
+        const res = await fetchWithAuth(`https://eyevengers-web.onrender.com/api/admin/sidebar-counts`);
         const data = await res.json();
         if (data && !data.error) {
           setCounts(data);
@@ -71,21 +72,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Policies', href: '/admin/settings/policies', icon: Settings },
   ];
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      (email === 'bhatipradeep420@gmail.com' && password === 'Heygoogle420@123') ||
-      (email === 'bhatimohit1947@gmail.com' && password === 'Heygoogle1947@123')
-    ) {
-      localStorage.setItem('eyevengers_admin_auth', 'true');
-      setIsAuthenticated(true);
-      setLoginError('');
-    } else {
-      setLoginError('Invalid email or password. Access Denied.');
+    setLoginError('');
+    try {
+      const res = await fetch('https://eyevengers-web.onrender.com/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (res.ok && data.token) {
+        localStorage.setItem('eyevengers_admin_token', data.token);
+        localStorage.setItem('eyevengers_admin_auth', 'true');
+        setIsAuthenticated(true);
+      } else {
+        setLoginError(data.error || 'Invalid credentials');
+      }
+    } catch (err) {
+      setLoginError('Failed to connect to the server');
     }
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('eyevengers_admin_token');
     localStorage.removeItem('eyevengers_admin_auth');
     setIsAuthenticated(false);
     setEmail('');

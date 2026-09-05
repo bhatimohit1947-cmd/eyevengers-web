@@ -1,3 +1,4 @@
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -30,7 +31,7 @@ export default function MembershipsAdminPage() {
 
   const fetchPlans = async () => {
     try {
-      const res = await fetch(`https://eyevengers-web.onrender.com/api/memberships/plans`);
+      const res = await fetchWithAuth(`https://eyevengers-web.onrender.com/api/memberships/plans`);
       if (res.ok) {
         let data = await res.json();
         // Fallback parse just in case backend is outdated or hasn't deployed
@@ -79,7 +80,7 @@ export default function MembershipsAdminPage() {
       
       if (!payload.id) delete (payload as any).id; // Remove temporary ID for new plan
 
-      const res = await fetch(url, {
+      const res = await fetchWithAuth(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

@@ -1,3 +1,4 @@
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -31,7 +32,7 @@ export default function ProductsManagement() {
   const fetchProductsAndSettings = () => {
     setIsLoading(true);
     // Fetch Products
-    fetch(`https://eyevengers-web.onrender.com/api/admin/products`)
+    fetchWithAuth(`https://eyevengers-web.onrender.com/api/admin/products`)
       .then(res => res.json())
       .then(data => {
         setProducts(data);
@@ -43,7 +44,7 @@ export default function ProductsManagement() {
       });
       
     // Fetch Settings
-    fetch(`https://eyevengers-web.onrender.com/api/admin/settings`)
+    fetchWithAuth(`https://eyevengers-web.onrender.com/api/admin/settings`)
       .then(res => res.json())
       .then(data => {
         if (data.storeBrands) setGlobalBrands(JSON.parse(data.storeBrands));
@@ -102,7 +103,7 @@ export default function ProductsManagement() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
     try {
-      const res = await fetch(`https://eyevengers-web.onrender.com/api/admin/products/${id}`, {
+      const res = await fetchWithAuth(`https://eyevengers-web.onrender.com/api/admin/products/${id}`, {
         method: 'DELETE'
       });
       if (res.ok) {
@@ -129,7 +130,7 @@ export default function ProductsManagement() {
     const payload = { ...restProduct, sku: payloadSku };
 
     try {
-      const res = await fetch(url, {
+      const res = await fetchWithAuth(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -409,7 +410,7 @@ export default function ProductsManagement() {
                     if (e.key === 'Enter' && attrInputValue.trim()) {
                       const newList = editingAttrKey === 'storeBrands' ? [...globalBrands, attrInputValue.trim()] : [...globalShapes, attrInputValue.trim()];
                       if (editingAttrKey === 'storeBrands') setGlobalBrands(newList); else setGlobalShapes(newList);
-                      fetch(`https://eyevengers-web.onrender.com/api/admin/settings`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [editingAttrKey]: JSON.stringify(newList) }) });
+                      fetchWithAuth(`https://eyevengers-web.onrender.com/api/admin/settings`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [editingAttrKey]: JSON.stringify(newList) }) });
                       setAttrInputValue('');
                     }
                   }}
@@ -419,7 +420,7 @@ export default function ProductsManagement() {
                     if (!attrInputValue.trim()) return;
                     const newList = editingAttrKey === 'storeBrands' ? [...globalBrands, attrInputValue.trim()] : [...globalShapes, attrInputValue.trim()];
                     if (editingAttrKey === 'storeBrands') setGlobalBrands(newList); else setGlobalShapes(newList);
-                    fetch(`https://eyevengers-web.onrender.com/api/admin/settings`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [editingAttrKey]: JSON.stringify(newList) }) });
+                    fetchWithAuth(`https://eyevengers-web.onrender.com/api/admin/settings`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [editingAttrKey]: JSON.stringify(newList) }) });
                     setAttrInputValue('');
                   }}
                   className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800"
@@ -436,7 +437,7 @@ export default function ProductsManagement() {
                       onClick={() => {
                         const newList = (editingAttrKey === 'storeBrands' ? globalBrands : globalShapes).filter((_, i) => i !== idx);
                         if (editingAttrKey === 'storeBrands') setGlobalBrands(newList); else setGlobalShapes(newList);
-                        fetch(`https://eyevengers-web.onrender.com/api/admin/settings`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [editingAttrKey]: JSON.stringify(newList) }) });
+                        fetchWithAuth(`https://eyevengers-web.onrender.com/api/admin/settings`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [editingAttrKey]: JSON.stringify(newList) }) });
                       }}
                       className="text-red-500 hover:text-red-700 p-1"
                     >

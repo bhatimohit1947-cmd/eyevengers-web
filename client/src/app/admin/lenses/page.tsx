@@ -1,3 +1,4 @@
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 "use client";
 import React, { useState, useEffect } from 'react';
 import { Glasses, Save, Plus, Trash2, RefreshCw } from 'lucide-react';
@@ -13,7 +14,7 @@ export default function AdminLensesPage() {
 
   const fetchSettings = async () => {
     try {
-      const res = await fetch(`https://eyevengers-web.onrender.com/api/admin/lenses/settings?t=${Date.now()}`);
+      const res = await fetchWithAuth(`https://eyevengers-web.onrender.com/api/admin/lenses/settings?t=${Date.now()}`);
       const data = await res.json();
       if (data.error) {
         setSettings({ categories: [], products: [] });
@@ -30,7 +31,7 @@ export default function AdminLensesPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await fetch(`https://eyevengers-web.onrender.com/api/admin/lenses/settings`, {
+      await fetchWithAuth(`https://eyevengers-web.onrender.com/api/admin/lenses/settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)

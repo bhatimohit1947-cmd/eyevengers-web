@@ -1,3 +1,4 @@
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -29,7 +30,7 @@ export default function CalendarView() {
   const router = useRouter();
 
   useEffect(() => {
-    fetch(`https://eyevengers-web.onrender.com/api/offers/calendar`)
+    fetchWithAuth(`https://eyevengers-web.onrender.com/api/offers/calendar`)
       .then(res => res.json())
       .then(data => {
         const mappedEvents = data.map((o: any) => ({

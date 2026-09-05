@@ -1,3 +1,4 @@
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -11,7 +12,7 @@ export default function CustomersPage() {
   const loadCustomerStats = async (customer: any) => {
     try {
       // Load orders from API
-      const res = await fetch('https://eyevengers-web.onrender.com/api/orders');
+      const res = await fetchWithAuth('https://eyevengers-web.onrender.com/api/orders');
       if (res.ok) {
         const orders = await res.json();
         const userOrders = orders.filter((o: any) => 
@@ -45,7 +46,7 @@ export default function CustomersPage() {
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
-        const res = await fetch('/api/customers');
+        const res = await fetchWithAuth('/api/customers');
         let apiCustomers = await res.json();
         if (!Array.isArray(apiCustomers)) apiCustomers = [];
         

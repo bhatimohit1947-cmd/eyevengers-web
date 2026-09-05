@@ -1,5 +1,25 @@
 import { Request, Response } from 'express';
 import { supabase } from '../supabaseClient';
+import jwt from 'jsonwebtoken';
+
+export const loginAdmin = (req: Request, res: Response) => {
+  const { email, password } = req.body;
+  const adminEmail1 = process.env.ADMIN_EMAIL_1 || 'bhatipradeep420@gmail.com';
+  const adminPass1 = process.env.ADMIN_PASS_1 || 'Heygoogle420@123';
+  const adminEmail2 = process.env.ADMIN_EMAIL_2 || 'bhatimohit1947@gmail.com';
+  const adminPass2 = process.env.ADMIN_PASS_2 || 'Heygoogle1947@123';
+  const secret = process.env.JWT_SECRET || 'fallback_secret_eyevengers_2026';
+
+  if (
+    (email === adminEmail1 && password === adminPass1) ||
+    (email === adminEmail2 && password === adminPass2)
+  ) {
+    const token = jwt.sign({ email }, secret, { expiresIn: '24h' });
+    return res.json({ token });
+  }
+
+  return res.status(401).json({ error: 'Invalid credentials' });
+};
 
 // In-Memory Database for Admin Entities
 let MOCK_DB = {
