@@ -21,6 +21,14 @@ const footerLinks = [
 
 export function Footer() {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [settings, setSettings] = useState<any>({});
+
+  React.useEffect(() => {
+    fetch('https://eyevengers-web.onrender.com/api/admin/settings')
+      .then(res => res.json())
+      .then(data => setSettings(data))
+      .catch(err => console.error("Could not load footer settings"));
+  }, []);
 
   const toggleSection = (title: string) => {
     setExpandedSection(expandedSection === title ? null : title);
@@ -72,22 +80,27 @@ export function Footer() {
           
           <div className="flex flex-col space-y-3 w-full md:w-auto">
             <h4 className="font-bold text-gray-900">Can we Help?</h4>
-            <button className="flex items-center justify-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-4 hover:border-brand-navy transition w-full md:w-auto font-medium">
+            <a 
+              href={`https://wa.me/${settings.whatsappNumber || '9351009906'}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-4 hover:border-brand-navy hover:text-brand-navy transition w-full md:w-auto font-medium"
+            >
               <MessageCircle size={18} />
               Chat With Us
-            </button>
+            </a>
           </div>
 
           <div className="flex flex-col space-y-3">
             <h4 className="font-bold text-gray-900">Follow Us</h4>
             <div className="flex gap-4">
-              <a href="#" className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-700 hover:text-blue-600 transition shadow-sm font-bold text-xs">
+              <a href={settings.facebookLink || "#"} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-700 hover:text-blue-600 transition shadow-sm font-bold text-xs">
                 FB
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-700 hover:text-pink-600 transition shadow-sm font-bold text-xs">
+              <a href={settings.instagramLink || "#"} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-700 hover:text-pink-600 transition shadow-sm font-bold text-xs">
                 IG
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-700 hover:text-blue-400 transition shadow-sm font-bold text-xs">
+              <a href={settings.twitterLink || "#"} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-700 hover:text-blue-400 transition shadow-sm font-bold text-xs">
                 X
               </a>
             </div>

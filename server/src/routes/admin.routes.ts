@@ -15,8 +15,9 @@ import { authenticateAdmin } from '../middlewares/auth.middleware';
 
 const router = express.Router();
 
-// Public route for login
+// Public routes
 router.post('/login', loginAdmin);
+router.get('/settings', getSettings);
 
 // Protect all following routes with authentication
 router.use(authenticateAdmin);
@@ -37,7 +38,6 @@ router.get('/customers', getCustomers);
 router.post('/customers', createOrUpdateCustomer);
 router.post('/customers/stats', syncCustomerStats);
 
-router.get('/settings', getSettings);
 router.put('/settings', updateSettings);
 
 router.get('/eye-test/settings', getEyeTestSettings);
