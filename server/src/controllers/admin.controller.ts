@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient';
 import jwt from 'jsonwebtoken';
 
 export const loginAdmin = (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  const email = req.body.email?.trim();\n  const password = req.body.password?.trim();
   const adminEmail1 = process.env.ADMIN_EMAIL_1 || 'bhatipradeep420@gmail.com';
   const adminPass1 = process.env.ADMIN_PASS_1 || 'Heygoogle420@123';
   const adminEmail2 = process.env.ADMIN_EMAIL_2 || 'bhatimohit1947@gmail.com';
