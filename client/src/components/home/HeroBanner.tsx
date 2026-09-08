@@ -109,19 +109,19 @@ export function HeroBanner({ data }: HeroBannerProps) {
           {((data.linkedOfferId && offerData && offerData.endDatetime) || (!data.linkedOfferId && data.countdownEndDatetime)) && (
             <div className="absolute top-4 md:top-6 left-0 right-0 flex flex-col items-center z-30 drop-shadow-md">
               {data.badgeText && (
-                <div className="bg-white text-black border border-gray-200 text-[8px] md:text-[10px] font-bold px-2 md:px-3 py-0.5 md:py-1 rounded shadow-sm mb-[-8px] md:mb-[-12px] z-10 uppercase tracking-wider">
+                <div className="bg-white text-black border border-gray-200 text-[9px] md:text-[10px] font-bold px-2 md:px-3 py-0.5 md:py-1 rounded shadow-sm mb-[-4px] md:mb-[-12px] z-10 uppercase tracking-wider">
                   {data.badgeText}
                 </div>
               )}
-              <div className="flex items-center w-full max-w-lg justify-center relative">
-                <div className="w-16 md:w-32 h-px bg-[#0a1128]"></div>
-                <div className="bg-[#0a1128] text-white px-3 md:px-6 py-1 md:py-2 rounded-full flex items-center gap-1.5 md:gap-2 mx-0 shadow-lg relative z-0">
+              <div className="flex items-center w-full max-w-lg justify-center relative transform scale-90 md:scale-100 origin-top">
+                <div className="w-12 md:w-32 h-px bg-[#0a1128]/60 md:bg-[#0a1128]"></div>
+                <div className="bg-[#0a1128] text-white px-3 md:px-6 py-1.5 md:py-2 rounded-full flex items-center gap-1.5 md:gap-2 mx-0 shadow-lg relative z-0">
                   <Clock className="w-3 h-3 md:w-4 md:h-4 text-white" />
-                  <span className="font-bold text-[10px] md:text-base tracking-widest">
+                  <span className="font-bold text-[11px] md:text-base tracking-widest">
                     {pad(timeLeft.days)}d : {pad(timeLeft.hours)}h : {pad(timeLeft.minutes)}m
                   </span>
                 </div>
-                <div className="w-16 md:w-32 h-px bg-[#0a1128]"></div>
+                <div className="w-12 md:w-32 h-px bg-[#0a1128]/60 md:bg-[#0a1128]"></div>
               </div>
             </div>
           )}
