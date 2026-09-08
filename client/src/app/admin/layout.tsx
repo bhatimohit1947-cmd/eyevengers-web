@@ -39,6 +39,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, []);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const fetchCounts = async () => {
       try {
         const res = await fetchWithAuth(`https://eyevengers-web.onrender.com/api/admin/sidebar-counts`);
@@ -55,7 +57,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     // Refresh every 30 seconds
     const interval = setInterval(fetchCounts, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isAuthenticated]);
 
   const sidebarLinks = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },

@@ -12,7 +12,7 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     // If we get an unauthorized response, clear the token and redirect to login
     localStorage.removeItem('eyevengers_admin_token');
     localStorage.removeItem('eyevengers_admin_auth');
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && window.location.pathname !== '/admin') {
       window.location.href = '/admin';
     }
   }
