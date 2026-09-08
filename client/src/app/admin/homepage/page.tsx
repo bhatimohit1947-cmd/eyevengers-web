@@ -389,6 +389,25 @@ export default function HomepageBuilder() {
                                 </div>
                               )}
 
+                              {editingSection.sectionType === 'hero_banner' && (
+                                <div className="mb-3 mt-3 flex items-center gap-2">
+                                  <input 
+                                    type="checkbox"
+                                    id="hideTimer"
+                                    className="w-4 h-4 text-purple-600 rounded"
+                                    checked={config.hideTimer || false}
+                                    onChange={(e) => {
+                                      try {
+                                        const newConfig = JSON.parse(editConfigText);
+                                        newConfig.hideTimer = e.target.checked;
+                                        setEditConfigText(JSON.stringify(newConfig, null, 2));
+                                      } catch (err) {}
+                                    }}
+                                  />
+                                  <label htmlFor="hideTimer" className="text-sm font-bold text-purple-800">Hide Countdown Timer</label>
+                                </div>
+                              )}
+
                               {hasCta && (
                                 <div>
                                   <label className="text-xs font-bold text-purple-800">Target URL / CTA Link</label>

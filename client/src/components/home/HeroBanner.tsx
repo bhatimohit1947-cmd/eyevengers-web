@@ -17,6 +17,7 @@ interface HeroBannerProps {
     countdownEndDatetime?: string;
     badgeText?: string;
     linkedOfferId?: string;
+    hideTimer?: boolean;
   };
 }
 
@@ -106,7 +107,7 @@ export function HeroBanner({ data }: HeroBannerProps) {
           )}
 
           {/* Overlaid Timer Feature (This remains fixed even if poster changes) */}
-          {((data.linkedOfferId && offerData && offerData.endDatetime) || (!data.linkedOfferId && data.countdownEndDatetime)) && (
+          {!data.hideTimer && ((data.linkedOfferId && offerData && offerData.endDatetime) || (!data.linkedOfferId && data.countdownEndDatetime)) && (
             <div className="absolute top-4 md:top-6 left-0 right-0 flex flex-col items-center z-30 drop-shadow-md">
               {data.badgeText && (
                 <div className="bg-white text-black border border-gray-200 text-[9px] md:text-[10px] font-bold px-2 md:px-3 py-0.5 md:py-1 rounded shadow-sm mb-[-4px] md:mb-[-12px] z-10 uppercase tracking-wider">
