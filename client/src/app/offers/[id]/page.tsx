@@ -113,48 +113,59 @@ export default function OfferLandingPage() {
             
             const effectivePrice = Math.max(0, product.price - discountAmount);
 
+            const displayImage = (product.image_url || product.imageUrl || '').split(',')[0].trim();
+
             return (
-              <div key={product.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden group hover:shadow-lg transition-all flex flex-col">
-                <div className="relative aspect-[4/3] bg-gray-100 p-4">
-                  <span className="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded-full uppercase z-10 shadow-sm">
-                    {offer.discountValue}{offer.discountType === 'percentage' ? '%' : '₹'} OFF
-                  </span>
-                  
-                  <button className="absolute top-3 right-3 text-gray-400 hover:text-red-500 z-10 transition">
-                    <Heart size={20} />
-                  </button>
-                  
-                  {product.imageUrl ? (
-                    product.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
-                      <video src={product.imageUrl} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" autoPlay loop muted playsInline />
+              <div key={product.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden group hover:shadow-lg transition-all flex flex-col relative">
+                <Link href={`/products/${product.id}`} className="block flex-1 flex flex-col">
+                  <div className="relative aspect-[4/3] bg-gray-100 p-4">
+                    <span className="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded-full uppercase z-10 shadow-sm">
+                      {offer.discountValue}{offer.discountType === 'percentage' ? '%' : '₹'} OFF
+                    </span>
+                    
+                    {displayImage ? (
+                      displayImage.match(/\.(mp4|webm|ogg)$/i) ? (
+                        <video src={displayImage} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" autoPlay loop muted playsInline />
+                      ) : (
+                        <img src={displayImage} alt={product.name} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
+                      )
                     ) : (
-                      <img src={product.imageUrl} alt={product.name} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
-                    )
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center font-bold text-gray-300">
-                      NO IMAGE
-                    </div>
-                  )}
-                </div>
-                
-                <div className="p-4 flex flex-col flex-1">
-                  <div className="flex justify-between items-center mb-1">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{product.category}</p>
-                    {product.brand && product.brand !== 'Generic' && (
-                      <span className="text-xs font-bold text-brand-navy bg-blue-50 px-2 py-0.5 rounded-full">{product.brand}</span>
+                      <div className="w-full h-full flex items-center justify-center font-bold text-gray-300">
+                        NO IMAGE
+                      </div>
                     )}
                   </div>
-                  <h3 className="font-bold text-gray-900 mb-2 leading-tight flex-1">{product.name}</h3>
                   
-                  <div className="flex items-end gap-2 mb-3 mt-auto">
-                    <span className="text-xl font-black text-brand-navy">₹{Math.round(effectivePrice)}</span>
-                    <span className="text-sm text-gray-400 line-through mb-0.5">₹{product.price}</span>
+                  <div className="p-4 flex flex-col flex-1">
+                    <div className="flex justify-between items-center mb-1">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{product.category}</p>
+                      {product.brand && product.brand !== 'Generic' && (
+                        <span className="text-xs font-bold text-brand-navy bg-blue-50 px-2 py-0.5 rounded-full">{product.brand}</span>
+                      )}
+                    </div>
+                    <h3 className="font-bold text-gray-900 mb-2 leading-tight flex-1 group-hover:text-brand-navy transition-colors">{product.name}</h3>
+                    
+                    <div className="flex items-end gap-2 mb-3 mt-auto">
+                      <span className="text-xl font-black text-brand-navy">₹{Math.round(effectivePrice)}</span>
+                      <span className="text-sm text-gray-400 line-through mb-0.5">₹{product.price}</span>
+                    </div>
+                    
+                    <button className="w-full bg-brand-navy hover:bg-blue-900 text-white py-2.5 rounded-xl font-bold transition flex items-center justify-center gap-2">
+                      Buy Now <ChevronRight size={16} />
+                    </button>
                   </div>
-                  
-                  <button className="w-full bg-brand-navy hover:bg-blue-900 text-white py-2.5 rounded-xl font-bold transition flex items-center justify-center gap-2">
-                    Add to Bag <ChevronRight size={16} />
-                  </button>
-                </div>
+                </Link>
+                
+                {/* Wishlist Button absolute positioned to not interfere with the Link */}
+                <button 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.location.href = `/products/${product.id}`;
+                  }}
+                  className="absolute top-3 right-3 text-gray-400 hover:text-red-500 z-10 transition bg-white/80 backdrop-blur-sm p-1.5 rounded-full shadow-sm"
+                >
+                  <Heart size={20} />
+                </button>
               </div>
             );
           })}
