@@ -65,6 +65,7 @@ export default function CheckoutPage() {
         address: selectedAddress,
         orderDetails: {
           frame: cartItems[0]?.title || 'Eyeglasses',
+          imageUrl: cartItems[0]?.imageUrl,
           lensCategory: cartItems[0]?.lensConfig?.lensCategory || 'Frame Only',
           lensProduct: cartItems[0]?.lensConfig?.lensType,
           power: cartItems[0]?.lensConfig?.power,

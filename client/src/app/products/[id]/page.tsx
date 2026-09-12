@@ -172,6 +172,7 @@ export default function ProductDetailPage() {
     const amount = calculateTotal();
     const orderDetails = {
       frame: product.name,
+      imageUrl: product.imageUrl || (product.images && product.images.length > 0 ? product.images[0] : ''),
       lensCategory: selectedCategory?.name,
       lensProduct: selectedLensProduct?.name,
       power: !isFrameOnly ? powerData : null,

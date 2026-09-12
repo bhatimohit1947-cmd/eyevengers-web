@@ -267,11 +267,11 @@ export default function OrdersPage() {
                 <h4 className="font-bold text-gray-900 mb-3 border-b border-gray-200 pb-2">Product Details</h4>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <div className="w-24 h-24 bg-gray-100 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden">
-                    {selectedOrder.items && selectedOrder.items[0] && selectedOrder.items[0].imageUrl ? (
-                      selectedOrder.items[0].imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
-                        <video src={selectedOrder.items[0].imageUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
+                    {selectedOrder.details?.imageUrl ? (
+                      selectedOrder.details.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+                        <video src={selectedOrder.details.imageUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
                       ) : (
-                        <img src={selectedOrder.items[0].imageUrl} alt="Product" className="w-full h-full object-cover" />
+                        <img src={selectedOrder.details.imageUrl} alt="Product" className="w-full h-full object-cover" />
                       )
                     ) : (
                       <Eye size={32} className="text-gray-400" />
