@@ -119,6 +119,30 @@ function OffersAdminContent() {
     alert('Saved successfully!');
   };
 
+  const handleDelete = async () => {
+    if (!selectedOffer || !selectedOffer.id) return;
+    
+    if (!window.confirm(`Are you sure you want to delete the offer "${selectedOffer.name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetchWithAuth(`https://eyevengers-web.onrender.com/api/offers/${selectedOffer.id}`, {
+        method: 'DELETE'
+      });
+      
+      if (res.ok) {
+        setOffers(offers.filter(o => o.id !== selectedOffer.id));
+        setSelectedOffer(null);
+      } else {
+        alert('Failed to delete offer.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting offer.');
+    }
+  };
+
   return (
     <div className="flex h-[calc(100vh-8rem)]">
       {/* Left List */}
@@ -192,9 +216,16 @@ function OffersAdminContent() {
                   </div>
                 )}
               </div>
-              <button onClick={handleSave} className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700">
-                <Save size={18} /> Save Offer
-              </button>
+              <div className="flex items-center gap-2">
+                {selectedOffer.id && (
+                  <button onClick={handleDelete} className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-2 rounded-lg font-bold hover:bg-red-100 transition">
+                    <Trash2 size={18} /> Delete
+                  </button>
+                )}
+                <button onClick={handleSave} className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700">
+                  <Save size={18} /> Save Offer
+                </button>
+              </div>
             </div>
 
             {activeTab === 'edit' ? (
