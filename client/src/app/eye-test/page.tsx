@@ -38,9 +38,12 @@ export default function EyeTestPage() {
     ])
       .then(([settingsData, storesData, globalData]) => {
         setSettings(settingsData);
-        setStores(storesData);
+        
+        const validStores = Array.isArray(storesData) ? storesData : [];
+        setStores(validStores);
+        if (validStores.length > 0) setStoreLocation(validStores[0].name);
+
         setGlobalSettings(globalData || {});
-        if (storesData.length > 0) setStoreLocation(storesData[0].name);
         setLoading(false);
       })
       .catch(err => {
