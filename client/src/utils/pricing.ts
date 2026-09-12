@@ -69,10 +69,13 @@ export function getEffectivePrice(product: ProductPricing, user?: UserContext): 
     if (offer.endDatetime && new Date(offer.endDatetime) < now) return false;
     
     // Check scope
-    if (offer.scope === 'global') return true;
-    if (offer.scope === 'category' && product.categoryId && offer.targetIds.includes(product.categoryId)) return true;
-    if (offer.scope === 'brand' && product.brandId && offer.targetIds.includes(product.brandId)) return true;
-    if (offer.scope === 'product' && (product as any).id && offer.targetIds.includes((product as any).id)) return true;
+    const scope = offer.scope || 'global';
+    const targetIds = offer.targetIds || [];
+    
+    if (scope === 'global') return true;
+    if (scope === 'category' && product.categoryId && targetIds.includes(product.categoryId)) return true;
+    if (scope === 'brand' && product.brandId && targetIds.includes(product.brandId)) return true;
+    if (scope === 'product' && (product as any).id && targetIds.includes((product as any).id)) return true;
     
     return false;
   });

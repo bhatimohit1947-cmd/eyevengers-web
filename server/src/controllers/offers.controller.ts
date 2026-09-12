@@ -9,16 +9,31 @@ export const getOffers = async (req: Request, res: Response) => {
     const { data, error } = await supabase.from('offers').select('*').order('start_date', { ascending: false });
     if (error) throw error;
     
-    // Map snake_case to camelCase
-    const formatted = data.map(o => ({
-      ...o,
-      discountType: o.discount_type,
-      discountValue: o.discount_value,
-      startDatetime: o.start_date,
-      endDatetime: o.end_date,
-      isActive: o.is_active,
-      bannerUrl: o.banner_url
-    }));
+    // Map snake_case to camelCase and extract advanced properties from description
+    const formatted = data.map(o => {
+      let extra = {};
+      let descText = o.description;
+      if (o.description && o.description.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(o.description);
+          extra = parsed;
+          descText = parsed.text;
+        } catch(e) {}
+      }
+      
+      return {
+        ...o,
+        ...extra,
+        description: descText,
+        discountType: o.discount_type,
+        discountValue: o.discount_value,
+        startDatetime: o.start_date,
+        endDatetime: o.end_date,
+        isActive: o.is_active,
+        status: o.is_active ? 'active' : 'paused',
+        bannerUrl: o.banner_url
+      };
+    });
     
     res.json(formatted);
   } catch (error) {
@@ -31,13 +46,26 @@ export const getOfferById = async (req: Request, res: Response) => {
   try {
     const { data, error } = await supabase.from('offers').select('*').eq('id', req.params.id).single();
     if (error) throw error;
+    let extra = {};
+    let descText = data.description;
+    if (data.description && data.description.trim().startsWith('{')) {
+      try {
+        const parsed = JSON.parse(data.description);
+        extra = parsed;
+        descText = parsed.text;
+      } catch(e) {}
+    }
+    
     res.json({
       ...data,
+      ...extra,
+      description: descText,
       discountType: data.discount_type,
       discountValue: data.discount_value,
       startDatetime: data.start_date,
       endDatetime: data.end_date,
       isActive: data.is_active,
+      status: data.is_active ? 'active' : 'paused',
       bannerUrl: data.banner_url
     });
   } catch (error) {
@@ -47,10 +75,19 @@ export const getOfferById = async (req: Request, res: Response) => {
 
 // POST new offer
 export const createOffer = async (req: Request, res: Response) => {
+  const advancedDesc = JSON.stringify({
+    text: req.body.description,
+    scope: req.body.scope || 'global',
+    targetIds: req.body.targetIds || [],
+    stackingBehavior: req.body.stackingBehavior || 'best_price_wins',
+    requiresCoupon: req.body.requiresCoupon || false,
+    couponCode: req.body.couponCode || ''
+  });
+
   const newOffer = {
     id: `off_${Date.now()}`,
     name: req.body.name,
-    description: req.body.description,
+    description: advancedDesc,
     discount_type: req.body.discountType,
     discount_value: req.body.discountValue,
     start_date: req.body.startDatetime,
@@ -69,14 +106,23 @@ export const createOffer = async (req: Request, res: Response) => {
 
 // PUT update offer
 export const updateOffer = async (req: Request, res: Response) => {
+  const advancedDesc = JSON.stringify({
+    text: req.body.description,
+    scope: req.body.scope || 'global',
+    targetIds: req.body.targetIds || [],
+    stackingBehavior: req.body.stackingBehavior || 'best_price_wins',
+    requiresCoupon: req.body.requiresCoupon || false,
+    couponCode: req.body.couponCode || ''
+  });
+
   const updates = {
     name: req.body.name,
-    description: req.body.description,
+    description: advancedDesc,
     discount_type: req.body.discountType,
     discount_value: req.body.discountValue,
     start_date: req.body.startDatetime,
     end_date: req.body.endDatetime,
-    is_active: req.body.isActive !== false,
+    is_active: req.body.isActive,
     banner_url: req.body.bannerUrl
   };
   try {
