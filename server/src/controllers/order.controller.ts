@@ -5,10 +5,17 @@ import { supabase } from '../supabaseClient';
 import { createNotification } from './admin.controller';
 import { sendEmail } from '../utils/email';
 
-const decrementStock = async (frameName: string) => {
-  if (!frameName) return;
+const decrementStock = async (productId?: string, frameName?: string) => {
+  if (!productId && !frameName) return;
   try {
-    const { data: products } = await supabase.from('products').select('id, stock').eq('name', frameName);
+    let query = supabase.from('products').select('id, stock');
+    if (productId) {
+      query = query.eq('id', productId);
+    } else if (frameName) {
+      query = query.eq('name', frameName);
+    }
+    
+    const { data: products } = await query;
     if (products && products.length > 0) {
       const product = products[0];
       const currentStock = typeof product.stock === 'number' ? product.stock : 0;
@@ -56,7 +63,18 @@ export const getOrders = async (req: Request, res: Response) => {
 // Create an order
 export const createOrder = async (req: Request, res: Response) => {
   try {
-    const { amount, paymentMethod, orderDetails } = req.body;
+    const { amount, paymentMethod, orderDetails, items } = req.body;
+    
+    // Helper to process stock for all items
+    const processStock = async () => {
+      if (items && Array.isArray(items) && items.length > 0) {
+        for (const item of items) {
+          await decrementStock(item.productId, item.title);
+        }
+      } else if (orderDetails) {
+        await decrementStock(orderDetails.productId, orderDetails.frame);
+      }
+    };
     
     // Create local order record
     const newOrder = {
@@ -88,9 +106,7 @@ export const createOrder = async (req: Request, res: Response) => {
       await createNotification('Order', 'New Prepaid Order', `Order ${newOrder.id} initiated for ₹${amount}.`);
 
       // Decrement Stock
-      if (orderDetails && orderDetails.frame) {
-        await decrementStock(orderDetails.frame);
-      }
+      await processStock();
 
       return res.json({ success: true, order: newOrder, razorpayOrder: rzpOrder });
     }
@@ -103,9 +119,7 @@ export const createOrder = async (req: Request, res: Response) => {
     await createNotification('Order', 'New COD Order', `Order ${newOrder.id} placed for ₹${amount} via COD.`);
 
     // Decrement Stock
-    if (orderDetails && orderDetails.frame) {
-      await decrementStock(orderDetails.frame);
-    }
+    await processStock();
 
     // Send Email Notification (if email is available, otherwise this will fail silently or skip if not configured)
     await sendEmail(

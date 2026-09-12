@@ -179,7 +179,8 @@ export default function ProductDetailPage() {
       power: !isFrameOnly ? powerData : null,
       customerName: user?.name || 'Guest Customer',
       userPhone: user?.phone || 'N/A',
-      address: selectedAddress
+      address: selectedAddress,
+      productId: product.id
     };
 
     try {
