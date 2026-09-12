@@ -9,6 +9,7 @@ import { useWishlistStore } from '@/store/useWishlistStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAddressStore } from '@/store/useAddressStore';
 import AddressManager from '@/components/checkout/AddressManager';
+import { getEffectivePrice, ACTIVE_OFFERS, UserContext } from '@/utils/pricing';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -60,24 +61,44 @@ export default function ProductDetailPage() {
   const [isLoadingProduct, setIsLoadingProduct] = useState(true);
 
   useEffect(() => {
-    fetch('https://eyevengers-web.onrender.com/api/admin/products')
-      .then(res => res.json())
-      .then(data => {
+    Promise.all([
+      fetch('https://eyevengers-web.onrender.com/api/admin/products').then(res => res.json()),
+      fetch('https://eyevengers-web.onrender.com/api/offers').then(res => res.json())
+    ])
+      .then(([data, offersData]) => {
+        // Update global offers for pricing utility
+        if (Array.isArray(offersData)) {
+          ACTIVE_OFFERS.length = 0;
+          ACTIVE_OFFERS.push(...offersData);
+        }
         const found = data.find((p: any) => p.id === id);
         if (found) {
           const rawImages = found.image_url || found.imageUrl || '';
           const imagesArr = rawImages ? rawImages.split(',').map((u: string) => u.trim()) : [];
           const hasDiscount = found.sku && found.sku.includes('|DISCOUNT:');
-          const discountPercent = hasDiscount ? Number(found.sku.split('|DISCOUNT:')[1]) : 0;
-          const mrp = discountPercent > 0 ? Math.round(found.price / (1 - (discountPercent / 100))) : found.price;
+          const oldDiscountPercent = hasDiscount ? Number(found.sku.split('|DISCOUNT:')[1]) : 0;
+          const mrp = oldDiscountPercent > 0 ? Math.round(found.price / (1 - (oldDiscountPercent / 100))) : found.price;
+          
+          // Use pricing utility to determine actual selling price (ignoring membership for cart base, as checkout applies it, OR just using guest price)
+          // To prevent double dipping if user is logged in, we evaluate as guest here, and let Checkout handle membership stacking.
+          const guestContext: UserContext = { tier: 'none' };
+          const priceResult = getEffectivePrice({
+            mrp: mrp,
+            sellingPrice: found.price,
+            categoryId: found.category,
+            brandId: found.brand
+          }, guestContext);
+          
+          const finalSellingPrice = priceResult.discountedPrice;
+          const newDiscountPercent = Math.round(((mrp - finalSellingPrice) / mrp) * 100);
           
           setProduct({
             id: found.id,
             name: found.name,
             brand: found.brand || 'Generic',
             mrp: mrp,
-            sellingPrice: found.price,
-            discountPercent: discountPercent,
+            sellingPrice: finalSellingPrice,
+            discountPercent: newDiscountPercent,
             rating: 4.5,
             reviewsCount: 128,
             images: imagesArr.length > 0 ? imagesArr : ["", "", "", ""],
@@ -180,7 +201,10 @@ export default function ProductDetailPage() {
       customerName: user?.name || 'Guest Customer',
       userPhone: user?.phone || 'N/A',
       address: selectedAddress,
-      productId: product.id
+      productId: product.id,
+      mrp: product.mrp,
+      categoryId: product.shape,
+      brandId: product.brand
     };
 
     try {

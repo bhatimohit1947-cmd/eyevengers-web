@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useAddressStore } from '@/store/useAddressStore';
 import { CheckCircle2, ArrowRight } from 'lucide-react';
 import AddressManager from '@/components/checkout/AddressManager';
+import { getEffectivePrice, ACTIVE_OFFERS, UserContext } from '@/utils/pricing';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -16,11 +17,11 @@ export default function CheckoutPage() {
 
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   
-  const discountPercent = membershipBenefits?.discountPercent || 0;
-  const membershipDiscountAmount = discountPercent > 0 ? (baseTotalPrice * (discountPercent / 100)) : 0;
+  const [calculatedTotal, setCalculatedTotal] = useState(baseTotalPrice);
+  
   const hasFreeShipping = membershipBenefits?.freeShipping === true;
   const shippingCharge = hasFreeShipping ? 0 : 50;
-  const finalTotalPrice = baseTotalPrice + shippingCharge - membershipDiscountAmount;
+  const finalTotalPrice = calculatedTotal + shippingCharge;
   
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
@@ -29,7 +30,38 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     setHydrated(true);
-  }, []);
+    
+    // Fetch offers and recalculate precise total per item to support Stacking Behavior
+    fetch('https://eyevengers-web.onrender.com/api/offers')
+      .then(r => r.json())
+      .then(offersData => {
+        if (Array.isArray(offersData)) {
+          ACTIVE_OFFERS.length = 0;
+          ACTIVE_OFFERS.push(...offersData);
+        }
+        
+        let newTotal = 0;
+        const userContext: UserContext = {
+          tier: user?.tier || 'none',
+          membershipBenefits
+        };
+
+        for (const item of cartItems) {
+          const priceResult = getEffectivePrice({
+            mrp: item.mrp || item.price, // Fallback if old item
+            sellingPrice: item.price,
+            categoryId: item.categoryId,
+            brandId: item.brandId
+          }, userContext);
+          newTotal += priceResult.discountedPrice * item.qty;
+        }
+        setCalculatedTotal(newTotal);
+      })
+      .catch(err => {
+        console.error("Failed to load offers for checkout", err);
+        setCalculatedTotal(baseTotalPrice); // Fallback
+      });
+  }, [cartItems, user, membershipBenefits, baseTotalPrice]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -172,14 +204,8 @@ export default function CheckoutPage() {
               <div className="border-t border-gray-100 pt-4 space-y-3 mb-6">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
-                  <span>₹{baseTotalPrice}</span>
+                  <span>₹{calculatedTotal.toFixed(0)}</span>
                 </div>
-                {membershipDiscountAmount > 0 && (
-                  <div className="flex justify-between text-brand-gold font-medium">
-                    <span>Member Discount ({discountPercent}%)</span>
-                    <span>-₹{membershipDiscountAmount.toFixed(0)}</span>
-                  </div>
-                )}
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
                   {hasFreeShipping ? (

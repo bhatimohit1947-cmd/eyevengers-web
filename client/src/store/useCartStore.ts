@@ -10,6 +10,9 @@ export interface CartItem {
   price: number;
   title: string;
   imageUrl?: string;
+  mrp?: number;
+  categoryId?: string;
+  brandId?: string;
 }
 
 interface UserCart {
