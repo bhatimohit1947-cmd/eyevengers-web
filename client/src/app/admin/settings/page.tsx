@@ -13,7 +13,9 @@ export default function SettingsPage() {
     whatsappNumber: '',
     instagramLink: '',
     facebookLink: '',
-    twitterLink: ''
+    twitterLink: '',
+    enableHomeEyeTest: true,
+    enableOnlinePrepaid: true
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -163,6 +165,41 @@ export default function SettingsPage() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-navy outline-none transition" 
               />
             </div>
+          </div>
+
+          {/* Service Controls Section */}
+          <div className="border-b border-gray-100 pb-4 mb-2 mt-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+              <Settings size={18} className="text-gray-400" />
+              Service Controls
+            </h3>
+            <p className="text-sm text-gray-500">Enable or disable specific features across the store</p>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input 
+                type="checkbox"
+                checked={settings.enableHomeEyeTest !== false} // default to true if undefined
+                onChange={(e) => setSettings({...settings, enableHomeEyeTest: e.target.checked})}
+                className="w-5 h-5 text-brand-navy rounded focus:ring-brand-navy"
+              />
+              <span className="text-sm font-medium text-gray-800">
+                Enable Home Eye Test <span className="text-gray-500 font-normal block">Allow customers to book eye tests at their home address</span>
+              </span>
+            </label>
+
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input 
+                type="checkbox"
+                checked={settings.enableOnlinePrepaid !== false} // default to true if undefined
+                onChange={(e) => setSettings({...settings, enableOnlinePrepaid: e.target.checked})}
+                className="w-5 h-5 text-brand-navy rounded focus:ring-brand-navy"
+              />
+              <span className="text-sm font-medium text-gray-800">
+                Enable Online Prepaid Payments <span className="text-gray-500 font-normal block">Allow customers to pay online during checkout (Disable to force COD only)</span>
+              </span>
+            </label>
           </div>
           
           <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end">

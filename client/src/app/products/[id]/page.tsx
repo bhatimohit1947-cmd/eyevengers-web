@@ -42,10 +42,17 @@ export default function ProductDetailPage() {
   const [paymentMethod, setPaymentMethod] = useState<'cod'|'prepaid'>('cod');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
+  const [globalSettings, setGlobalSettings] = useState<any>({});
+
   useEffect(() => {
-    fetch(`https://eyevengers-web.onrender.com/api/admin/lenses/settings?t=${Date.now()}`)
-      .then(r => r.json())
-      .then(data => setLensSettings(data))
+    Promise.all([
+      fetch(`https://eyevengers-web.onrender.com/api/admin/lenses/settings?t=${Date.now()}`).then(r => r.json()),
+      fetch(`https://eyevengers-web.onrender.com/api/admin/settings?t=${Date.now()}`).then(r => r.json())
+    ])
+      .then(([lensData, globalData]) => {
+        setLensSettings(lensData);
+        setGlobalSettings(globalData || {});
+      })
       .catch(err => console.error(err));
   }, []);
 
@@ -593,15 +600,17 @@ export default function ProductDetailPage() {
                     <label className={`block border rounded-xl p-3 cursor-pointer transition ${paymentMethod === 'cod' ? 'border-brand-navy bg-[#f5f8ff]' : 'border-gray-200'}`}>
                       <div className="flex items-center gap-2">
                         <input type="radio" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} className="text-brand-navy" />
-                        <span className="font-bold text-sm text-gray-900">Cash on Delivery</span>
+                        <span className="font-bold text-sm text-gray-900">Cash on Delivery / Pay at Store</span>
                       </div>
                     </label>
-                    <label className={`block border rounded-xl p-3 cursor-pointer transition ${paymentMethod === 'prepaid' ? 'border-brand-navy bg-[#f5f8ff]' : 'border-gray-200'}`}>
-                      <div className="flex items-center gap-2">
-                        <input type="radio" checked={paymentMethod === 'prepaid'} onChange={() => setPaymentMethod('prepaid')} className="text-brand-navy" />
-                        <span className="font-bold text-sm text-gray-900">Pay Online (UPI, Cards)</span>
-                      </div>
-                    </label>
+                    {globalSettings.enableOnlinePrepaid !== false && (
+                      <label className={`block border rounded-xl p-3 cursor-pointer transition ${paymentMethod === 'prepaid' ? 'border-brand-navy bg-[#f5f8ff]' : 'border-gray-200'}`}>
+                        <div className="flex items-center gap-2">
+                          <input type="radio" checked={paymentMethod === 'prepaid'} onChange={() => setPaymentMethod('prepaid')} className="text-brand-navy" />
+                          <span className="font-bold text-sm text-gray-900">Pay Online (UPI, Cards)</span>
+                        </div>
+                      </label>
+                    )}
                   </div>
                 </div>
 

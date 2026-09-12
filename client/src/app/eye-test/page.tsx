@@ -26,14 +26,19 @@ export default function EyeTestPage() {
   // Stores from API
   const [stores, setStores] = useState<any[]>([]);
 
+  // Global settings for toggle
+  const [globalSettings, setGlobalSettings] = useState<any>({});
+
   useEffect(() => {
     Promise.all([
       fetch(`https://eyevengers-web.onrender.com/api/admin/eye-test/settings?t=${Date.now()}`).then(r => r.json()),
-      fetch(`https://eyevengers-web.onrender.com/api/admin/stores?t=${Date.now()}`).then(r => r.json())
+      fetch(`https://eyevengers-web.onrender.com/api/admin/stores?t=${Date.now()}`).then(r => r.json()),
+      fetch(`https://eyevengers-web.onrender.com/api/admin/settings?t=${Date.now()}`).then(r => r.json())
     ])
-      .then(([settingsData, storesData]) => {
+      .then(([settingsData, storesData, globalData]) => {
         setSettings(settingsData);
         setStores(storesData);
+        setGlobalSettings(globalData || {});
         if (storesData.length > 0) setStoreLocation(storesData[0].name);
         setLoading(false);
       })
@@ -99,6 +104,8 @@ export default function EyeTestPage() {
     isAvailable: true, title: "Home Eye Test", description: "Can't visit? We'll bring the clinic to you. Get your eyes tested at home with portable advanced tech.", features: ["Certified Professional Visit", "Try 100+ Frames at Home", "Just ₹199 (Refundable)"], price: 199, imageUrl: ""
   };
 
+  const isHomeTestEnabled = globalSettings.enableHomeEyeTest !== false && homeData.isAvailable;
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Hero Section */}
@@ -162,19 +169,19 @@ export default function EyeTestPage() {
 
           {/* Home Eye Test Card */}
           <div 
-            onClick={() => homeData.isAvailable && setBookingMode('home')}
-            className={`bg-white rounded-3xl shadow-xl p-5 md:p-8 border border-gray-100 flex flex-col h-full relative overflow-hidden transition-all ${homeData.isAvailable ? 'hover:shadow-2xl hover:border-yellow-400/50 cursor-pointer group' : 'opacity-70 grayscale'}`}
+            onClick={() => isHomeTestEnabled && setBookingMode('home')}
+            className={`bg-white rounded-3xl shadow-xl p-5 md:p-8 border border-gray-100 flex flex-col h-full relative overflow-hidden transition-all ${isHomeTestEnabled ? 'hover:shadow-2xl hover:border-yellow-400/50 cursor-pointer group' : 'opacity-70 grayscale'}`}
           >
             <div className="absolute top-0 right-0 bg-yellow-100 text-yellow-800 text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider">
               Premium
             </div>
-            {!homeData.isAvailable && (
+            {!isHomeTestEnabled && (
               <div className="absolute inset-0 z-10 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center">
                 <span className="bg-red-100 text-red-800 font-bold px-4 py-2 rounded-full text-sm">Currently Unavailable</span>
               </div>
             )}
             {homeData.imageUrl ? (
-              <div className={`w-full aspect-[16/9] mb-4 md:mb-6 rounded-2xl overflow-hidden transition-transform ${homeData.isAvailable ? 'group-hover:scale-105' : ''}`}>
+              <div className={`w-full aspect-[16/9] mb-4 md:mb-6 rounded-2xl overflow-hidden transition-transform ${isHomeTestEnabled ? 'group-hover:scale-105' : ''}`}>
                 {homeData.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
                   <video src={homeData.imageUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
                 ) : (
@@ -182,7 +189,7 @@ export default function EyeTestPage() {
                 )}
               </div>
             ) : (
-              <div className={`w-12 h-12 md:w-16 md:h-16 bg-yellow-50 rounded-2xl flex items-center justify-center mb-4 md:mb-6 transition-transform ${homeData.isAvailable ? 'group-hover:scale-110' : ''}`}>
+              <div className={`w-12 h-12 md:w-16 md:h-16 bg-yellow-50 rounded-2xl flex items-center justify-center mb-4 md:mb-6 transition-transform ${isHomeTestEnabled ? 'group-hover:scale-110' : ''}`}>
                 <HomeIcon className="w-6 h-6 md:w-8 md:h-8 text-yellow-600" />
               </div>
             )}
@@ -195,7 +202,7 @@ export default function EyeTestPage() {
                 </li>
               ))}
             </ul>
-            <button disabled={!homeData.isAvailable} className="w-full bg-gradient-to-r from-[#0B1550] to-[#D4AF37] text-white font-bold py-2.5 md:py-3 rounded-xl flex items-center justify-center hover:shadow-lg transition-shadow disabled:opacity-50 text-sm md:text-base">
+            <button disabled={!isHomeTestEnabled} className="w-full bg-gradient-to-r from-[#0B1550] to-[#D4AF37] text-white font-bold py-2.5 md:py-3 rounded-xl flex items-center justify-center hover:shadow-lg transition-shadow disabled:opacity-50 text-sm md:text-base">
               Book Home Visit <ChevronRight className="w-4 h-4 ml-1" />
             </button>
           </div>
