@@ -22,6 +22,7 @@ export default function EyeTestPage() {
   const [address, setAddress] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [testPaymentMethod, setTestPaymentMethod] = useState<'online' | 'doorstep'>('online');
 
   // Stores from API
   const [stores, setStores] = useState<any[]>([]);
@@ -60,7 +61,8 @@ export default function EyeTestPage() {
           phone,
           date,
           time,
-          location: bookingMode === 'store' ? storeLocation : address
+          location: bookingMode === 'store' ? storeLocation : address,
+          paymentMethod: bookingMode === 'home' ? testPaymentMethod : 'none'
         })
       });
       setIsSuccess(true);
@@ -235,11 +237,11 @@ export default function EyeTestPage() {
                   <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <CheckCircle2 className="w-10 h-10 text-green-600" />
                   </div>
-                  <h4 className="text-2xl font-black text-gray-900 mb-2">You're all set!</h4>
+                  <h4 className="text-2xl font-black text-gray-900 mb-2">Booking Received!</h4>
                   <p className="text-gray-500 mb-6">
                     {bookingMode === 'store' 
-                      ? 'Your appointment has been booked. Please reach the store 5 minutes early.' 
-                      : 'Our optometrist will call you shortly to confirm your home visit.'}
+                      ? 'We have received your request. Our team will call you shortly to confirm your booking for the store visit.' 
+                      : 'We have received your home visit request. Our team will call you shortly to confirm the booking.'}
                   </p>
                   <button onClick={handleClose} className="bg-brand-navy text-white px-8 py-3 rounded-xl font-bold w-full">
                     Done
@@ -343,26 +345,36 @@ export default function EyeTestPage() {
                       </div>
 
                       <div className="space-y-3">
-                        <label className="flex items-center justify-between p-3 border-2 border-brand-navy rounded-xl bg-blue-50/30 cursor-pointer">
+                        <label className={`flex items-center justify-between p-3 border-2 rounded-xl cursor-pointer ${testPaymentMethod === 'online' ? 'border-brand-navy bg-blue-50/30' : 'border-gray-200'}`} onClick={() => setTestPaymentMethod('online')}>
                           <div className="flex items-center gap-3">
-                            <CreditCard className="text-brand-navy" />
-                            <span className="font-bold text-sm text-gray-800">Card / UPI (Mock)</span>
+                            <CreditCard className={testPaymentMethod === 'online' ? 'text-brand-navy' : 'text-gray-500'} />
+                            <span className="font-bold text-sm text-gray-800">Pay Online (Razorpay)</span>
                           </div>
-                          <div className="w-4 h-4 rounded-full border-4 border-brand-navy bg-white"></div>
+                          <div className={`w-4 h-4 rounded-full ${testPaymentMethod === 'online' ? 'border-4 border-brand-navy bg-white' : 'border border-gray-300'}`}></div>
+                        </label>
+
+                        <label className={`flex items-center justify-between p-3 border-2 rounded-xl cursor-pointer ${testPaymentMethod === 'doorstep' ? 'border-brand-navy bg-blue-50/30' : 'border-gray-200'}`} onClick={() => setTestPaymentMethod('doorstep')}>
+                          <div className="flex items-center gap-3">
+                            <HomeIcon className={testPaymentMethod === 'doorstep' ? 'text-brand-navy' : 'text-gray-500'} />
+                            <span className="font-bold text-sm text-gray-800">Pay at Doorstep</span>
+                          </div>
+                          <div className={`w-4 h-4 rounded-full ${testPaymentMethod === 'doorstep' ? 'border-4 border-brand-navy bg-white' : 'border border-gray-300'}`}></div>
                         </label>
                       </div>
 
-                      <div className="bg-gray-50 p-3 rounded-lg text-xs text-gray-500 flex items-start gap-2">
-                        <span className="text-brand-navy font-bold">Note:</span>
-                        This is a simulated payment gateway. Clicking Pay will securely mock the transaction.
-                      </div>
+                      {testPaymentMethod === 'online' && (
+                        <div className="bg-gray-50 p-3 rounded-lg text-xs text-gray-500 flex items-start gap-2">
+                          <span className="text-brand-navy font-bold">Note:</span>
+                          This is a simulated Razorpay gateway. Clicking Pay will securely mock the transaction. Original keys can be added later.
+                        </div>
+                      )}
 
                       <div className="flex gap-3 mt-4">
                         <button onClick={() => setStep(2)} disabled={isSubmitting} className="px-4 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 disabled:opacity-50">
                           Back
                         </button>
                         <button onClick={handleFinalSubmit} disabled={isSubmitting} className="flex-1 bg-green-600 text-white font-bold py-3.5 rounded-xl hover:bg-green-700 shadow-lg shadow-green-600/30 flex justify-center items-center disabled:opacity-70">
-                          {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : `Pay ₹${homeData.price} Securely`}
+                          {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : testPaymentMethod === 'online' ? `Pay ₹${homeData.price} Securely` : 'Confirm Booking'}
                         </button>
                       </div>
                     </div>
