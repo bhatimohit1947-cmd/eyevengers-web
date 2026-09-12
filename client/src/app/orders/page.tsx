@@ -157,8 +157,16 @@ export default function OrdersPage() {
               </div>
               
               <div className="p-4 sm:p-6 flex flex-col sm:flex-row gap-6">
-                <div className="w-24 h-24 bg-gray-100 rounded-xl flex-shrink-0 flex items-center justify-center">
-                  <Glasses className="w-10 h-10 text-gray-400" />
+                <div className="w-24 h-24 bg-gray-100 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden">
+                  {order.items && order.items[0] && order.items[0].imageUrl ? (
+                    order.items[0].imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+                      <video src={order.items[0].imageUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
+                    ) : (
+                      <img src={order.items[0].imageUrl} alt="Product" className="w-full h-full object-cover" />
+                    )
+                  ) : (
+                    <Glasses className="w-10 h-10 text-gray-400" />
+                  )}
                 </div>
                 <div className="flex-1">
                   <h3 className="font-bold text-gray-900 text-lg mb-1">{order.details?.frame || 'Eyeglasses'}</h3>
