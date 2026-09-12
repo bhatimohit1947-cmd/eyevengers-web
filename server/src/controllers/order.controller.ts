@@ -5,6 +5,21 @@ import { supabase } from '../supabaseClient';
 import { createNotification } from './admin.controller';
 import { sendEmail } from '../utils/email';
 
+const decrementStock = async (frameName: string) => {
+  if (!frameName) return;
+  try {
+    const { data: products } = await supabase.from('products').select('id, stock').eq('name', frameName);
+    if (products && products.length > 0) {
+      const product = products[0];
+      const currentStock = typeof product.stock === 'number' ? product.stock : 0;
+      const newStock = Math.max(0, currentStock - 1);
+      await supabase.from('products').update({ stock: newStock }).eq('id', product.id);
+    }
+  } catch (err) {
+    console.error('Failed to decrement stock:', err);
+  }
+};
+
 // Use the API Keys provided by the user
 const razorpay = new Razorpay({
   key_id: 'rzp_test_T34XmzvqjTeeXs',
@@ -72,6 +87,11 @@ export const createOrder = async (req: Request, res: Response) => {
       // Trigger Notification
       await createNotification('Order', 'New Prepaid Order', `Order ${newOrder.id} initiated for ₹${amount}.`);
 
+      // Decrement Stock
+      if (orderDetails && orderDetails.frame) {
+        await decrementStock(orderDetails.frame);
+      }
+
       return res.json({ success: true, order: newOrder, razorpayOrder: rzpOrder });
     }
 
@@ -81,6 +101,11 @@ export const createOrder = async (req: Request, res: Response) => {
     
     // Trigger Notification
     await createNotification('Order', 'New COD Order', `Order ${newOrder.id} placed for ₹${amount} via COD.`);
+
+    // Decrement Stock
+    if (orderDetails && orderDetails.frame) {
+      await decrementStock(orderDetails.frame);
+    }
 
     // Send Email Notification (if email is available, otherwise this will fail silently or skip if not configured)
     await sendEmail(

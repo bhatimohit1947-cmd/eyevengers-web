@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Star, Heart, Share2, Ruler, ShieldCheck, ChevronRight, Camera, Glasses, ArrowLeft, CheckCircle2, Info, Loader2 } from 'lucide-react';
+import { Star, Heart, Share2, Ruler, ShieldCheck, ChevronRight, Camera, Glasses, ArrowLeft, CheckCircle2, Info, Loader2, AlertCircle } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import Script from 'next/script';
 import { ARTryOn } from '@/components/ui/ARTryOn';
@@ -84,7 +84,8 @@ export default function ProductDetailPage() {
             size: "Medium",
             color: "Standard",
             shape: found.category || "Standard",
-            imageUrl: imagesArr[0] || ''
+            imageUrl: imagesArr[0] || '',
+            stock: found.stock
           });
         }
         setIsLoadingProduct(false);
@@ -268,9 +269,10 @@ export default function ProductDetailPage() {
       }
     } catch (error) {
       console.error(error);
-      alert('Something went wrong!');
+      alert('An error occurred while placing order. Please try again.');
+    } finally {
+      setIsPlacingOrder(false);
     }
-    setIsPlacingOrder(false);
   };
 
   const handleShare = async () => {
@@ -426,6 +428,18 @@ export default function ProductDetailPage() {
               <span className="text-sm text-gray-400 line-through mb-1">₹{product.mrp}</span>
               <span className="text-sm font-bold text-green-600 mb-1">({product.discountPercent}% OFF)</span>
             </div>
+            
+            {product.stock !== undefined && product.stock <= 5 && product.stock > 0 && (
+              <div className="mt-2 text-sm font-bold text-red-500 flex items-center gap-1 bg-red-50 w-fit px-3 py-1 rounded-full border border-red-100">
+                <AlertCircle size={14} /> Only {product.stock} pieces left in stock!
+              </div>
+            )}
+            
+            {product.stock === 0 && (
+              <div className="mt-2 text-sm font-bold text-red-600 flex items-center gap-1 bg-red-50 w-fit px-3 py-1 rounded-full border border-red-100">
+                <AlertCircle size={14} /> Out of Stock
+              </div>
+            )}
           </div>
 
           {/* DYNAMIC CHECKOUT FLOW */}
