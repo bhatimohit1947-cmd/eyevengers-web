@@ -153,8 +153,8 @@ export default function ProductDetailPage() {
     setFlowStep('address_selection');
   };
 
-  const getBaseTotal = () => {
-    let total = dynamicPrice ? dynamicPrice.discountedPrice : (product?.sellingPrice || 0);
+  const getLensTotal = () => {
+    let total = 0;
     if (!isFrameOnly && selectedLensProduct && selectedCategory) {
       total += selectedLensProduct.basePrice;
       if (highPowerSurchargeApplied) {
@@ -164,8 +164,24 @@ export default function ProductDetailPage() {
     return total;
   };
 
+  const getLensDiscountAmount = () => {
+    const lensTotal = getLensTotal();
+    const discountPercent = membershipBenefits?.discountPercent || 0;
+    return lensTotal * (discountPercent / 100);
+  };
+
+  const getBaseTotal = () => {
+    let total = dynamicPrice ? dynamicPrice.discountedPrice : (product?.sellingPrice || 0);
+    total += getLensTotal();
+    return total;
+  };
+
   const calculateTotal = () => {
-    let total = getBaseTotal();
+    let frameTotal = dynamicPrice ? dynamicPrice.discountedPrice : (product?.sellingPrice || 0);
+    let lensTotal = getLensTotal();
+    let lensDiscount = getLensDiscountAmount();
+    
+    let total = frameTotal + lensTotal - lensDiscount;
     const hasFreeShipping = membershipBenefits?.freeShipping === true;
     const shippingCharge = hasFreeShipping ? 0 : 50;
     return total + shippingCharge;
@@ -596,7 +612,7 @@ export default function ProductDetailPage() {
                   
                   {dynamicPrice && (dynamicPrice.originalPrice - dynamicPrice.discountedPrice > 0) && (
                     <div className="flex justify-between text-sm mb-3 text-brand-gold font-medium">
-                      <span>Discount ({dynamicPrice.appliedOfferName || 'Membership'})</span>
+                      <span>Frame Discount ({dynamicPrice.appliedOfferName || 'Membership'})</span>
                       <span>-₹{(dynamicPrice.originalPrice - dynamicPrice.discountedPrice).toFixed(0)}</span>
                     </div>
                   )}
@@ -613,6 +629,12 @@ export default function ProductDetailPage() {
                     </div>
                   )}
                   
+                  {getLensDiscountAmount() > 0 && (
+                    <div className="flex justify-between text-sm mb-3 text-brand-gold font-medium">
+                      <span>Lens Member Discount ({membershipBenefits?.discountPercent}%)</span>
+                      <span>-₹{getLensDiscountAmount().toFixed(0)}</span>
+                    </div>
+                  )}
 
                   <div className="flex justify-between text-sm mb-3 text-gray-600">
                     <span>Shipping Charges</span>
