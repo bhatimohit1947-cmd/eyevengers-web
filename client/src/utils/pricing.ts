@@ -61,8 +61,18 @@ export function getEffectivePrice(product: ProductPricing, user?: UserContext): 
   const now = new Date();
   let bestOfferPrice = product.sellingPrice;
   let bestOffer: Offer | null = null;
+  
+  const unpackedOffers = ACTIVE_OFFERS.map(offer => {
+    let extra = {};
+    if (offer.description && typeof offer.description === 'string' && offer.description.trim().startsWith('{')) {
+      try {
+        extra = JSON.parse(offer.description);
+      } catch(e){}
+    }
+    return { ...offer, ...extra };
+  });
 
-  const validOffers = ACTIVE_OFFERS.filter(offer => {
+  const validOffers = unpackedOffers.filter(offer => {
     const isOfferActive = offer.status === 'active' || (offer.status === undefined && (offer as any).isActive === true) || ((offer as any).is_active === true);
     if (!isOfferActive) return false;
     if (offer.requiresCoupon) return false; // Coupons are applied separately at checkout

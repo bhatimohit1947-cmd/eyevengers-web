@@ -49,9 +49,23 @@ function OffersAdminContent() {
     fetchWithAuth(`https://eyevengers-web.onrender.com/api/offers`)
       .then(r => r.json())
       .then(data => {
-        setOffers(data);
+        // Unpack JSON description from dumb backend
+        const unpackedData = (Array.isArray(data) ? data : []).map(o => {
+          let extra = {};
+          let textDesc = o.description;
+          if (o.description && o.description.trim().startsWith('{')) {
+            try {
+              const parsed = JSON.parse(o.description);
+              extra = parsed;
+              textDesc = parsed.text;
+            } catch(e){}
+          }
+          return { ...o, ...extra, description: textDesc };
+        });
+
+        setOffers(unpackedData);
         if (editId) {
-          const toEdit = data.find((o: any) => o.id === editId);
+          const toEdit = unpackedData.find((o: any) => o.id === editId);
           if (toEdit) setSelectedOffer(toEdit);
         }
       });
@@ -102,10 +116,25 @@ function OffersAdminContent() {
       ? `https://eyevengers-web.onrender.com/api/offers/${selectedOffer.id}` 
       : `https://eyevengers-web.onrender.com/api/offers`;
 
+    // Pack advanced properties into description so the dumb backend can store them
+    const packedDescription = JSON.stringify({
+      text: selectedOffer.description,
+      scope: selectedOffer.scope || 'global',
+      targetIds: selectedOffer.targetIds || [],
+      stackingBehavior: selectedOffer.stackingBehavior || 'best_price_wins',
+      requiresCoupon: selectedOffer.requiresCoupon || false,
+      couponCode: selectedOffer.couponCode || ''
+    });
+    
+    const payloadToSave = {
+      ...selectedOffer,
+      description: packedDescription
+    };
+
     const res = await fetchWithAuth(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(selectedOffer)
+      body: JSON.stringify(payloadToSave)
     });
     
     const saved = await res.json();
