@@ -167,7 +167,7 @@ export function getEffectivePrice(product: ProductPricing, user?: UserContext): 
 
   return {
     originalPrice: product.mrp,
-    discountedPrice: finalPrice,
+    discountedPrice: Math.round(finalPrice),
     appliedOfferName: finalOfferName,
     appliedMembershipDiscount,
     reason: finalReason

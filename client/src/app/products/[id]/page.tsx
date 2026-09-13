@@ -168,7 +168,7 @@ export default function ProductDetailPage() {
     if (globalSettings?.enableLensMembershipDiscount !== true) return 0;
     const lensTotal = getLensTotal();
     const discountPercent = membershipBenefits?.discountPercent || 0;
-    return lensTotal * (discountPercent / 100);
+    return Math.round(lensTotal * (discountPercent / 100));
   };
 
   const getBaseTotal = () => {
