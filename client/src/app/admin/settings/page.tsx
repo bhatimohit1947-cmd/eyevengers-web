@@ -200,6 +200,18 @@ export default function SettingsPage() {
                 Enable Online Prepaid Payments <span className="text-gray-500 font-normal block">Allow customers to pay online during checkout (Disable to force COD only)</span>
               </span>
             </label>
+
+            <label className="flex items-center gap-3 cursor-pointer mt-4">
+              <input 
+                type="checkbox"
+                checked={settings.enableLensMembershipDiscount === true} // default to false
+                onChange={(e) => setSettings({...settings, enableLensMembershipDiscount: e.target.checked})}
+                className="w-5 h-5 text-brand-navy rounded focus:ring-brand-navy"
+              />
+              <span className="text-sm font-medium text-gray-800">
+                Enable Lens Membership Discount <span className="text-gray-500 font-normal block">Allow Gold/Silver members to get their 20% discount on Lenses (by default, discounts apply only to frames)</span>
+              </span>
+            </label>
           </div>
           
           <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end">
