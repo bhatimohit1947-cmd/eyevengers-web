@@ -19,7 +19,7 @@ export default function ProductDetailPage() {
   const { hasItem, toggleItem } = useWishlistStore();
   const isWishlisted = hasItem(id as string);
   
-  const { user, membershipBenefits } = useAuthStore();
+  const { user, membershipTier, membershipBenefits } = useAuthStore();
   
   // Lens Settings from Admin
   const [lensSettings, setLensSettings] = useState<any>(null);
@@ -109,7 +109,7 @@ export default function ProductDetailPage() {
   const availableProductsForCategory = lensSettings?.products?.filter((p: any) => p.categoryId === selectedCategoryId) || [];
 
   const userContext: UserContext = {
-    tier: (user as any)?.tier || 'none',
+    tier: membershipTier || 'none',
     membershipBenefits
   };
 

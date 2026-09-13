@@ -11,7 +11,7 @@ import { getEffectivePrice, ACTIVE_OFFERS, UserContext } from '@/utils/pricing';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { isLoggedIn, user, openLoginModal, membershipBenefits } = useAuthStore();
+  const { isLoggedIn, user, openLoginModal, membershipBenefits, membershipTier } = useAuthStore();
   const { items: cartItems, totalPrice: baseTotalPrice, clearCart } = useCartStore();
   const { getUserAddresses } = useAddressStore();
 
@@ -42,7 +42,7 @@ export default function CheckoutPage() {
         
         let newTotal = 0;
         const userContext: UserContext = {
-          tier: (user as any)?.tier || 'none',
+          tier: membershipTier || 'none',
           membershipBenefits
         };
 
