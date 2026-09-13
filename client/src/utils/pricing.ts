@@ -64,9 +64,9 @@ export function getEffectivePrice(product: ProductPricing, user?: UserContext): 
   
   const unpackedOffers = ACTIVE_OFFERS.map(offer => {
     let extra = {};
-    if (offer.description && typeof offer.description === 'string' && offer.description.trim().startsWith('{')) {
+    if ((offer as any).description && typeof (offer as any).description === 'string' && (offer as any).description.trim().startsWith('{')) {
       try {
-        extra = JSON.parse(offer.description);
+        extra = JSON.parse((offer as any).description);
       } catch(e){}
     }
     return { ...offer, ...extra };

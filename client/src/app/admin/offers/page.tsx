@@ -118,7 +118,7 @@ function OffersAdminContent() {
 
     // Pack advanced properties into description so the dumb backend can store them
     const packedDescription = JSON.stringify({
-      text: selectedOffer.description,
+      text: (selectedOffer as any).description,
       scope: selectedOffer.scope || 'global',
       targetIds: selectedOffer.targetIds || [],
       stackingBehavior: selectedOffer.stackingBehavior || 'best_price_wins',
