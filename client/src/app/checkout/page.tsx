@@ -42,7 +42,7 @@ export default function CheckoutPage() {
         
         let newTotal = 0;
         const userContext: UserContext = {
-          tier: user?.tier || 'none',
+          tier: (user as any)?.tier || 'none',
           membershipBenefits
         };
 

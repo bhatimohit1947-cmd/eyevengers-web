@@ -78,27 +78,15 @@ export default function ProductDetailPage() {
           const hasDiscount = found.sku && found.sku.includes('|DISCOUNT:');
           const oldDiscountPercent = hasDiscount ? Number(found.sku.split('|DISCOUNT:')[1]) : 0;
           const mrp = oldDiscountPercent > 0 ? Math.round(found.price / (1 - (oldDiscountPercent / 100))) : found.price;
-          
-          // Use pricing utility to determine actual selling price (ignoring membership for cart base, as checkout applies it, OR just using guest price)
-          // To prevent double dipping if user is logged in, we evaluate as guest here, and let Checkout handle membership stacking.
-          const guestContext: UserContext = { tier: 'none' };
-          const priceResult = getEffectivePrice({
-            mrp: mrp,
-            sellingPrice: found.price,
-            categoryId: found.category,
-            brandId: found.brand
-          }, guestContext);
-          
-          const finalSellingPrice = priceResult.discountedPrice;
-          const newDiscountPercent = Math.round(((mrp - finalSellingPrice) / mrp) * 100);
+          // Store the TRUE base price. Stacking and offers are evaluated dynamically at render.
           
           setProduct({
             id: found.id,
             name: found.name,
             brand: found.brand || 'Generic',
             mrp: mrp,
-            sellingPrice: finalSellingPrice,
-            discountPercent: newDiscountPercent,
+            sellingPrice: found.price,
+            discountPercent: oldDiscountPercent,
             rating: 4.5,
             reviewsCount: 128,
             images: imagesArr.length > 0 ? imagesArr : ["", "", "", ""],
@@ -119,6 +107,21 @@ export default function ProductDetailPage() {
 
   const selectedCategory = lensSettings?.categories?.find((c: any) => c.id === selectedCategoryId);
   const availableProductsForCategory = lensSettings?.products?.filter((p: any) => p.categoryId === selectedCategoryId) || [];
+
+  const userContext: UserContext = {
+    tier: (user as any)?.tier || 'none',
+    membershipBenefits
+  };
+
+  const dynamicPrice = product ? getEffectivePrice({
+    mrp: product.mrp,
+    sellingPrice: product.sellingPrice,
+    categoryId: product.shape,
+    brandId: product.brand
+  }, userContext) : null;
+
+  const currentDisplayPrice = dynamicPrice ? dynamicPrice.discountedPrice : product?.sellingPrice;
+  const currentDiscountPercent = dynamicPrice && product ? Math.round(((product.mrp - dynamicPrice.discountedPrice) / product.mrp) * 100) : product?.discountPercent;
 
   const handleCategorySelect = (catId: string) => {
     setSelectedCategoryId(catId);
@@ -150,27 +153,8 @@ export default function ProductDetailPage() {
     setFlowStep('address_selection');
   };
 
-  const calculateTotal = () => {
-    let total = product.sellingPrice;
-    if (!isFrameOnly && selectedLensProduct && selectedCategory) {
-      total += selectedLensProduct.basePrice;
-      if (highPowerSurchargeApplied) {
-        total += selectedCategory.highPowerSurcharge;
-      }
-    }
-    
-    // Apply membership discount
-    const discountPercent = membershipBenefits?.discountPercent || 0;
-    const membershipDiscountAmount = discountPercent > 0 ? (total * (discountPercent / 100)) : 0;
-    
-    const hasFreeShipping = membershipBenefits?.freeShipping === true;
-    const shippingCharge = hasFreeShipping ? 0 : 50;
-    
-    return total + shippingCharge - membershipDiscountAmount;
-  };
-  
   const getBaseTotal = () => {
-    let total = product?.sellingPrice || 0;
+    let total = dynamicPrice ? dynamicPrice.discountedPrice : (product?.sellingPrice || 0);
     if (!isFrameOnly && selectedLensProduct && selectedCategory) {
       total += selectedLensProduct.basePrice;
       if (highPowerSurchargeApplied) {
@@ -178,6 +162,13 @@ export default function ProductDetailPage() {
       }
     }
     return total;
+  };
+
+  const calculateTotal = () => {
+    let total = getBaseTotal();
+    const hasFreeShipping = membershipBenefits?.freeShipping === true;
+    const shippingCharge = hasFreeShipping ? 0 : 50;
+    return total + shippingCharge;
   };
 
   const handlePlaceOrder = async () => {
@@ -449,10 +440,16 @@ export default function ProductDetailPage() {
               </div>
             </div>
             <div className="flex items-end gap-3">
-              <span className="text-2xl font-bold text-gray-900">₹{product.sellingPrice}</span>
+              <span className="text-2xl font-bold text-gray-900">₹{currentDisplayPrice}</span>
               <span className="text-sm text-gray-400 line-through mb-1">₹{product.mrp}</span>
-              <span className="text-sm font-bold text-green-600 mb-1">({product.discountPercent}% OFF)</span>
+              <span className="text-sm font-bold text-green-600 mb-1">({currentDiscountPercent}% OFF)</span>
             </div>
+            
+            {dynamicPrice?.reason && dynamicPrice.reason !== 'Standard Price' && (
+              <div className="text-xs font-medium text-brand-gold bg-yellow-50 w-fit px-2 py-1 rounded mt-2 mb-2 border border-yellow-100">
+                {dynamicPrice.reason}
+              </div>
+            )}
             
             {product.stock !== undefined && product.stock <= 5 && product.stock > 0 && (
               <div className="mt-2 text-sm font-bold text-red-500 flex items-center gap-1 bg-red-50 w-fit px-3 py-1 rounded-full border border-red-100">
@@ -594,8 +591,15 @@ export default function ProductDetailPage() {
                   <h3 className="font-bold text-gray-900 mb-4 border-b border-gray-200 pb-2">Order Summary</h3>
                   <div className="flex justify-between text-sm mb-3">
                     <span className="text-gray-600">Frame: {product.name}</span>
-                    <span className="font-bold">₹{product.sellingPrice}</span>
+                    <span className="font-bold">₹{dynamicPrice?.originalPrice || product.mrp}</span>
                   </div>
+                  
+                  {dynamicPrice && (dynamicPrice.originalPrice - dynamicPrice.discountedPrice > 0) && (
+                    <div className="flex justify-between text-sm mb-3 text-brand-gold font-medium">
+                      <span>Discount ({dynamicPrice.appliedOfferName || 'Membership'})</span>
+                      <span>-₹{(dynamicPrice.originalPrice - dynamicPrice.discountedPrice).toFixed(0)}</span>
+                    </div>
+                  )}
                   {!isFrameOnly && selectedLensProduct && (
                     <div className="flex justify-between text-sm mb-3">
                       <span className="text-gray-600">Lenses: {selectedLensProduct.name}</span>
@@ -609,13 +613,7 @@ export default function ProductDetailPage() {
                     </div>
                   )}
                   
-                  {membershipBenefits?.discountPercent && (
-                    <div className="flex justify-between text-sm mb-3 text-brand-gold font-medium">
-                      <span>Member Discount ({membershipBenefits.discountPercent}%)</span>
-                      <span>-₹{(getBaseTotal() * (membershipBenefits.discountPercent / 100)).toFixed(0)}</span>
-                    </div>
-                  )}
-                  
+
                   <div className="flex justify-between text-sm mb-3 text-gray-600">
                     <span>Shipping Charges</span>
                     {membershipBenefits?.freeShipping ? (
