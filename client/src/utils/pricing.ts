@@ -63,7 +63,7 @@ export function getEffectivePrice(product: ProductPricing, user?: UserContext): 
   let bestOffer: Offer | null = null;
 
   const validOffers = ACTIVE_OFFERS.filter(offer => {
-    const isOfferActive = offer.status === 'active' || (offer.status === undefined && offer.isActive === true) || (offer.is_active === true);
+    const isOfferActive = offer.status === 'active' || (offer.status === undefined && (offer as any).isActive === true) || ((offer as any).is_active === true);
     if (!isOfferActive) return false;
     if (offer.requiresCoupon) return false; // Coupons are applied separately at checkout
     if (offer.startDatetime && new Date(offer.startDatetime) > now) return false;
