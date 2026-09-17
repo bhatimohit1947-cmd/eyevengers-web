@@ -3,6 +3,7 @@ import { fetchWithAuth } from '@/utils/fetchWithAuth';
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, MoreVertical, X, Loader2 } from 'lucide-react';
+import { ImageUpload } from '@/components/ui/ImageUpload';
 
 export default function ProductsManagement() {
   const [products, setProducts] = useState<any[]>([]);
@@ -301,9 +302,13 @@ export default function ProductsManagement() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
                 <input required type="text" value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-navy" placeholder="e.g. Midnight Blue Frame" />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Image URLs (comma separated for multiple)</label>
-                <textarea rows={2} value={newProduct.imageUrl} onChange={(e) => setNewProduct({...newProduct, imageUrl: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-navy" placeholder="https://example.com/img1.jpg, https://example.com/img2.jpg" />
+              <div className="mb-2">
+                <ImageUpload 
+                  label="Product Images (Upload or Paste Link)"
+                  value={newProduct.imageUrl} 
+                  onChange={(val) => setNewProduct({...newProduct, imageUrl: val})} 
+                  multiple={true}
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>

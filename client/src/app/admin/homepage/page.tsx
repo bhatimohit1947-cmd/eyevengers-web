@@ -4,6 +4,7 @@ import { fetchWithAuth } from '@/utils/fetchWithAuth';
 import React, { useState, useEffect } from 'react';
 import { GripVertical, Eye, EyeOff, Edit, Plus, GripHorizontal, Loader2, Save, X, Trash2 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { ImageUpload } from '@/components/ui/ImageUpload';
 
 interface Section {
   id: string;
@@ -372,20 +373,19 @@ export default function HomepageBuilder() {
                               
                               {hasBannerImg && (
                                 <div className="mb-3">
-                                  <label className="text-xs font-bold text-purple-800">Banner Image URL</label>
-                                  <input 
-                                    type="text"
-                                    placeholder="https://..."
-                                    className="w-full mt-1 border border-purple-200 rounded p-1.5 text-sm"
-                                    value={config.bannerImageUrl || ''}
-                                    onChange={(e) => {
-                                      try {
-                                        const newConfig = JSON.parse(editConfigText);
-                                        newConfig.bannerImageUrl = e.target.value;
-                                        setEditConfigText(JSON.stringify(newConfig, null, 2));
-                                      } catch (err) {}
-                                    }}
-                                  />
+                                  <div className="mb-2">
+                                    <ImageUpload
+                                      label="Banner Image URL"
+                                      value={config.bannerImageUrl || ''}
+                                      onChange={(url) => {
+                                        try {
+                                          const newConfig = JSON.parse(editConfigText);
+                                          newConfig.bannerImageUrl = url;
+                                          setEditConfigText(JSON.stringify(newConfig, null, 2));
+                                        } catch (err) {}
+                                      }}
+                                    />
+                                  </div>
                                 </div>
                               )}
 
@@ -462,7 +462,10 @@ export default function HomepageBuilder() {
                            
                            <div className="space-y-3">
                              {items.map((item: any, idx: number) => {
-                               const imgKey = 'mediaUrl' in item ? 'mediaUrl' : ('videoUrl' in item ? 'videoUrl' : 'imageUrl');
+                               let imgKey = 'imageUrl';
+                               if (['SpecialsGrid', 'specials_grid'].includes(editingSection.sectionType) || 'iconImageUrl' in item) imgKey = 'iconImageUrl';
+                               else if (['MediaSlider', 'media_slider'].includes(editingSection.sectionType) || 'mediaUrl' in item) imgKey = 'mediaUrl';
+                               else if (['GuideSlider', 'guide_slider'].includes(editingSection.sectionType) || 'videoUrl' in item) imgKey = 'videoUrl';
                                return (
                                  <div key={idx} className="flex flex-col bg-white p-3 rounded-lg border border-purple-200 shadow-sm relative group">
                                    <button 
@@ -499,19 +502,19 @@ export default function HomepageBuilder() {
                                    />
                                    
                                    {/* Image URL */}
-                                   <input 
-                                     type="text"
-                                     placeholder="Image URL (https://...)"
-                                     className="w-full mb-2 border border-gray-200 rounded p-1.5 text-xs focus:ring-1 focus:ring-purple-400"
-                                     value={item[imgKey] || ''}
-                                     onChange={(e) => {
-                                       try {
-                                         const newConfig = JSON.parse(editConfigText);
-                                         newConfig[arrayKey][idx][imgKey] = e.target.value;
-                                         setEditConfigText(JSON.stringify(newConfig, null, 2));
-                                       } catch (err) {}
-                                     }}
-                                   />
+                                   <div className="mb-2">
+                                     <ImageUpload
+                                       label="Image URL"
+                                       value={item[imgKey] || ''}
+                                       onChange={(url) => {
+                                         try {
+                                           const newConfig = JSON.parse(editConfigText);
+                                           newConfig[arrayKey][idx][imgKey] = url;
+                                           setEditConfigText(JSON.stringify(newConfig, null, 2));
+                                         } catch (err) {}
+                                       }}
+                                     />
+                                   </div>
                                    
                                    {/* Target URL */}
                                    <input 
@@ -597,3 +600,4 @@ export default function HomepageBuilder() {
     </div>
   );
 }
+// Trigger reload
