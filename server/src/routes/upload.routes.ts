@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { uploadImage } from '../controllers/upload.controller';
+import { uploadImage, deleteImage } from '../controllers/upload.controller';
 
 const router = express.Router();
 
@@ -14,5 +14,6 @@ const upload = multer({
 });
 
 router.post('/image', upload.single('image'), uploadImage as any);
+router.delete('/image/:filename', deleteImage as any);
 
 export default router;

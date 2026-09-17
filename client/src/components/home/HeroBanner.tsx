@@ -84,18 +84,18 @@ export function HeroBanner({ data }: HeroBannerProps) {
           
           {/* If admin uploads a poster image, it takes over the background without cropping */}
           {data.bannerImageUrl ? (
-            <div className="w-full relative z-0">
+            <div className="w-full h-[300px] md:h-[500px] relative z-0">
               {data.bannerImageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
                 <video 
                   src={data.bannerImageUrl} 
-                  className="w-full h-auto block object-cover"
+                  className="w-full h-full object-cover"
                   autoPlay loop muted playsInline
                 />
               ) : (
                 <img 
                   src={data.bannerImageUrl} 
                   alt="Banner Poster" 
-                  className="w-full h-auto block object-contain"
+                  className="w-full h-full object-cover object-center"
                 />
               )}
             </div>

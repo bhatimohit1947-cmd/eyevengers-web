@@ -51,7 +51,23 @@ export function ImageUpload({ value, onChange, label, multiple = false }: ImageU
     }
   };
 
-  const removeImage = (indexToRemove: number) => {
+  const removeImage = async (indexToRemove: number) => {
+    const urlToRemove = currentUrls[indexToRemove];
+    
+    // Attempt to delete from Supabase if it's a Supabase URL
+    if (urlToRemove && urlToRemove.includes('supabase.co')) {
+      const filename = urlToRemove.split('/').pop();
+      if (filename) {
+        try {
+          await fetchWithAuth(`https://eyevengers-web.onrender.com/api/upload/image/${filename}`, {
+            method: 'DELETE'
+          });
+        } catch (err) {
+          console.error("Failed to delete image from Supabase", err);
+        }
+      }
+    }
+
     const newUrls = currentUrls.filter((_, idx) => idx !== indexToRemove);
     onChange(newUrls.join(', '));
   };
