@@ -42,10 +42,10 @@ export function CategoryRail({ data }: CategoryRailProps) {
             href={finalUrl}
             className="flex flex-col items-center group w-full"
           >
-            <div className="relative w-full aspect-square overflow-hidden rounded-[18px] md:rounded-[32px] bg-gray-50 flex items-center justify-center border border-gray-100 group-hover:border-brand-navy/30 group-hover:shadow-sm transition-all mb-2 md:mb-4">
+            <div className="relative w-full aspect-square rounded-[18px] md:rounded-[32px] bg-gray-50 flex items-center justify-center border border-gray-100 group-hover:border-brand-navy/30 group-hover:shadow-sm transition-all mb-2 md:mb-4">
               {/* Badge */}
               {tile.badgeText && (
-                <div className="absolute top-0 right-0 md:-top-2 md:left-1/2 md:transform md:-translate-x-1/2 bg-brand-navy text-white text-[8px] md:text-xs font-bold px-1.5 md:px-3 py-0.5 md:py-1 rounded-bl-lg md:rounded-sm shadow-sm z-10 whitespace-nowrap">
+                <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-brand-navy text-white text-[8px] md:text-xs font-bold px-1.5 md:px-3 py-0.5 md:py-1 rounded-sm md:rounded shadow-sm z-10 whitespace-nowrap">
                   {tile.badgeText}
                 </div>
               )}
@@ -55,14 +55,14 @@ export function CategoryRail({ data }: CategoryRailProps) {
                 tile.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
                   <video 
                     src={tile.imageUrl} 
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    className="absolute inset-0 w-full h-full object-cover rounded-[18px] md:rounded-[32px] group-hover:scale-105 transition-transform"
                     autoPlay loop muted playsInline
                   />
                 ) : (
                   <img 
                     src={tile.imageUrl} 
                     alt={tile.label} 
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    className="absolute inset-0 w-full h-full object-cover rounded-[18px] md:rounded-[32px] group-hover:scale-105 transition-transform"
                   />
                 )
               ) : (
