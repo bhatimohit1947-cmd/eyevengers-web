@@ -124,14 +124,14 @@ export function Header() {
             )}
           </Link>
           
-          <button className="text-gray-700 hover:text-brand-navy transition relative">
+          <Link href="/cart" className="text-gray-700 hover:text-brand-navy transition relative">
             <ShoppingBag size={24} />
             {totalCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
                 {totalCount}
               </span>
             )}
-          </button>
+          </Link>
           
           <button 
             onClick={openMenu}
