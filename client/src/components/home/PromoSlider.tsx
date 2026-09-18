@@ -53,7 +53,7 @@ export function PromoSlider({ data }: PromoSliderProps) {
   };
 
   return (
-    <div className="py-6 w-full">
+    <div className="py-6 w-full relative">
       <div 
         ref={scrollRef}
         onScroll={handleScroll}
