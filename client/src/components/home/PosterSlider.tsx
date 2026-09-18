@@ -77,7 +77,7 @@ export function PosterSlider({ data }: PosterSliderProps) {
               
               {/* CTA Bottom */}
               <div className="flex items-center text-white font-bold tracking-wider group-hover:text-brand-gold transition-colors">
-                <span className="uppercase text-sm mr-2">{poster.ctaText || (poster as any).label || (poster as any).title || (poster as any).headline || "Shop Now"}</span>
+                <span className="font-bold text-sm mr-2">{poster.ctaText || (poster as any).label || (poster as any).title || (poster as any).headline || "Shop Now"}</span>
                 <ArrowRight size={16} className="transform group-hover:translate-x-1 transition-transform" />
               </div>
               

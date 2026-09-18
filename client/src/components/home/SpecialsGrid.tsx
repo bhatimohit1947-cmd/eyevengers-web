@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { Settings, Glasses, Sun, ScanFace, Sparkles } from 'lucide-react';
 
 interface SpecialsItem {
   label: string;
@@ -53,10 +54,11 @@ export function SpecialsGrid({ data }: SpecialsGridProps) {
                 )}
               </div>
             ) : (
-              <div className="w-12 h-12 md:w-16 md:h-16 mb-2 text-gray-300 group-hover:scale-110 transition-transform">
-                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                </svg>
+              <div className="w-12 h-12 md:w-16 md:h-16 mb-2 text-gray-300 group-hover:scale-110 group-hover:text-brand-navy transition-all flex items-center justify-center">
+                {item.label.toLowerCase().includes('sun') ? <Sun size={32} /> :
+                 item.label.toLowerCase().includes('lens') || item.label.toLowerCase().includes('power') ? <Glasses size={32} /> :
+                 item.label.toLowerCase().includes('reading') ? <ScanFace size={32} /> :
+                 <Sparkles size={32} />}
               </div>
             )}
             

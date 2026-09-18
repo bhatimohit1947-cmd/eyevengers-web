@@ -20,6 +20,7 @@ import { useWishlistStore } from '@/store/useWishlistStore';
 import { useAuthGate } from '@/hooks/useAuthGate';
 
 const SEARCH_PLACEHOLDERS = [
+  'Search for frames, brands, or lenses...',
   'Search "metal eyeglasses"',
   'Search "cricket sunglasses"',
   'Search "computer glasses"',
@@ -85,6 +86,14 @@ export function Header() {
               <User size={20} />
             )}
           </button>
+          
+          <nav className="hidden md:flex items-center gap-6 font-semibold text-gray-800 text-sm ml-4">
+            <Link href="/products?category=eyeglasses" className="hover:text-brand-navy transition">Eyeglasses</Link>
+            <Link href="/products?category=sunglasses" className="hover:text-brand-navy transition">Sunglasses</Link>
+            <Link href="/products?category=computer-glasses" className="hover:text-brand-navy transition">Computer Glasses</Link>
+            <Link href="/products?category=contact-lenses" className="hover:text-brand-navy transition">Contact Lenses</Link>
+            <Link href="/brands" className="hover:text-brand-navy transition">Brands</Link>
+          </nav>
         </div>
 
         <div className="flex items-center gap-4">
@@ -134,8 +143,8 @@ export function Header() {
       </div>
 
       {/* Search Bar Row - Always visible */}
-      <div className="px-4 pb-3 pt-1">
-        <div className="relative w-full">
+      <div className="px-4 pb-3 pt-1 flex justify-center">
+        <div className="relative w-full md:max-w-2xl">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search size={18} className="text-gray-400" />
           </div>

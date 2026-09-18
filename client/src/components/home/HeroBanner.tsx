@@ -85,6 +85,7 @@ export function HeroBanner({ data }: HeroBannerProps) {
           {/* If admin uploads a poster image, it takes over the background without cropping */}
           {data.bannerImageUrl ? (
             <div className="w-full h-[300px] md:h-[500px] relative z-0">
+              <h1 className="sr-only">{data.title || "Eyevengers"}</h1>
               {data.bannerImageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
                 <video 
                   src={data.bannerImageUrl} 
@@ -137,7 +138,7 @@ export function HeroBanner({ data }: HeroBannerProps) {
                 <p className="text-sm md:text-2xl font-medium mb-4 md:mb-8 text-gray-100">
                   {data.subtitle}
                 </p>
-                <div className="bg-white text-brand-navy font-bold px-6 py-2.5 md:px-10 md:py-4 rounded-full transition-colors text-sm md:text-lg shadow-lg block w-fit mx-auto md:mx-0">
+                <div className="bg-white text-brand-navy font-bold px-6 py-2.5 md:px-10 md:py-3 rounded-full hover:bg-gray-50 transition-colors text-sm md:text-base shadow-lg inline-block w-fit mx-auto md:mx-0 text-center">
                   {data.ctaLabel}
                 </div>
                 {(data.subtextPrimary || data.subtextSecondary) && (

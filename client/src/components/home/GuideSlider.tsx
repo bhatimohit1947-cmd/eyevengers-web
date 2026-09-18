@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { PlayCircle } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 interface GuideCard {
   pillLabel: string;
@@ -48,7 +48,7 @@ export function GuideSlider({ data }: GuideSliderProps) {
               </button>
               
               <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white cursor-pointer hover:bg-white hover:text-brand-navy transition-colors">
-                <PlayCircle size={24} />
+                <ArrowRight size={20} />
               </div>
             </div>
 

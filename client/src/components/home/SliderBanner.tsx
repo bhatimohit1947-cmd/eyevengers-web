@@ -35,7 +35,7 @@ export function SliderBanner({ data }: SliderBannerProps) {
   };
 
   return (
-    <div className="relative w-full max-w-7xl mx-auto md:px-4 py-8 group">
+    <div className="relative w-full max-w-7xl mx-auto md:px-4 py-8 group overflow-hidden">
       
       <div className="overflow-hidden md:rounded-[24px] relative bg-black aspect-[4/3] md:aspect-[21/9]">
         
@@ -89,7 +89,7 @@ export function SliderBanner({ data }: SliderBannerProps) {
                 
                 <Link 
                   href={slide.targetUrl || slide.ctaUrl || (slide.linkedOfferId ? `/offers/${slide.linkedOfferId}` : (data.linkedOfferId ? `/offers/${data.linkedOfferId}` : '/'))}
-                  className="bg-white text-black font-bold px-6 py-2.5 md:px-8 md:py-3 rounded-full w-fit hover:bg-gray-200 transition-colors text-xs md:text-base"
+                  className="bg-white text-brand-navy font-bold px-6 py-2.5 md:px-10 md:py-3 rounded-full w-fit hover:bg-gray-50 transition-colors text-sm md:text-base shadow-lg inline-block text-center"
                 >
                   SHOP NOW
                 </Link>
