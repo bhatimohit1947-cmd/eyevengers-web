@@ -130,23 +130,23 @@ export default function EyeTestPage() {
 
       {/* Cards Section */}
       <div className="max-w-4xl mx-auto px-4 -mt-12 relative z-20">
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 gap-3 md:gap-6">
           
           {/* Store Eye Test Card */}
           <div 
             onClick={() => storeData.isAvailable && setBookingMode('store')}
-            className={`bg-white rounded-3xl shadow-xl p-5 md:p-8 border border-gray-100 flex flex-col h-full relative overflow-hidden transition-all ${storeData.isAvailable ? 'hover:shadow-2xl hover:border-brand-navy/20 cursor-pointer group' : 'opacity-70 grayscale'}`}
+            className={`bg-white rounded-xl md:rounded-3xl shadow-xl p-3 md:p-8 border border-gray-100 flex flex-col h-full relative overflow-hidden transition-all ${storeData.isAvailable ? 'hover:shadow-2xl hover:border-brand-navy/20 cursor-pointer group' : 'opacity-70 grayscale'}`}
           >
             <div className="absolute top-0 right-0 bg-green-100 text-green-800 text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider">
               {storeData.price === 0 ? 'Free' : `₹${storeData.price}`}
             </div>
             {!storeData.isAvailable && (
               <div className="absolute inset-0 z-10 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center">
-                <span className="bg-red-100 text-red-800 font-bold px-4 py-2 rounded-full text-sm">Currently Unavailable</span>
+                <span className="bg-red-100 text-red-800 font-bold px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[10px] md:text-sm text-center">Currently Unavailable</span>
               </div>
             )}
             {storeData.imageUrl ? (
-              <div className={`w-full aspect-[16/9] mb-4 md:mb-6 rounded-2xl overflow-hidden transition-transform ${storeData.isAvailable ? 'group-hover:scale-105' : ''}`}>
+              <div className={`w-full aspect-[16/9] mb-3 md:mb-6 rounded-lg md:rounded-2xl overflow-hidden transition-transform ${storeData.isAvailable ? 'group-hover:scale-105' : ''}`}>
                 {storeData.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
                   <video src={storeData.imageUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
                 ) : (
@@ -154,39 +154,40 @@ export default function EyeTestPage() {
                 )}
               </div>
             ) : (
-              <div className={`w-12 h-12 md:w-16 md:h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-4 md:mb-6 transition-transform ${storeData.isAvailable ? 'group-hover:scale-110' : ''}`}>
-                <MapPin className="w-6 h-6 md:w-8 md:h-8 text-brand-navy" />
+              <div className={`w-10 h-10 md:w-16 md:h-16 bg-blue-50 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-6 transition-transform ${storeData.isAvailable ? 'group-hover:scale-110' : ''}`}>
+                <MapPin className="w-5 h-5 md:w-8 md:h-8 text-brand-navy" />
               </div>
             )}
-            <h2 className="text-xl md:text-2xl font-black text-gray-900 mb-2">{storeData.title}</h2>
-            <p className="text-sm md:text-base text-gray-500 mb-6 flex-grow">{storeData.description}</p>
-            <ul className="space-y-2 md:space-y-3 mb-6 md:mb-8">
+            <h2 className="text-sm md:text-2xl font-black text-gray-900 mb-1 md:mb-2 leading-tight">{storeData.title}</h2>
+            <p className="text-[10px] md:text-base text-gray-500 mb-3 md:mb-6 flex-grow line-clamp-3 md:line-clamp-none">{storeData.description}</p>
+            <ul className="space-y-1.5 md:space-y-3 mb-4 md:mb-8">
               {storeData.features.map((feature: string, i: number) => (
-                <li key={i} className="flex items-center text-xs md:text-sm text-gray-700 font-medium">
-                  <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 text-green-500 mr-2 flex-shrink-0" /> {feature}
+                <li key={i} className="flex items-start md:items-center text-[9px] md:text-sm text-gray-700 font-medium leading-tight">
+                  <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 text-green-500 mr-1 md:mr-2 flex-shrink-0 mt-[2px] md:mt-0" /> 
+                  <span>{feature}</span>
                 </li>
               ))}
             </ul>
-            <button disabled={!storeData.isAvailable} className="w-full bg-brand-navy text-white font-bold py-2.5 md:py-3 rounded-xl flex items-center justify-center group-hover:bg-blue-900 transition-colors disabled:opacity-50 text-sm md:text-base">
-              Book Store Visit <ChevronRight className="w-4 h-4 ml-1" />
+            <button disabled={!storeData.isAvailable} className="w-full bg-brand-navy text-white font-bold py-2 md:py-3 rounded-lg md:rounded-xl flex items-center justify-center group-hover:bg-blue-900 transition-colors disabled:opacity-50 text-[10px] md:text-base">
+              Book Store Visit <ChevronRight className="w-3 h-3 md:w-4 md:h-4 ml-0.5 md:ml-1" />
             </button>
           </div>
 
           {/* Home Eye Test Card */}
           <div 
             onClick={() => isHomeTestEnabled && setBookingMode('home')}
-            className={`bg-white rounded-3xl shadow-xl p-5 md:p-8 border border-gray-100 flex flex-col h-full relative overflow-hidden transition-all ${isHomeTestEnabled ? 'hover:shadow-2xl hover:border-yellow-400/50 cursor-pointer group' : 'opacity-70 grayscale'}`}
+            className={`bg-white rounded-xl md:rounded-3xl shadow-xl p-3 md:p-8 border border-gray-100 flex flex-col h-full relative overflow-hidden transition-all ${isHomeTestEnabled ? 'hover:shadow-2xl hover:border-yellow-400/50 cursor-pointer group' : 'opacity-70 grayscale'}`}
           >
             <div className="absolute top-0 right-0 bg-yellow-100 text-yellow-800 text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider">
               Premium
             </div>
             {!isHomeTestEnabled && (
               <div className="absolute inset-0 z-10 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center">
-                <span className="bg-red-100 text-red-800 font-bold px-4 py-2 rounded-full text-sm">Currently Unavailable</span>
+                <span className="bg-red-100 text-red-800 font-bold px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[10px] md:text-sm text-center">Currently Unavailable</span>
               </div>
             )}
             {homeData.imageUrl ? (
-              <div className={`w-full aspect-[16/9] mb-4 md:mb-6 rounded-2xl overflow-hidden transition-transform ${isHomeTestEnabled ? 'group-hover:scale-105' : ''}`}>
+              <div className={`w-full aspect-[16/9] mb-3 md:mb-6 rounded-lg md:rounded-2xl overflow-hidden transition-transform ${isHomeTestEnabled ? 'group-hover:scale-105' : ''}`}>
                 {homeData.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
                   <video src={homeData.imageUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
                 ) : (
@@ -194,21 +195,22 @@ export default function EyeTestPage() {
                 )}
               </div>
             ) : (
-              <div className={`w-12 h-12 md:w-16 md:h-16 bg-yellow-50 rounded-2xl flex items-center justify-center mb-4 md:mb-6 transition-transform ${isHomeTestEnabled ? 'group-hover:scale-110' : ''}`}>
-                <HomeIcon className="w-6 h-6 md:w-8 md:h-8 text-yellow-600" />
+              <div className={`w-10 h-10 md:w-16 md:h-16 bg-yellow-50 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-6 transition-transform ${isHomeTestEnabled ? 'group-hover:scale-110' : ''}`}>
+                <HomeIcon className="w-5 h-5 md:w-8 md:h-8 text-yellow-600" />
               </div>
             )}
-            <h2 className="text-xl md:text-2xl font-black text-gray-900 mb-2">{homeData.title}</h2>
-            <p className="text-sm md:text-base text-gray-500 mb-6 flex-grow">{homeData.description}</p>
-            <ul className="space-y-2 md:space-y-3 mb-6 md:mb-8">
+            <h2 className="text-sm md:text-2xl font-black text-gray-900 mb-1 md:mb-2 leading-tight">{homeData.title}</h2>
+            <p className="text-[10px] md:text-base text-gray-500 mb-3 md:mb-6 flex-grow line-clamp-3 md:line-clamp-none">{homeData.description}</p>
+            <ul className="space-y-1.5 md:space-y-3 mb-4 md:mb-8">
               {homeData.features.map((feature: string, i: number) => (
-                <li key={i} className="flex items-center text-xs md:text-sm text-gray-700 font-medium">
-                  <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 text-yellow-500 mr-2 flex-shrink-0" /> {feature}
+                <li key={i} className="flex items-start md:items-center text-[9px] md:text-sm text-gray-700 font-medium leading-tight">
+                  <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 text-yellow-500 mr-1 md:mr-2 flex-shrink-0 mt-[2px] md:mt-0" />
+                  <span>{feature}</span>
                 </li>
               ))}
             </ul>
-            <button disabled={!isHomeTestEnabled} className="w-full bg-gradient-to-r from-[#0B1550] to-[#D4AF37] text-white font-bold py-2.5 md:py-3 rounded-xl flex items-center justify-center hover:shadow-lg transition-shadow disabled:opacity-50 text-sm md:text-base">
-              Book Home Visit <ChevronRight className="w-4 h-4 ml-1" />
+            <button disabled={!isHomeTestEnabled} className="w-full bg-gradient-to-r from-[#0B1550] to-[#D4AF37] text-white font-bold py-2 md:py-3 rounded-lg md:rounded-xl flex items-center justify-center hover:shadow-lg transition-shadow disabled:opacity-50 text-[10px] md:text-base">
+              Book Home Visit <ChevronRight className="w-3 h-3 md:w-4 md:h-4 ml-0.5 md:ml-1" />
             </button>
           </div>
 
