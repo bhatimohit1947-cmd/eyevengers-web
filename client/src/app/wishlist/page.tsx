@@ -102,7 +102,7 @@ export default function WishlistPage() {
     <div className="max-w-7xl mx-auto px-4 py-8">
       <h1 className="text-2xl md:text-3xl font-black text-brand-navy mb-8">My Wishlist ({productIds.length})</h1>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
         {items.map((item) => (
           <div key={item.id} className="bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-lg transition-shadow flex flex-col relative group">
             <Link href={`/products/${item.id}`} className="block relative aspect-[4/3] bg-gray-50 overflow-hidden">
@@ -122,17 +122,17 @@ export default function WishlistPage() {
             >
               <Trash2 size={16} />
             </button>
-            <div className="p-4 flex-1 flex flex-col">
+            <div className="p-3 md:p-4 flex-1 flex flex-col">
               <Link href={`/products/${item.id}`} className="block hover:text-brand-navy transition-colors">
-                <h3 className="font-bold text-gray-900 mb-1 line-clamp-1">{item.title}</h3>
+                <h3 className="font-bold text-gray-900 text-xs md:text-sm mb-1 line-clamp-1">{item.title}</h3>
               </Link>
-              <p className="text-brand-navy font-bold mb-4">₹{item.price}</p>
+              <p className="text-brand-navy font-bold text-sm md:text-base mb-3 md:mb-4">₹{item.price}</p>
               
               <button 
                 onClick={() => handleMoveToCart(item)}
-                className="mt-auto w-full py-2.5 border-2 border-brand-navy text-brand-navy rounded-full font-bold hover:bg-brand-navy hover:text-white transition-colors flex items-center justify-center gap-2"
+                className="mt-auto w-full py-1.5 md:py-2.5 border-2 border-brand-navy text-brand-navy rounded-full font-bold hover:bg-brand-navy hover:text-white transition-colors flex items-center justify-center gap-1 md:gap-2 text-[10px] md:text-sm"
               >
-                <ShoppingBag size={18} /> Move to Bag
+                <ShoppingBag size={14} className="md:w-[18px] md:h-[18px]" /> Move to Bag
               </button>
             </div>
           </div>

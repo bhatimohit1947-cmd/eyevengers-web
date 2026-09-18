@@ -93,9 +93,9 @@ export default function CartPage() {
           {/* Cart Items */}
           <div className="w-full md:w-2/3 flex flex-col gap-4">
             {cartItems.map((item) => (
-              <div key={item.id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex flex-col sm:flex-row gap-4">
+              <div key={item.id} className="bg-white rounded-xl border border-gray-200 p-3 md:p-4 shadow-sm flex gap-3 md:gap-4 items-start">
                 
-                <Link href={`/products/${item.productId}`} className="w-full sm:w-32 aspect-[4/3] sm:aspect-square bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden relative group">
+                <Link href={`/products/${item.productId}`} className="w-24 sm:w-32 aspect-square bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden relative group">
                   {item.imageUrl ? (
                     item.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
                       <video src={item.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" autoPlay loop muted playsInline />
@@ -113,23 +113,23 @@ export default function CartPage() {
                   <div>
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">EYEVENGERS</p>
+                        <p className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest">EYEVENGERS</p>
                         <Link href={`/products/${item.productId}`} className="block hover:text-brand-navy transition-colors">
-                          <h3 className="font-semibold text-gray-900 leading-tight mb-1">{item.title}</h3>
+                          <h3 className="text-sm md:text-base font-semibold text-gray-900 leading-tight mb-1">{item.title}</h3>
                         </Link>
-                        <p className="text-sm text-gray-500">Lens: <span className="font-medium text-gray-900">{item.lensConfig?.type || 'Standard'}</span></p>
+                        <p className="text-xs md:text-sm text-gray-500">Lens: <span className="font-medium text-gray-900">{item.lensConfig?.type || 'Standard'}</span></p>
                       </div>
                       <button 
                         onClick={() => removeItem(item.id)}
-                        className="text-gray-400 hover:text-red-500 p-1 transition"
+                        className="text-gray-400 hover:text-red-500 p-1 transition ml-2"
                       >
                         <Trash2 size={18} />
                       </button>
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-end mt-4">
-                    <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-full px-2 py-1">
+                  <div className="flex justify-between items-end mt-3 md:mt-4">
+                    <div className="flex items-center gap-2 md:gap-3 bg-white border border-gray-200 rounded-full px-1.5 md:px-2 py-0.5 md:py-1">
                       <button 
                         onClick={() => updateQuantity(item.id, Math.max(1, item.qty - 1))}
                         disabled={item.qty <= 1}
