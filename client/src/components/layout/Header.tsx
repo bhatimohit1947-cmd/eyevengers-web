@@ -18,6 +18,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useCartStore } from '@/store/useCartStore';
 import { useWishlistStore } from '@/store/useWishlistStore';
 import { useAuthGate } from '@/hooks/useAuthGate';
+import { LanguageToggle } from '@/components/layout/LanguageToggle';
 
 const SEARCH_PLACEHOLDERS = [
   'Search for frames, brands, or lenses...',
@@ -71,23 +72,15 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-100 shadow-sm transition-all duration-300">
-      {/* Top Header Row - Always visible */}
-      <div className="flex items-center justify-between px-4 py-3 overflow-hidden h-16 opacity-100">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => isLoggedIn ? openMenu() : openLoginModal()}
-            className="p-2 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition overflow-hidden"
-          >
-            {isLoggedIn && user?.name ? (
-               <div className="w-5 h-5 bg-brand-navy rounded-full flex items-center justify-center text-white text-[10px] font-bold">
-                 {user.name[0].toUpperCase()}
-               </div>
-            ) : (
-              <User size={20} />
-            )}
-          </button>
+      {/* Top Header Row */}
+      <div className="flex items-center justify-between px-4 py-2.5 md:h-16 gap-3 md:gap-6">
+        {/* Brand Logo & Navigation on Left */}
+        <div className="flex items-center gap-4 lg:gap-8 shrink-0">
+          <Link href="/" className="notranslate font-black text-xl tracking-tighter text-brand-navy hover:opacity-90 transition">
+            EYEVENGERS
+          </Link>
           
-          <nav className="hidden md:flex items-center gap-6 font-semibold text-gray-800 text-sm ml-4">
+          <nav className="hidden lg:flex items-center gap-6 font-semibold text-gray-800 text-sm">
             <Link href="/products?category=eyeglasses" className="hover:text-brand-navy transition">Eyeglasses</Link>
             <Link href="/products?category=sunglasses" className="hover:text-brand-navy transition">Sunglasses</Link>
             <Link href="/products?category=computer-glasses" className="hover:text-brand-navy transition">Computer Glasses</Link>
@@ -96,10 +89,29 @@ export function Header() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-4">
+        {/* Desktop Integrated Search Bar */}
+        <div className="hidden md:flex flex-1 max-w-lg mx-2">
+          <div className="relative w-full">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+              <Search size={16} aria-hidden="true" />
+            </div>
+            <input
+              type="search"
+              aria-label="Search products, brands, or lenses"
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-full text-sm bg-gray-50 placeholder-gray-500 focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand-navy/20 focus:border-brand-navy transition"
+              placeholder={SEARCH_PLACEHOLDERS[placeholderIndex]}
+            />
+          </div>
+        </div>
+
+        {/* Actions Cluster on Right */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          {/* Language Switcher (1-Click English <-> Hindi) */}
+          <LanguageToggle />
+
           <Link 
             href="/membership"
-            className={`flex items-center text-[8px] sm:text-xs font-bold px-1.5 sm:px-3 py-1 sm:py-1.5 rounded-full transition ${
+            className={`hidden sm:flex items-center text-[8px] sm:text-xs font-bold px-1.5 sm:px-3 py-1 sm:py-1.5 rounded-full transition ${
               membershipTier !== 'none' 
                 ? membershipTier === 'gold' 
                   ? 'bg-yellow-100 text-yellow-800'
@@ -115,42 +127,61 @@ export function Header() {
             {(!isHydrated || membershipTier === 'none') && 'GET MEMBERSHIP'}
           </Link>
           
-          <Link href="/wishlist" className="text-gray-700 hover:text-brand-navy transition relative">
-            <Heart size={24} />
+          <Link href="/wishlist" aria-label="Wishlist" className="p-1.5 text-gray-700 hover:text-brand-navy transition relative rounded-lg hover:bg-gray-100">
+            <Heart size={22} aria-hidden="true" />
             {productIds.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-brand-navy text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
+              <span className="absolute top-0 right-0 bg-brand-navy text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
                 {productIds.length}
               </span>
             )}
           </Link>
           
-          <Link href="/cart" className="text-gray-700 hover:text-brand-navy transition relative">
-            <ShoppingBag size={24} />
+          <Link href="/cart" aria-label="Shopping Cart" className="p-1.5 text-gray-700 hover:text-brand-navy transition relative rounded-lg hover:bg-gray-100">
+            <ShoppingBag size={22} aria-hidden="true" />
             {totalCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
+              <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
                 {totalCount}
               </span>
             )}
           </Link>
+
+          {/* User Profile Button on Right */}
+          <button 
+            type="button"
+            onClick={() => isLoggedIn ? openMenu() : openLoginModal()}
+            aria-label={isLoggedIn ? "User menu" : "Login or sign up"}
+            className="p-1.5 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition overflow-hidden focus-visible:ring-2 focus-visible:ring-brand-navy"
+          >
+            {isLoggedIn && user?.name ? (
+               <div className="w-5 h-5 bg-brand-navy rounded-full flex items-center justify-center text-white text-[10px] font-bold">
+                 {user.name[0].toUpperCase()}
+               </div>
+            ) : (
+              <User size={20} aria-hidden="true" />
+            )}
+          </button>
           
           <button 
+            type="button"
             onClick={openMenu}
-            className="text-gray-700 hover:text-brand-navy transition"
+            aria-label="Open navigation menu"
+            className="p-1.5 text-gray-700 hover:text-brand-navy transition rounded-lg hover:bg-gray-100"
           >
-            <Menu size={24} />
+            <Menu size={22} aria-hidden="true" />
           </button>
         </div>
       </div>
 
-      {/* Search Bar Row - Always visible */}
-      <div className="px-4 pb-3 pt-1 flex justify-center">
-        <div className="relative w-full md:max-w-2xl">
+      {/* Mobile-Only Search Bar with tight, consistent margins */}
+      <div className="px-4 pb-2.5 pt-0.5 md:hidden flex justify-center">
+        <div className="relative w-full">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={18} className="text-gray-400" />
+            <Search size={16} className="text-gray-400" aria-hidden="true" />
           </div>
           <input
-            type="text"
-            className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-full leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:bg-white focus:ring-1 focus:ring-brand-navy focus:border-brand-navy sm:text-sm transition duration-150 ease-in-out"
+            type="search"
+            aria-label="Search products"
+            className="block w-full pl-9 pr-3 py-2 border border-gray-200 rounded-full text-sm bg-gray-50 placeholder-gray-500 focus:outline-none focus:bg-white focus:ring-1 focus:ring-brand-navy"
             placeholder={SEARCH_PLACEHOLDERS[placeholderIndex]}
           />
         </div>

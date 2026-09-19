@@ -49,3 +49,72 @@ input::placeholder, textarea::placeholder {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* =========================================================
+   Bilingual (English <-> Hindi) Layout & Translation Rules
+   ========================================================= */
+
+/* Completely hide Google Translate header banners and iframes */
+.goog-te-banner-frame,
+.goog-te-banner-frame.skiptranslate,
+iframe.goog-te-banner-frame,
+.goog-te-balloon-frame {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  width: 0 !important;
+}
+
+/* Ensure body does not get shifted downwards by Google Translate */
+body {
+  top: 0px !important;
+  position: static !important;
+}
+
+#goog-gt-tt,
+.goog-tooltip,
+.goog-tooltip:hover {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+.goog-text-highlight {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+#google_translate_element {
+  display: none !important;
+}
+
+/* Maintain Devanagari typography and prevent clipping of Hindi matras (vowels) */
+html.translated-ltr,
+html[lang="hi"] {
+  font-family: var(--font-inter), 'Noto Sans Devanagari', 'Nirmala UI', 'Kohinoor Devanagari', system-ui, -apple-system, sans-serif !important;
+}
+
+/* Ensure comfortable line-height for Hindi headings and buttons so upper/lower matras do not clip */
+html.translated-ltr h1,
+html.translated-ltr h2,
+html.translated-ltr h3,
+html.translated-ltr h4,
+html.translated-ltr h5,
+html.translated-ltr p,
+html.translated-ltr a,
+html.translated-ltr button,
+html.translated-ltr span {
+  letter-spacing: normal !important;
+  line-height: 1.4 !important;
+}
+
+/* Ensure flex containers and chips accommodate Hindi word lengths smoothly */
+html.translated-ltr .shrink-0,
+html.translated-ltr nav a,
+html.translated-ltr button {
+  white-space: normal;
+}
+
+/* Explicitly mark elements that must NEVER be translated (Logo, currency, codes) */
+.notranslate {
+  translate: no !important;
+}

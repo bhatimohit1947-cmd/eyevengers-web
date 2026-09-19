@@ -9,6 +9,7 @@ import {
   MapPin, HelpCircle, LogOut, ChevronRight, Crown 
 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
+import { LanguageToggle } from '@/components/layout/LanguageToggle';
 
 export function SideDrawer() {
   const { isMenuOpen, closeMenu } = useUIStore();
@@ -99,6 +100,11 @@ export function SideDrawer() {
 
         {/* Scrollable Links */}
         <div className="flex-1 overflow-y-auto py-4">
+          {/* Quick Language Toggle */}
+          <div className="px-6 mb-3">
+            <LanguageToggle variant="drawer" />
+          </div>
+
           <nav className="flex flex-col">
             {/* Shopping Categories */}
             <div className="px-6 pb-2 pt-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Shop</div>

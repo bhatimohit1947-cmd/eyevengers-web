@@ -8,6 +8,7 @@ import { Footer } from "@/components/layout/Footer";
 import { SideDrawer } from "@/components/layout/SideDrawer";
 import { LoginModal } from "@/components/layout/LoginModal";
 import { SyncActivity } from "@/components/layout/SyncActivity";
+import { GoogleTranslator } from "@/components/layout/GoogleTranslator";
 
 export function ClientLayoutRenderer({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -19,6 +20,7 @@ export function ClientLayoutRenderer({ children }: { children: React.ReactNode }
 
   return (
     <>
+      <GoogleTranslator />
       <Header />
       <main className="flex-1">
         {children}
