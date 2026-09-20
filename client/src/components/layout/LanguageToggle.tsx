@@ -26,44 +26,44 @@ export function LanguageToggle({ variant = 'header' }: LanguageToggleProps) {
 
   const toggleLanguage = () => {
     const nextLang = currentLang === 'en' ? 'hi' : 'en';
-    const domain = window.location.hostname;
-    const isLocalhost = domain === 'localhost' || domain === '127.0.0.1';
+    const host = window.location.hostname;
+    const parts = host.split('.');
+    const rootDomain = parts.length >= 2 ? parts.slice(-2).join('.') : host;
 
-    if (nextLang === 'hi') {
-      // 1. Set Google Translate cookie to Hindi
-      document.cookie = `googtrans=/en/hi; path=/;`;
-      if (!isLocalhost) {
-        document.cookie = `googtrans=/en/hi; path=/; domain=.${domain};`;
-        document.cookie = `googtrans=/en/hi; path=/; domain=${domain};`;
-      }
-      localStorage.setItem('eyevengers_lang', 'hi');
-      setCurrentLang('hi');
+    const cookieVal = nextLang === 'hi' ? '/en/hi' : '/en/en';
 
-      // 2. Trigger Google Translate combo if already loaded
-      const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
-      if (combo) {
-        combo.value = 'hi';
-        combo.dispatchEvent(new Event('change'));
-      } else {
-        // Reload to let Google Translate initialize with the new cookie
-        window.location.reload();
-      }
-    } else {
-      // 1. Clear Google Translate cookie to restore English
-      document.cookie = `googtrans=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
-      document.cookie = `googtrans=/en/en; path=/;`;
-      if (!isLocalhost) {
-        document.cookie = `googtrans=; path=/; domain=.${domain}; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
-        document.cookie = `googtrans=; path=/; domain=${domain}; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
-        document.cookie = `googtrans=/en/en; path=/; domain=.${domain};`;
-        document.cookie = `googtrans=/en/en; path=/; domain=${domain};`;
-      }
-      localStorage.setItem('eyevengers_lang', 'en');
-      setCurrentLang('en');
-
-      // Reload so React DOM re-renders clean original English without Google Translate wrappers
-      window.location.reload();
+    // 1. Set Google Translate cookie on host and root domain
+    document.cookie = `googtrans=${cookieVal}; path=/;`;
+    if (rootDomain !== 'localhost' && rootDomain !== '127.0.0.1') {
+      document.cookie = `googtrans=${cookieVal}; path=/; domain=.${rootDomain};`;
+      document.cookie = `googtrans=${cookieVal}; path=/; domain=${rootDomain};`;
+      document.cookie = `googtrans=${cookieVal}; path=/; domain=.${host};`;
+      document.cookie = `googtrans=${cookieVal}; path=/; domain=${host};`;
     }
+
+    if (nextLang === 'en') {
+      // Clear cookie completely to restore English
+      document.cookie = `googtrans=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
+      if (rootDomain !== 'localhost' && rootDomain !== '127.0.0.1') {
+        document.cookie = `googtrans=; path=/; domain=.${rootDomain}; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
+        document.cookie = `googtrans=; path=/; domain=${rootDomain}; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
+        document.cookie = `googtrans=; path=/; domain=.${host}; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
+        document.cookie = `googtrans=; path=/; domain=${host}; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
+      }
+    }
+
+    localStorage.setItem('eyevengers_lang', nextLang);
+    setCurrentLang(nextLang);
+
+    // 2. Trigger Google Translate combo if already mounted
+    const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
+    if (combo) {
+      combo.value = nextLang;
+      combo.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    // 3. Reload so Google Translate translates the entire page cleanly without artifacts
+    window.location.reload();
   };
 
   if (variant === 'drawer') {

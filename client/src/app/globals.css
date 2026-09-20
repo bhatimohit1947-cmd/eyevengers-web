@@ -54,64 +54,29 @@ input::placeholder, textarea::placeholder {
    Bilingual (English <-> Hindi) Layout & Translation Rules
    ========================================================= */
 
-/* Completely eliminate Google Translate top banner, toolbar, and iframes */
-body > .skiptranslate,
-body > div.skiptranslate,
-.skiptranslate:not(.allow-translate):not(#google_translate_element),
+/* Hide ONLY the Google Translate top banner iframe and tooltip popups */
 .goog-te-banner-frame,
-.goog-te-banner-frame.skiptranslate,
 iframe.goog-te-banner-frame,
-iframe[class*="goog-te-banner-frame"],
-iframe[id*="google"],
 .goog-te-balloon-frame,
-.VIpgJd-ZVi9od-OR9Gae-sztmxf,
-.VIpgJd-yAWNEb-L71bkb,
-.VIpgJd-yAWNEb-L71bkb.skiptranslate {
-  display: none !important;
-  visibility: hidden !important;
-  height: 0px !important;
-  width: 0px !important;
-  max-height: 0px !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  position: absolute !important;
-  top: -9999px !important;
-  left: -9999px !important;
-  z-index: -99999 !important;
-}
-
-/* Force body and html to stay strictly at top: 0 with zero shift or margin */
-html,
-body,
-html.translated-ltr,
-html.translated-ltr body,
-body[style*="top: 40px"],
-body[style*="top: 40px;"],
-body[style*="top:40px"] {
-  top: 0px !important;
-  position: static !important;
-  margin-top: 0px !important;
-  padding-top: 0px !important;
-  transform: none !important;
-}
-
 #goog-gt-tt,
 .goog-tooltip,
 .goog-tooltip:hover {
   display: none !important;
   visibility: hidden !important;
+  height: 0px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Ensure body does not get shifted downwards by Google Translate */
+body {
+  top: 0px !important;
+  position: static !important;
 }
 
 .goog-text-highlight {
   background: transparent !important;
   box-shadow: none !important;
-}
-
-#google_translate_element {
-  display: none !important;
-  visibility: hidden !important;
-  height: 0 !important;
-  width: 0 !important;
 }
 
 /* Maintain Devanagari typography and prevent clipping of Hindi matras (vowels) */
