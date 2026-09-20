@@ -160,6 +160,17 @@ export function SideDrawer() {
 
             <div className="h-px bg-gray-100 my-2 mx-6"></div>
 
+            {/* Refer & Earn Special */}
+            <div className="px-6 pb-2 pt-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Rewards</div>
+            <Link href="/refer-and-earn" onClick={closeMenu} className="flex items-center justify-between px-6 py-3 hover:bg-amber-50 group bg-amber-50/40">
+              <div className="flex items-center gap-3 font-bold text-amber-800">
+                <span className="text-lg">🎁</span> Refer & Earn (Free Frame)
+              </div>
+              <ChevronRight size={16} className="text-amber-500 group-hover:text-amber-700" />
+            </Link>
+
+            <div className="h-px bg-gray-100 my-2 mx-6"></div>
+
             {/* Account */}
             <div className="px-6 pb-2 pt-2 text-xs font-bold text-gray-400 uppercase tracking-wider">My Account</div>
             <Link href="/orders" onClick={closeMenu} className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 group">

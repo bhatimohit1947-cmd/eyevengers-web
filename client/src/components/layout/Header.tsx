@@ -86,6 +86,9 @@ export function Header() {
             <Link href="/products?category=computer-glasses" className="hover:text-brand-navy transition">Computer Glasses</Link>
             <Link href="/products?category=contact-lenses" className="hover:text-brand-navy transition">Contact Lenses</Link>
             <Link href="/brands" className="hover:text-brand-navy transition">Brands</Link>
+            <Link href="/refer-and-earn" className="text-amber-600 hover:text-amber-700 font-bold transition flex items-center gap-1">
+              <span>🎁</span> Refer & Earn
+            </Link>
           </nav>
         </div>
 

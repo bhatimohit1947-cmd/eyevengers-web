@@ -37,6 +37,41 @@ export default function CartPage() {
     if (!couponCode) return;
     setCouponState({ type: 'none', message: 'Validating...', discount: 0 });
     
+    // Check if referral voucher
+    if (couponCode.toUpperCase().startsWith('REF-')) {
+      try {
+        const res = await fetch('/api/referral', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'validate-voucher', code: couponCode })
+        });
+        const data = await res.json();
+        if (res.ok && data.valid) {
+          let discountVal = 0;
+          if (data.voucher.benefitType === 'FREE_FRAME') {
+            // Free frame discount: 100% of the cheapest frame or ₹1500
+            discountVal = Math.min(totalAmount, 1500);
+          } else if (data.voucher.benefitType === 'PERCENT_DISCOUNT') {
+            discountVal = totalAmount * ((data.voucher.benefitValue || 30) / 100);
+          } else {
+            discountVal = data.voucher.benefitValue || 200;
+          }
+          setCouponState({ 
+            type: 'success', 
+            message: `🎉 ${data.voucher.benefitTitle} Applied! (Single-Use Only)`, 
+            discount: discountVal 
+          });
+          return;
+        } else {
+          setCouponState({ type: 'error', message: data.error || 'Invalid or already claimed referral voucher', discount: 0 });
+          return;
+        }
+      } catch (e) {
+        setCouponState({ type: 'error', message: 'Error checking referral voucher', discount: 0 });
+        return;
+      }
+    }
+
     try {
       const res = await fetch(`https://eyevengers-web.onrender.com/api/offers/validate-coupon`, {
         method: 'POST',
