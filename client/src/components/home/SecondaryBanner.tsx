@@ -51,24 +51,24 @@ export function SecondaryBanner({ data }: SecondaryBannerProps) {
 
   return (
     <Link href={finalHref} className="block w-full max-w-7xl mx-auto px-4 md:px-0">
-      <div className="relative w-full min-h-[160px] md:min-h-[200px] rounded-2xl overflow-visible shadow-sm hover:shadow-md transition-shadow">
+      <div className="relative w-full rounded-2xl overflow-visible shadow-sm hover:shadow-md transition-shadow">
         
         {/* Main Banner Container */}
-        <div className="relative w-full h-full min-h-[160px] md:min-h-[200px] rounded-[20px] overflow-hidden bg-[#0A1128]">
+        <div className={`relative w-full rounded-[20px] overflow-hidden ${!data.bannerImageUrl ? 'min-h-[160px] md:min-h-[200px] bg-[#0A1128]' : ''}`}>
           
           {/* If an image poster is provided */}
           {data.bannerImageUrl ? (
             data.bannerImageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
               <video 
                 src={data.bannerImageUrl} 
-                className="w-full h-full object-cover object-center absolute inset-0 z-0"
+                className="w-full h-auto block rounded-[20px]"
                 autoPlay loop muted playsInline
               />
             ) : (
               <img 
                 src={data.bannerImageUrl} 
-                alt="Banner Poster" 
-                className="w-full h-full object-cover object-center absolute inset-0 z-0"
+                alt={data.title || "Offer Banner"} 
+                className="w-full h-auto block rounded-[20px]"
               />
             )
           ) : (

@@ -38,28 +38,42 @@ export function GoogleTranslator() {
       document.body.appendChild(script);
     }
 
-    // 3. Keep body top at 0px and hide ONLY the top banner iframe
-    const fixBanner = () => {
+    // 3. MutationObserver to permanently suppress Google's banner & body top: 40px shift
+    const suppressGoogleBanner = () => {
+      // Force body top to 0px
       if (document.body.style.top && document.body.style.top !== '0px') {
         document.body.style.setProperty('top', '0px', 'important');
       }
-      const bannerFrame = document.querySelector('iframe.goog-te-banner-frame') as HTMLElement | null;
-      if (bannerFrame) {
-        bannerFrame.style.setProperty('display', 'none', 'important');
-        bannerFrame.style.setProperty('visibility', 'hidden', 'important');
-        bannerFrame.style.setProperty('height', '0px', 'important');
-        const parent = bannerFrame.parentElement;
-        if (parent && parent.tagName === 'DIV' && parent !== document.body) {
-          parent.style.setProperty('display', 'none', 'important');
-          parent.style.setProperty('height', '0px', 'important');
-        }
+      if (document.body.style.position && document.body.style.position !== 'static') {
+        document.body.style.setProperty('position', 'static', 'important');
       }
+
+      // Hide all injected banners, toolbars, and frames
+      const banners = document.querySelectorAll(
+        'body > .skiptranslate, iframe.goog-te-banner-frame, iframe[id*="google"], .goog-te-banner-frame, #goog-gt-tt, .VIpgJd-ZVi9od-OR9Gae-sztmxf'
+      );
+      banners.forEach((el) => {
+        const htmlEl = el as HTMLElement;
+        htmlEl.style.setProperty('display', 'none', 'important');
+        htmlEl.style.setProperty('visibility', 'hidden', 'important');
+        htmlEl.style.setProperty('height', '0px', 'important');
+        htmlEl.style.setProperty('opacity', '0', 'important');
+        htmlEl.style.setProperty('pointer-events', 'none', 'important');
+      });
     };
 
-    const interval = setInterval(fixBanner, 200);
-    const timeout = setTimeout(() => clearInterval(interval), 8000);
+    const observer = new MutationObserver(suppressGoogleBanner);
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['style'],
+      childList: true,
+    });
+
+    const interval = setInterval(suppressGoogleBanner, 100);
+    const timeout = setTimeout(() => clearInterval(interval), 5000);
 
     return () => {
+      observer.disconnect();
       clearInterval(interval);
       clearTimeout(timeout);
     };
@@ -67,8 +81,8 @@ export function GoogleTranslator() {
 
   // 4. Keep translation in sync during Next.js client-side navigation
   useEffect(() => {
-    const isHindi = document.cookie.includes('googtrans=/en/hi') || 
-                    localStorage.getItem('eyevengers_lang') === 'hi';
+    const isHindi = document.cookie.includes('googtrans=/en/hi') ||
+      localStorage.getItem('eyevengers_lang') === 'hi';
 
     if (isHindi) {
       const timer = setTimeout(() => {
@@ -83,11 +97,11 @@ export function GoogleTranslator() {
   }, [pathname]);
 
   return (
-    <div 
-      id="google_translate_element" 
-      aria-hidden="true" 
-      className="notranslate" 
-      style={{ position: 'fixed', left: '-9999px', top: '-9999px', width: '1px', height: '1px', opacity: 0, pointerEvents: 'none', zIndex: -1 }} 
+    <div
+      id="google_translate_element"
+      aria-hidden="true"
+      className="notranslate"
+      style={{ display: 'none', position: 'absolute', opacity: 0, pointerEvents: 'none' }}
     />
   );
 }

@@ -82,21 +82,21 @@ export function HeroBanner({ data }: HeroBannerProps) {
       <Link href={finalHref} className="block w-full">
         <div className={`w-full relative flex items-center ${!data.bannerImageUrl ? 'min-h-[250px] md:min-h-[400px]' : ''}`}>
           
-          {/* If admin uploads a poster image, it takes over the background without cropping */}
+          {/* If admin uploads a poster image, it displays cleanly without cropping */}
           {data.bannerImageUrl ? (
-            <div className="w-full h-[300px] md:h-[500px] relative z-0">
+            <div className="w-full relative z-0">
               <h1 className="sr-only">{data.title || "Eyevengers"}</h1>
               {data.bannerImageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
                 <video 
                   src={data.bannerImageUrl} 
-                  className="w-full h-full object-cover"
+                  className="w-full h-auto max-h-[85vh] object-contain block mx-auto"
                   autoPlay loop muted playsInline
                 />
               ) : (
                 <img 
                   src={data.bannerImageUrl} 
-                  alt="Banner Poster" 
-                  className="w-full h-full object-cover object-center"
+                  alt={data.title || "Eyevengers Banner"} 
+                  className="w-full h-auto max-h-[85vh] object-contain block mx-auto"
                 />
               )}
             </div>
