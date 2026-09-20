@@ -49,20 +49,42 @@ export function LanguageToggle({ variant = 'header' }: LanguageToggleProps) {
         window.location.reload();
       }
     } else {
-      // 1. Clear Google Translate cookie to restore English
-      document.cookie = `googtrans=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
-      document.cookie = `googtrans=/en/en; path=/;`;
-      if (!isLocalhost) {
-        document.cookie = `googtrans=; path=/; domain=.${domain}; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
-        document.cookie = `googtrans=; path=/; domain=${domain}; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
-        document.cookie = `googtrans=/en/en; path=/; domain=.${domain};`;
-        document.cookie = `googtrans=/en/en; path=/; domain=${domain};`;
-      }
+      // 1. Thoroughly wipe all Google Translate cookies across all possible domain scopes
+      const hostname = window.location.hostname;
+      const hostParts = hostname.split('.');
+      const rootDomain = hostParts.length > 2 ? hostParts.slice(-2).join('.') : hostname;
+
+      const domainsToClear = [
+        '',
+        window.location.hostname,
+        `.${window.location.hostname}`,
+        rootDomain,
+        `.${rootDomain}`
+      ];
+
+      domainsToClear.forEach((d) => {
+        const domainStr = d ? `domain=${d};` : '';
+        document.cookie = `googtrans=; path=/; ${domainStr} expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
+        document.cookie = `googtrans=/en/en; path=/; ${domainStr}`;
+        document.cookie = `googtrans=/; path=/; ${domainStr} expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
+      });
+
+      localStorage.removeItem('eyevengers_lang');
       localStorage.setItem('eyevengers_lang', 'en');
+      sessionStorage.removeItem('eyevengers_lang');
       setCurrentLang('en');
 
-      // Reload so React DOM re-renders clean original English without Google Translate wrappers
-      window.location.reload();
+      // 2. Reset combo if present
+      const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
+      if (combo) {
+        combo.value = 'en';
+        combo.dispatchEvent(new Event('change'));
+      }
+
+      // 3. Reload cleanly so default English HTML renders without Google Translate
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
     }
   };
 

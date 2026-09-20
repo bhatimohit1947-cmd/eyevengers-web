@@ -84,16 +84,19 @@ export function GoogleTranslator() {
     const isHindi = document.cookie.includes('googtrans=/en/hi') ||
       localStorage.getItem('eyevengers_lang') === 'hi';
 
-    if (isHindi) {
-      const timer = setTimeout(() => {
-        const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
-        if (combo && combo.value !== 'hi') {
+    const timer = setTimeout(() => {
+      const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
+      if (combo) {
+        if (isHindi && combo.value !== 'hi') {
           combo.value = 'hi';
           combo.dispatchEvent(new Event('change'));
+        } else if (!isHindi && combo.value && combo.value !== 'en' && combo.value !== '') {
+          combo.value = 'en';
+          combo.dispatchEvent(new Event('change'));
         }
-      }, 300);
-      return () => clearTimeout(timer);
-    }
+      }
+    }, 300);
+    return () => clearTimeout(timer);
   }, [pathname]);
 
   return (
