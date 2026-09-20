@@ -91,11 +91,11 @@ export function LanguageToggle({ variant = 'header' }: LanguageToggleProps) {
       onClick={toggleLanguage}
       title={currentLang === 'en' ? 'Switch website to Hindi (हिन्दी में बदलें)' : 'Switch website to English'}
       aria-label={`Current language is ${currentLang === 'en' ? 'English' : 'Hindi'}. Click to switch to ${currentLang === 'en' ? 'Hindi' : 'English'}.`}
-      className="notranslate shrink-0 inline-flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-brand-navy text-white hover:bg-blue-950 text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer z-10"
+      className="notranslate shrink-0 inline-flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full bg-brand-navy text-white hover:bg-blue-950 text-[11px] sm:text-xs font-bold shadow-sm transition-all active:scale-95 cursor-pointer z-10 border border-white/10"
     >
-      <Languages size={14} className="text-brand-gold animate-pulse" aria-hidden="true" />
-      <span className="font-bold tracking-wide">
-        {currentLang === 'en' ? 'हिन्दी' : 'English'}
+      <Languages size={12} className="text-brand-gold shrink-0" aria-hidden="true" />
+      <span className="font-bold tracking-tight">
+        {currentLang === 'en' ? 'हिन्दी' : 'EN'}
       </span>
     </button>
   );

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   User, 
+  UserCircle2,
   Zap, 
   ChevronDown, 
   Heart, 
@@ -73,10 +74,10 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-100 shadow-sm transition-all duration-300">
       {/* Top Header Row */}
-      <div className="flex items-center justify-between px-4 py-2.5 md:h-16 gap-3 md:gap-6">
+      <div className="flex items-center justify-between px-3 sm:px-4 py-2 md:h-16 gap-2 sm:gap-4">
         {/* Brand Logo & Navigation on Left */}
-        <div className="flex items-center gap-4 lg:gap-8 shrink-0">
-          <Link href="/" className="notranslate font-black text-xl tracking-tighter text-brand-navy hover:opacity-90 transition">
+        <div className="flex items-center gap-3 lg:gap-8 shrink-0">
+          <Link href="/" className="notranslate font-black text-lg sm:text-xl tracking-tighter text-brand-navy hover:opacity-90 transition">
             EYEVENGERS
           </Link>
           
@@ -108,7 +109,7 @@ export function Header() {
         </div>
 
         {/* Actions Cluster on Right */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {/* Language Switcher (1-Click English <-> Hindi) */}
           <LanguageToggle />
 
@@ -130,47 +131,54 @@ export function Header() {
             {(!isHydrated || membershipTier === 'none') && 'GET MEMBERSHIP'}
           </Link>
           
-          <Link href="/wishlist" aria-label="Wishlist" className="p-1.5 text-gray-700 hover:text-brand-navy transition relative rounded-lg hover:bg-gray-100">
-            <Heart size={22} aria-hidden="true" />
+          <Link href="/wishlist" aria-label="Wishlist" className="p-1 sm:p-1.5 text-gray-700 hover:text-brand-navy transition relative rounded-lg hover:bg-gray-100">
+            <Heart size={20} className="sm:w-[22px] sm:h-[22px]" aria-hidden="true" />
             {productIds.length > 0 && (
-              <span className="absolute top-0 right-0 bg-brand-navy text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
+              <span className="absolute top-0 right-0 bg-brand-navy text-white text-[9px] font-bold w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center rounded-full">
                 {productIds.length}
               </span>
             )}
           </Link>
           
-          <Link href="/cart" aria-label="Shopping Cart" className="p-1.5 text-gray-700 hover:text-brand-navy transition relative rounded-lg hover:bg-gray-100">
-            <ShoppingBag size={22} aria-hidden="true" />
+          <Link href="/cart" aria-label="Shopping Cart" className="p-1 sm:p-1.5 text-gray-700 hover:text-brand-navy transition relative rounded-lg hover:bg-gray-100">
+            <ShoppingBag size={20} className="sm:w-[22px] sm:h-[22px]" aria-hidden="true" />
             {totalCount > 0 && (
-              <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
+              <span className="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-bold w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center rounded-full">
                 {totalCount}
               </span>
             )}
           </Link>
 
-          {/* User Profile Button on Right */}
+          {/* User Profile / Login Avatar */}
           <button 
             type="button"
-            onClick={() => isLoggedIn ? openMenu() : openLoginModal()}
-            aria-label={isLoggedIn ? "User menu" : "Login or sign up"}
-            className="p-1.5 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition overflow-hidden focus-visible:ring-2 focus-visible:ring-brand-navy"
+            onClick={() => {
+              if (isLoggedIn) {
+                openMenu();
+              } else {
+                openLoginModal();
+              }
+            }}
+            className="p-1 sm:p-1.5 text-gray-700 hover:text-brand-navy transition rounded-lg hover:bg-gray-100 flex items-center gap-1.5 cursor-pointer"
+            aria-label={isLoggedIn ? `Logged in as ${user?.name || 'User'}` : "Login or Sign up"}
           >
-            {isLoggedIn && user?.name ? (
-               <div className="w-5 h-5 bg-brand-navy rounded-full flex items-center justify-center text-white text-[10px] font-bold">
-                 {user.name[0].toUpperCase()}
-               </div>
+            {isLoggedIn ? (
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-navy text-white flex items-center justify-center text-xs font-bold ring-2 ring-blue-100 shadow-sm">
+                {user?.name?.[0]?.toUpperCase() || 'U'}
+              </div>
             ) : (
-              <User size={20} aria-hidden="true" />
+              <UserCircle2 size={22} className="sm:w-6 sm:h-6 text-gray-700 hover:text-brand-navy transition-colors" aria-hidden="true" />
             )}
           </button>
-          
+
+          {/* Mobile Hamburger Menu Toggle */}
           <button 
             type="button"
             onClick={openMenu}
-            aria-label="Open navigation menu"
-            className="p-1.5 text-gray-700 hover:text-brand-navy transition rounded-lg hover:bg-gray-100"
+            aria-label="Open Navigation Menu"
+            className="lg:hidden p-1 sm:p-1.5 text-gray-700 hover:text-brand-navy rounded-lg hover:bg-gray-100 transition cursor-pointer"
           >
-            <Menu size={22} aria-hidden="true" />
+            <Menu size={22} className="sm:w-6 sm:h-6" aria-hidden="true" />
           </button>
         </div>
       </div>

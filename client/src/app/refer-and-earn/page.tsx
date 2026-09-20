@@ -109,45 +109,45 @@ export default function ReferAndEarnPage() {
     <div className="bg-gray-50 min-h-screen pb-20">
       
       {/* Hero Header */}
-      <div className="bg-gradient-to-br from-brand-navy via-[#002244] to-[#0a1128] text-white py-12 px-4 relative overflow-hidden">
+      <div className="bg-gradient-to-br from-brand-navy via-[#002244] to-[#0a1128] text-white pt-8 pb-10 sm:py-12 px-4 relative overflow-hidden">
         <div className="absolute -right-10 -bottom-10 w-80 h-80 bg-brand-gold/10 rounded-full blur-3xl pointer-events-none" />
         <div className="max-w-4xl mx-auto text-center relative z-10">
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-brand-gold mb-3 border border-white/10">
-            <Sparkles size={14} /> Eyevengers Rewards Program
+          <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider text-brand-gold mb-3 border border-white/10">
+            <Sparkles size={12} /> Eyevengers Rewards Program
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight mb-3">
+          <h1 className="text-2xl sm:text-5xl font-black uppercase tracking-tight mb-2 sm:mb-3 leading-tight">
             Refer A Friend & <span className="text-brand-gold">Get A FREE Frame</span>
           </h1>
-          <p className="text-sm sm:text-base text-gray-200 max-w-2xl mx-auto mb-6">
-            Dosto ko refer karein! Jaise hi aapke dost Eyevengers se judte hain, aapko milta hai <span className="font-bold text-white">Free Frame ya 30% OFF</span> jise aap hamari shop par aakar ya online dono jagah claim kar sakte hain.
+          <p className="text-xs sm:text-base text-gray-200 max-w-2xl mx-auto mb-5 leading-relaxed">
+            Dosto ko refer karein! Jaise hi aapke dost judte hain, aapko milta hai <span className="font-bold text-white">Free Frame ya 30% OFF</span> jise aap hamari shop par ya online dono jagah claim kar sakte hain.
           </p>
 
           {!isLoggedIn ? (
             <button
               onClick={() => openLoginModal()}
-              className="bg-brand-gold text-brand-navy font-black px-6 py-3 rounded-full hover:bg-yellow-400 transition shadow-lg text-sm sm:text-base inline-flex items-center gap-2"
+              className="bg-brand-gold text-brand-navy font-black px-5 py-2.5 sm:px-6 sm:py-3 rounded-full hover:bg-yellow-400 transition shadow-lg text-xs sm:text-base inline-flex items-center gap-2"
             >
               Login to View Your Referral Code
-              <ArrowRight size={18} />
+              <ArrowRight size={16} />
             </button>
           ) : (
-            <div className="max-w-md mx-auto bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
-              <div className="text-xs uppercase tracking-wider text-gray-300 mb-1 font-semibold">Your Referral Code</div>
-              <div className="flex items-center justify-between bg-white text-gray-900 px-4 py-2.5 rounded-xl font-mono text-lg font-black tracking-widest shadow-inner mb-3">
-                <span>{data?.referralCode || 'GENERATING...'}</span>
+            <div className="max-w-md mx-auto bg-white/10 backdrop-blur-md p-3.5 sm:p-4 rounded-2xl border border-white/20">
+              <div className="text-[11px] uppercase tracking-wider text-gray-300 mb-1.5 font-semibold">Your Referral Code</div>
+              <div className="flex items-center justify-between bg-white text-gray-900 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl font-mono text-base sm:text-lg font-black tracking-widest shadow-inner mb-3">
+                <span className="truncate mr-2">{data?.referralCode || 'GENERATING...'}</span>
                 <button
                   onClick={copyCode}
-                  className="flex items-center gap-1 text-xs font-sans font-bold text-brand-navy bg-blue-50 px-2.5 py-1 rounded-md hover:bg-blue-100 transition"
+                  className="shrink-0 flex items-center gap-1 text-[11px] sm:text-xs font-sans font-bold text-brand-navy bg-blue-50 px-2.5 py-1 rounded-md hover:bg-blue-100 transition"
                 >
-                  {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+                  {copied ? <Check size={13} className="text-green-600" /> : <Copy size={13} />}
                   {copied ? 'COPIED' : 'COPY'}
                 </button>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <button
                   onClick={shareWhatsApp}
-                  className="flex-1 bg-[#25D366] text-white font-bold py-2.5 px-4 rounded-xl text-sm hover:bg-[#1EBE5D] transition flex items-center justify-center gap-2 shadow-md"
+                  className="w-full bg-[#25D366] text-white font-bold py-2.5 px-4 rounded-xl text-xs sm:text-sm hover:bg-[#1EBE5D] transition flex items-center justify-center gap-2 shadow-md"
                 >
                   <Share2 size={16} />
                   Share on WhatsApp
@@ -155,7 +155,7 @@ export default function ReferAndEarnPage() {
                 <button
                   onClick={() => setShowSimulateModal(true)}
                   title="Test referral reward unlock"
-                  className="bg-white/20 hover:bg-white/30 text-white font-medium py-2.5 px-3 rounded-xl text-xs transition"
+                  className="w-full sm:w-auto bg-white/15 hover:bg-white/25 text-white font-medium py-2 sm:py-2.5 px-3 rounded-xl text-[11px] sm:text-xs transition"
                 >
                   + Simulate Friend
                 </button>
@@ -166,46 +166,46 @@ export default function ReferAndEarnPage() {
       </div>
 
       {/* Main Content Area */}
-      <div className="max-w-4xl mx-auto px-4 -mt-6">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 mt-4 sm:mt-6 pb-24 md:pb-12">
         
         {/* Quick Stats Grid */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center">
-            <div className="text-2xl sm:text-3xl font-black text-brand-navy">{data?.stats?.totalReferred ?? 0}</div>
-            <div className="text-[11px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wider mt-0.5">Friends Referred</div>
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-5">
+          <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100 text-center">
+            <div className="text-xl sm:text-3xl font-black text-brand-navy">{data?.stats?.totalReferred ?? 0}</div>
+            <div className="text-[10px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wider mt-0.5">Friends</div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center border-l-4 border-l-green-500">
-            <div className="text-2xl sm:text-3xl font-black text-green-600">{data?.stats?.activeRewardsCount ?? 0}</div>
-            <div className="text-[11px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wider mt-0.5">Active Vouchers</div>
+          <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100 text-center border-l-4 border-l-green-500">
+            <div className="text-xl sm:text-3xl font-black text-green-600">{data?.stats?.activeRewardsCount ?? 0}</div>
+            <div className="text-[10px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wider mt-0.5">Active</div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center">
-            <div className="text-2xl sm:text-3xl font-black text-gray-400">{data?.stats?.claimedRewardsCount ?? 0}</div>
-            <div className="text-[11px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wider mt-0.5">Claimed Rewards</div>
+          <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100 text-center">
+            <div className="text-xl sm:text-3xl font-black text-gray-400">{data?.stats?.claimedRewardsCount ?? 0}</div>
+            <div className="text-[10px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wider mt-0.5">Claimed</div>
           </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-gray-200 mb-6 bg-white rounded-t-xl px-4 pt-2">
+        <div className="flex border-b border-gray-200 mb-5 bg-white rounded-t-xl px-2 sm:px-4 pt-1 sm:pt-2">
           <button
             onClick={() => setActiveTab('rewards')}
-            className={`flex items-center gap-2 py-3 px-4 text-sm font-bold border-b-2 transition ${
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-2.5 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition ${
               activeTab === 'rewards'
                 ? 'border-brand-navy text-brand-navy'
                 : 'border-transparent text-gray-500 hover:text-gray-900'
             }`}
           >
-            <Gift size={16} />
-            My Unlocked Rewards ({data?.vouchers?.length || 0})
+            <Gift size={15} />
+            My Rewards ({data?.vouchers?.length || 0})
           </button>
           <button
             onClick={() => setActiveTab('how-it-works')}
-            className={`flex items-center gap-2 py-3 px-4 text-sm font-bold border-b-2 transition ${
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-2.5 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition ${
               activeTab === 'how-it-works'
                 ? 'border-brand-navy text-brand-navy'
                 : 'border-transparent text-gray-500 hover:text-gray-900'
             }`}
           >
-            <ShieldCheck size={16} />
+            <ShieldCheck size={15} />
             How to Claim at Shop
           </button>
         </div>
