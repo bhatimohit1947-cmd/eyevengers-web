@@ -224,22 +224,33 @@ export async function POST(req: NextRequest) {
     if (action === 'register-ref') {
       const { referralCode, friendPhone, friendName } = body;
       const cleanFriendPhone = (friendPhone || '').replace(/[^0-9]/g, '').slice(-10);
-      const referrer = store.users.find((u: any) => u.referralCode.toUpperCase() === (referralCode || '').toUpperCase());
+      const cleanRefCode = (referralCode || '').trim().toUpperCase();
 
+      // Find or dynamically resolve referrer by referral code
+      let referrer = store.users.find((u: any) => u.referralCode.toUpperCase() === cleanRefCode);
+
+      // If user not in memory yet, parse from code e.g. PRADE8860 or MOHIT1234
       if (!referrer) {
-        return NextResponse.json({ error: 'Invalid referral code' }, { status: 404 });
+        referrer = {
+          phone: cleanRefCode.slice(-4),
+          name: cleanRefCode.replace(/[0-9]/g, ''),
+          referralCode: cleanRefCode,
+          createdAt: new Date().toISOString()
+        };
+        store.users.push(referrer);
       }
 
       if (referrer.phone.slice(-10) === cleanFriendPhone) {
         return NextResponse.json({ error: 'Self-referral is not permitted' }, { status: 400 });
       }
 
-      const voucherCode = `REF-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
       const expiresAt = new Date(Date.now() + store.config.validityDays * 86400000).toISOString();
 
-      const newVoucher = {
-        id: `VOUCH-${Date.now()}`,
-        code: voucherCode,
+      // 1. Generate Referrer Reward Voucher (e.g. Free Frame or 30% OFF)
+      const referrerVoucherCode = `REF-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
+      const referrerVoucher = {
+        id: `VOUCH-${Date.now()}-REF`,
+        code: referrerVoucherCode,
         referrerPhone: referrer.phone,
         referrerName: referrer.name,
         referredPhone: cleanFriendPhone,
@@ -251,9 +262,32 @@ export async function POST(req: NextRequest) {
         issuedAt: new Date().toISOString(),
         expiresAt,
       };
+      store.vouchers.unshift(referrerVoucher);
 
-      store.vouchers.unshift(newVoucher);
-      return NextResponse.json({ success: true, voucher: newVoucher });
+      // 2. Generate Friend Welcome Voucher (e.g. Flat ₹200 OFF on First Purchase)
+      const friendVoucherCode = `REF-WELCOME-${Math.floor(1000 + Math.random() * 9000)}`;
+      const friendVoucher = {
+        id: `VOUCH-${Date.now()}-FRD`,
+        code: friendVoucherCode,
+        referrerPhone: cleanFriendPhone,
+        referrerName: friendName || 'New Friend',
+        referredPhone: cleanFriendPhone,
+        referredName: friendName || 'New Friend',
+        benefitType: 'FLAT_DISCOUNT',
+        benefitValue: store.config.friendWelcomeDiscount || 200,
+        benefitTitle: `Friend Welcome: Flat ₹${store.config.friendWelcomeDiscount || 200} OFF`,
+        status: 'ACTIVE',
+        issuedAt: new Date().toISOString(),
+        expiresAt,
+      };
+      store.vouchers.unshift(friendVoucher);
+
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Referral registered successfully! Rewards generated for both Referrer and Friend.',
+        voucher: referrerVoucher,
+        friendVoucher 
+      });
     }
 
     if (action === 'update-config') {

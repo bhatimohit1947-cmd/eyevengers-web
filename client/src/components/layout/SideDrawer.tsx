@@ -105,6 +105,60 @@ export function SideDrawer() {
             <LanguageToggle variant="drawer" />
           </div>
 
+          {/* TOP PRIORITY: Refer & Earn & Membership */}
+          <div className="px-4 mb-3 space-y-2">
+            <Link 
+              href="/refer-and-earn" 
+              onClick={closeMenu} 
+              className="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-400/30 hover:border-amber-500 transition group shadow-xs"
+            >
+              <div className="flex items-center gap-3">
+                <span className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-sm">🎁</span>
+                <div>
+                  <div className="font-black text-sm text-gray-900 leading-tight">Refer & Earn</div>
+                  <div className="text-[11px] font-semibold text-amber-700">Get a FREE Frame or 30% OFF</div>
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-amber-600 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+
+            {membershipTier === 'none' ? (
+              <Link 
+                href="/membership" 
+                onClick={closeMenu} 
+                className="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-blue-900/10 to-transparent border border-brand-navy/20 hover:border-brand-navy transition group shadow-xs"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-9 h-9 rounded-xl bg-brand-navy text-brand-gold flex items-center justify-center shadow-sm">
+                    <Crown size={20} />
+                  </span>
+                  <div>
+                    <div className="font-black text-sm text-gray-900 leading-tight">Get Membership</div>
+                    <div className="text-[11px] font-semibold text-gray-500">Gold & Silver Benefits</div>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-brand-navy group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            ) : (
+              <Link 
+                href="/membership" 
+                onClick={closeMenu} 
+                className="flex items-center justify-between p-3.5 rounded-2xl bg-brand-navy text-white shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <Crown size={20} className="text-brand-gold" />
+                  <div>
+                    <div className="font-bold text-sm capitalize">{membershipTier} Member</div>
+                    <div className="text-[10px] text-gray-300">Active Membership</div>
+                  </div>
+                </div>
+                <div className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-bold uppercase">View</div>
+              </Link>
+            )}
+          </div>
+
+          <div className="h-px bg-gray-100 my-2 mx-6"></div>
+
           <nav className="flex flex-col">
             {/* Shopping Categories */}
             <div className="px-6 pb-2 pt-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Shop</div>
@@ -140,33 +194,6 @@ export function SideDrawer() {
               <div className="flex items-center gap-3 font-medium text-gray-700 group-hover:text-brand-navy">
                 <MapPin size={20} /> Find a Store
               </div>
-            </Link>
-            {membershipTier === 'none' ? (
-              <Link href="/membership" onClick={closeMenu} className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 group bg-yellow-50/50">
-                <div className="flex items-center gap-3 font-bold text-yellow-700">
-                  <Crown size={20} /> Get Membership
-                </div>
-              </Link>
-            ) : (
-              <Link href="/membership" onClick={closeMenu} className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 group bg-brand-navy/5">
-                <div className="flex items-center gap-3 font-bold text-brand-navy capitalize">
-                  <Crown size={20} className="text-yellow-500" /> {membershipTier} Member
-                </div>
-                <div className="text-xs text-brand-navy bg-brand-navy/10 px-2 py-1 rounded-full font-bold uppercase">
-                  Active
-                </div>
-              </Link>
-            )}
-
-            <div className="h-px bg-gray-100 my-2 mx-6"></div>
-
-            {/* Refer & Earn Special */}
-            <div className="px-6 pb-2 pt-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Rewards</div>
-            <Link href="/refer-and-earn" onClick={closeMenu} className="flex items-center justify-between px-6 py-3 hover:bg-amber-50 group bg-amber-50/40">
-              <div className="flex items-center gap-3 font-bold text-amber-800">
-                <span className="text-lg">🎁</span> Refer & Earn (Free Frame)
-              </div>
-              <ChevronRight size={16} className="text-amber-500 group-hover:text-amber-700" />
             </Link>
 
             <div className="h-px bg-gray-100 my-2 mx-6"></div>

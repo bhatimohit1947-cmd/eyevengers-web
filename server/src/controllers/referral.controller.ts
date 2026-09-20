@@ -158,10 +158,17 @@ export const registerReferralAction = (req: Request, res: Response) => {
   }
 
   const cleanFriendPhone = friendPhone.replace(/[^0-9]/g, '').slice(-10);
-  const referrer = referralUsers.find(u => u.referralCode.toUpperCase() === referralCode.toUpperCase());
+  const cleanRefCode = (referralCode || '').trim().toUpperCase();
+  let referrer = referralUsers.find(u => u.referralCode.toUpperCase() === cleanRefCode);
 
   if (!referrer) {
-    return res.status(404).json({ error: 'Invalid referral code' });
+    referrer = {
+      phone: cleanRefCode.slice(-4),
+      name: cleanRefCode.replace(/[0-9]/g, '') || 'Customer',
+      referralCode: cleanRefCode,
+      createdAt: new Date().toISOString()
+    };
+    referralUsers.push(referrer);
   }
 
   // Prevent self-referral
@@ -169,18 +176,12 @@ export const registerReferralAction = (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Self-referral is not permitted' });
   }
 
-  // Check if friend was already rewarded
-  const alreadyRewarded = referralVouchers.some(v => v.referredPhone?.slice(-10) === cleanFriendPhone);
-  if (alreadyRewarded) {
-    return res.status(400).json({ error: 'This customer has already been referred' });
-  }
-
-  // Generate unique 1-time voucher for referrer
-  const voucherCode = `REF-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
   const expiresAt = new Date(Date.now() + referralConfig.validityDays * 86400000).toISOString();
 
+  // 1. Generate unique 1-time voucher for referrer
+  const voucherCode = `REF-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
   const newVoucher: ReferralVoucher = {
-    id: `VOUCH-${Date.now()}`,
+    id: `VOUCH-${Date.now()}-REF`,
     code: voucherCode,
     referrerPhone: referrer.phone,
     referrerName: referrer.name,
@@ -193,13 +194,31 @@ export const registerReferralAction = (req: Request, res: Response) => {
     issuedAt: new Date().toISOString(),
     expiresAt,
   };
-
   referralVouchers.unshift(newVoucher);
+
+  // 2. Generate unique welcome voucher for friend
+  const friendVoucherCode = `REF-WELCOME-${Math.floor(1000 + Math.random() * 9000)}`;
+  const friendVoucher: ReferralVoucher = {
+    id: `VOUCH-${Date.now()}-FRD`,
+    code: friendVoucherCode,
+    referrerPhone: cleanFriendPhone,
+    referrerName: friendName || 'New Customer',
+    referredPhone: cleanFriendPhone,
+    referredName: friendName || 'New Customer',
+    benefitType: 'FLAT_DISCOUNT',
+    benefitValue: referralConfig.friendWelcomeDiscount || 200,
+    benefitTitle: `Friend Welcome: Flat ₹${referralConfig.friendWelcomeDiscount || 200} OFF`,
+    status: 'ACTIVE',
+    issuedAt: new Date().toISOString(),
+    expiresAt,
+  };
+  referralVouchers.unshift(friendVoucher);
 
   res.json({
     success: true,
-    message: 'Referral reward generated successfully!',
-    voucher: newVoucher
+    message: 'Referral reward generated successfully for both Referrer and Friend!',
+    voucher: newVoucher,
+    friendVoucher
   });
 };
 

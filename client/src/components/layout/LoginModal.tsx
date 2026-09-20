@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, Component, ErrorInfo, ReactNode } from 'react';
+import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { X, Loader2, ChevronLeft, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
@@ -71,9 +71,22 @@ export function LoginModal() {
   const [pin, setPin] = useState('');
   const [profileName, setProfileName] = useState('');
   const [profileEmail, setProfileEmail] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   
   // Errors
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isLoginModalOpen) {
+      try {
+        const savedRef = localStorage.getItem('eyevengers_referred_by') || '';
+        if (savedRef) {
+          setReferralCode(savedRef.toUpperCase());
+          setActiveTab('SIGNUP'); // Auto-switch to signup if referred
+        }
+      } catch (e) {}
+    }
+  }, [isLoginModalOpen]);
 
   if (!isLoginModalOpen) return null;
 
@@ -228,6 +241,27 @@ export function LoginModal() {
       const result = await saveCustomer(newCustomer);
       
       if (result?.success) {
+        // Trigger Referral Reward Unlock if referralCode is present
+        const activeRef = referralCode.trim() || localStorage.getItem('eyevengers_referred_by');
+        if (activeRef) {
+          try {
+            await fetch('/api/referral', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'register-ref',
+                referralCode: activeRef.trim().toUpperCase(),
+                friendPhone: phone,
+                friendName: profileName
+              })
+            });
+            // Clear referred token once registered
+            localStorage.removeItem('eyevengers_referred_by');
+          } catch (refErr) {
+            console.error("Failed to register referral reward:", refErr);
+          }
+        }
+
         completeLogin(result.customer);
       } else {
         setError('Failed to create account.');
@@ -537,6 +571,27 @@ export function LoginModal() {
                       {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-sm font-medium text-gray-700">Referral Code (Optional)</label>
+                    {referralCode && (
+                      <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                        Referral Applied 🎁
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                    className="block w-full px-4 py-2.5 border border-gray-300 rounded-xl bg-white placeholder-gray-400 uppercase font-mono font-bold text-brand-navy focus:ring-1 focus:ring-brand-navy focus:border-brand-navy text-sm outline-none transition-colors"
+                    placeholder="e.g. PRADE8860"
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Enter friend&apos;s referral code to unlock welcome benefits!
+                  </p>
                 </div>
 
                 {error && <p className="mt-2 text-xs text-red-600 font-medium text-center bg-red-50 p-2 rounded">{error}</p>}

@@ -174,16 +174,45 @@ export default function AdminReferralsPage() {
           </div>
 
           <div>
-            <label className="text-xs font-bold text-gray-700 block mb-1">Referrer Reward Type</label>
+            <label className="text-xs font-bold text-gray-700 block mb-1">Active Offer Benefit</label>
             <select
               value={rewardType}
-              onChange={e => setRewardType(e.target.value)}
+              onChange={e => {
+                const newType = e.target.value;
+                setRewardType(newType);
+                if (newType === 'FREE_FRAME') {
+                  setRewardTitle('FREE Eyevengers Frame');
+                  setRewardValue(100);
+                } else if (newType === 'PERCENT_DISCOUNT') {
+                  setRewardTitle('30% OFF on Next Order');
+                  setRewardValue(30);
+                } else if (newType === 'FLAT_DISCOUNT') {
+                  setRewardTitle('Flat ₹500 OFF');
+                  setRewardValue(500);
+                } else if (newType === 'COMBO_BENEFIT') {
+                  setRewardTitle('FREE Frame + 30% OFF on Lenses');
+                  setRewardValue(30);
+                }
+              }}
               className="w-full text-sm font-semibold p-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy"
             >
               <option value="FREE_FRAME">Free Frame (100% OFF on Frame)</option>
               <option value="PERCENT_DISCOUNT">Percentage Discount (e.g. 30% OFF)</option>
               <option value="FLAT_DISCOUNT">Flat Amount Discount (₹ OFF)</option>
+              <option value="COMBO_BENEFIT">Multi / Combo (Free Frame + 30% OFF)</option>
             </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-gray-700 block mb-1">Custom Reward Title (Customer Screen)</label>
+            <input
+              type="text"
+              required
+              value={rewardTitle}
+              onChange={e => setRewardTitle(e.target.value)}
+              placeholder="e.g. FREE Eyevengers Frame or 30% OFF"
+              className="w-full text-sm font-semibold p-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy"
+            />
           </div>
 
           <div>

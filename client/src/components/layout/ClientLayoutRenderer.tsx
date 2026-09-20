@@ -9,6 +9,7 @@ import { SideDrawer } from "@/components/layout/SideDrawer";
 import { LoginModal } from "@/components/layout/LoginModal";
 import { SyncActivity } from "@/components/layout/SyncActivity";
 import { GoogleTranslator } from "@/components/layout/GoogleTranslator";
+import { ReferralUrlTracker } from "@/components/referral/ReferralUrlTracker";
 
 export function ClientLayoutRenderer({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -20,6 +21,7 @@ export function ClientLayoutRenderer({ children }: { children: React.ReactNode }
 
   return (
     <>
+      <ReferralUrlTracker />
       <GoogleTranslator />
       <Header />
       <main className="flex-1">

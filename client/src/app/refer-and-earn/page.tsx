@@ -116,10 +116,10 @@ export default function ReferAndEarnPage() {
             <Sparkles size={12} /> Eyevengers Rewards Program
           </div>
           <h1 className="text-2xl sm:text-5xl font-black uppercase tracking-tight mb-2 sm:mb-3 leading-tight">
-            Refer A Friend & <span className="text-brand-gold">Get A FREE Frame</span>
+            Refer A Friend & <span className="text-brand-gold">{data?.config?.rewardTitle || 'Get Rewarded'}</span>
           </h1>
           <p className="text-xs sm:text-base text-gray-200 max-w-2xl mx-auto mb-5 leading-relaxed">
-            Dosto ko refer karein! Jaise hi aapke dost judte hain, aapko milta hai <span className="font-bold text-white">Free Frame ya 30% OFF</span> jise aap hamari shop par ya online dono jagah claim kar sakte hain.
+            {data?.config?.campaignName ? `${data.config.campaignName}: ` : ''}Dosto ko refer karein! Jaise hi aapke dost judte hain, aapko milta hai <span className="font-bold text-white">{data?.config?.rewardTitle || 'Exciting Rewards'}</span> jise aap hamari shop par ya online dono jagah claim kar sakte hain. Dost ko bhi milega <span className="font-bold text-brand-gold">Flat ₹{data?.config?.friendWelcomeDiscount || 200} OFF</span>!
           </p>
 
           {!isLoggedIn ? (
