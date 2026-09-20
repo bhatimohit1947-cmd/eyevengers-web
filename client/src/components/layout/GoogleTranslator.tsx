@@ -22,6 +22,7 @@ export function GoogleTranslator() {
             pageLanguage: 'en',
             includedLanguages: 'en,hi',
             autoDisplay: false,
+            layout: window.google?.translate?.TranslateElement?.InlineLayout?.SIMPLE,
           },
           'google_translate_element'
         );
@@ -36,9 +37,49 @@ export function GoogleTranslator() {
       script.async = true;
       document.body.appendChild(script);
     }
+
+    // 3. MutationObserver to permanently suppress Google's banner & body top: 40px shift
+    const suppressGoogleBanner = () => {
+      // Force body top to 0px
+      if (document.body.style.top && document.body.style.top !== '0px') {
+        document.body.style.setProperty('top', '0px', 'important');
+      }
+      if (document.body.style.position && document.body.style.position !== 'static') {
+        document.body.style.setProperty('position', 'static', 'important');
+      }
+
+      // Hide all injected banners, toolbars, and frames
+      const banners = document.querySelectorAll(
+        'body > .skiptranslate, iframe.goog-te-banner-frame, iframe[id*="google"], .goog-te-banner-frame, #goog-gt-tt, .VIpgJd-ZVi9od-OR9Gae-sztmxf'
+      );
+      banners.forEach((el) => {
+        const htmlEl = el as HTMLElement;
+        htmlEl.style.setProperty('display', 'none', 'important');
+        htmlEl.style.setProperty('visibility', 'hidden', 'important');
+        htmlEl.style.setProperty('height', '0px', 'important');
+        htmlEl.style.setProperty('opacity', '0', 'important');
+        htmlEl.style.setProperty('pointer-events', 'none', 'important');
+      });
+    };
+
+    const observer = new MutationObserver(suppressGoogleBanner);
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['style'],
+      childList: true,
+    });
+
+    const interval = setInterval(suppressGoogleBanner, 100);
+    const timeout = setTimeout(() => clearInterval(interval), 5000);
+
+    return () => {
+      observer.disconnect();
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
   }, []);
 
-  // 3. Keep translation in sync during Next.js client-side navigation
+  // 4. Keep translation in sync during Next.js client-side navigation
   useEffect(() => {
     const isHindi = document.cookie.includes('googtrans=/en/hi') || 
                     localStorage.getItem('eyevengers_lang') === 'hi';
