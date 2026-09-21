@@ -47,30 +47,73 @@ export default function CustomersPage() {
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
-        let backendCustomers: any[] = [];
+        const map = new Map<string, any>();
 
-        // 1. Try Direct Render Backend with Admin Auth
+        // 1. Direct Supabase Cloud REST (Primary Zero-Lag Source of Truth)
         try {
-          const res = await fetchWithAuth('https://eyevengers-web.onrender.com/api/admin/customers');
-          if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data)) backendCustomers = data;
+          const sbRes = await fetch('https://bhjfsthxmzqumajquyvn.supabase.co/rest/v1/global_settings?select=*&key=like.user_%25', {
+            headers: {
+              'apikey': 'sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy',
+              'Authorization': 'Bearer sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy'
+            },
+            cache: 'no-store'
+          });
+          if (sbRes.ok) {
+            const rows = await sbRes.json();
+            if (Array.isArray(rows)) {
+              rows.forEach((r: any) => {
+                try {
+                  const u = JSON.parse(r.value);
+                  if (u && u.phone) {
+                    map.set(u.phone.slice(-10), u);
+                  }
+                } catch(e) {}
+              });
+            }
           }
-        } catch (e) {
-          console.warn("Direct backend customer fetch warning:", e);
-        }
+        } catch (e) {}
 
-        // 2. Try Next.js local API route fallback
-        let apiCustomers: any[] = [];
+        // 2. Next.js API route (/api/customers)
         try {
           const resLocal = await fetch('/api/customers');
           if (resLocal.ok) {
             const localData = await resLocal.json();
-            if (Array.isArray(localData)) apiCustomers = localData;
+            if (Array.isArray(localData)) {
+              localData.forEach((c: any) => {
+                if (!c.phone) return;
+                const cleanPhone = c.phone.slice(-10);
+                if (map.has(cleanPhone)) {
+                  const existing = map.get(cleanPhone);
+                  map.set(cleanPhone, { ...existing, ...c });
+                } else {
+                  map.set(cleanPhone, c);
+                }
+              });
+            }
+          }
+        } catch (e) {}
+
+        // 3. Direct Render Backend with Admin Auth
+        try {
+          const res = await fetchWithAuth('https://eyevengers-web.onrender.com/api/admin/customers');
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) {
+              data.forEach((c: any) => {
+                if (!c.phone) return;
+                const cleanPhone = c.phone.slice(-10);
+                if (map.has(cleanPhone)) {
+                  const existing = map.get(cleanPhone);
+                  map.set(cleanPhone, { ...existing, ...c });
+                } else {
+                  map.set(cleanPhone, c);
+                }
+              });
+            }
           }
         } catch (e) {}
         
-        // 3. Load from localStorage fallback
+        // 4. Load from localStorage fallback & sync any missing to Supabase
         let localCustomers: any[] = [];
         try {
           if (typeof window !== 'undefined') {
@@ -78,32 +121,6 @@ export default function CustomersPage() {
           }
         } catch (e) {}
         
-        // Merge all sources intelligently by phone number
-        const map = new Map<string, any>();
-        
-        // Add backend customers first (source of truth)
-        backendCustomers.forEach((c: any) => {
-          if (c.phone) map.set(c.phone.slice(-10), { ...c });
-        });
-
-        // Merge Next.js customers
-        apiCustomers.forEach((c: any) => {
-          if (!c.phone) return;
-          const cleanPhone = c.phone.slice(-10);
-          if (map.has(cleanPhone)) {
-            const existing = map.get(cleanPhone);
-            map.set(cleanPhone, {
-              ...existing,
-              ...c,
-              cartCount: Math.max(existing.cartCount || 0, c.cartCount || 0),
-              wishlistCount: Math.max(existing.wishlistCount || 0, c.wishlistCount || 0)
-            });
-          } else {
-            map.set(cleanPhone, c);
-          }
-        });
-        
-        // Merge localStorage customers and sync any missing ones to backend
         localCustomers.forEach((c: any) => {
           if (!c.phone) return;
           const cleanPhone = c.phone.slice(-10);
@@ -117,14 +134,23 @@ export default function CustomersPage() {
             });
           } else {
             map.set(cleanPhone, c);
-            // Proactively sync this newly discovered customer to the backend
-            fetch('https://eyevengers-web.onrender.com/api/admin/customers', {
+            // Proactively push missing customer to Supabase REST
+            fetch('https://bhjfsthxmzqumajquyvn.supabase.co/rest/v1/global_settings', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(c)
+              headers: {
+                'apikey': 'sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy',
+                'Authorization': 'Bearer sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy',
+                'Content-Type': 'application/json',
+                'Prefer': 'resolution=merge-duplicates'
+              },
+              body: JSON.stringify({
+                key: `user_${cleanPhone}`,
+                value: JSON.stringify(c)
+              })
             }).catch(() => {});
           }
         });
+
         
         const mergedCustomers = Array.from(map.values());
 

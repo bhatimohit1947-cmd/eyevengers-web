@@ -93,29 +93,82 @@ export function LoginModal() {
   const getCustomers = async (): Promise<CustomerRecord[]> => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
       
       const res = await fetch('/api/customers', { signal: controller.signal });
       clearTimeout(timeoutId);
       
       const data = await res.json();
-      return Array.isArray(data) ? data : [];
+      if (Array.isArray(data) && data.length > 0) return data;
     } catch (err) {
-      console.error("Failed to fetch customers:", err);
-      // Fallback to local storage if API fails
-      try {
-        const localData = JSON.parse(localStorage.getItem('eyevengers_mock_customers') || '[]');
-        return Array.isArray(localData) ? localData : [];
-      } catch {
-        return [];
+      console.warn("API customers fetch slow or failed, trying Supabase direct...", err);
+    }
+
+    // Direct Supabase fallback
+    try {
+      const sbRes = await fetch('https://bhjfsthxmzqumajquyvn.supabase.co/rest/v1/global_settings?select=*&key=like.user_%25', {
+        headers: {
+          'apikey': 'sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy',
+          'Authorization': 'Bearer sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy'
+        }
+      });
+      if (sbRes.ok) {
+        const rows = await sbRes.json();
+        if (Array.isArray(rows)) {
+          return rows.map((r: any) => {
+            try { return JSON.parse(r.value); } catch { return null; }
+          }).filter(Boolean);
+        }
       }
+    } catch (e) {}
+
+    // Fallback to local storage
+    try {
+      const localData = JSON.parse(localStorage.getItem('eyevengers_mock_customers') || '[]');
+      return Array.isArray(localData) ? localData : [];
+    } catch {
+      return [];
     }
   };
 
   const saveCustomer = async (customer: Partial<CustomerRecord>) => {
+    const cleanPhone = (customer.phone || '').replace(/[^0-9]/g, '').slice(-10);
+
+    // 1. Direct Supabase save (Immediate cloud persistence)
+    if (cleanPhone) {
+      fetch('https://bhjfsthxmzqumajquyvn.supabase.co/rest/v1/global_settings', {
+        method: 'POST',
+        headers: {
+          'apikey': 'sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy',
+          'Authorization': 'Bearer sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy',
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify({
+          key: `user_${cleanPhone}`,
+          value: JSON.stringify({ ...customer, phone: cleanPhone })
+        })
+      }).catch(() => {});
+    }
+
+    // 2. Local storage save (Immediate offline fallback)
+    try {
+      const customers = JSON.parse(localStorage.getItem('eyevengers_mock_customers') || '[]');
+      const existingIndex = customers.findIndex((c: any) => c.phone === customer.phone);
+      if (existingIndex >= 0) {
+        customers[existingIndex] = { ...customers[existingIndex], ...customer };
+      } else {
+        customers.push(customer);
+      }
+      localStorage.setItem('eyevengers_mock_customers', JSON.stringify(customers));
+    } catch (e) {
+      console.error("Fallback storage error", e);
+    }
+
+    // 3. API route save
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
       
       const res = await fetch('/api/customers', {
         method: 'POST',
@@ -126,25 +179,9 @@ export function LoginModal() {
       clearTimeout(timeoutId);
       
       const result = await res.json();
-      
-      // Also save to local storage as fallback
-      try {
-        const customers = JSON.parse(localStorage.getItem('eyevengers_mock_customers') || '[]');
-        const existingIndex = customers.findIndex((c: any) => c.phone === customer.phone);
-        if (existingIndex >= 0) {
-          customers[existingIndex] = { ...customers[existingIndex], ...customer };
-        } else {
-          customers.push(customer);
-        }
-        localStorage.setItem('eyevengers_mock_customers', JSON.stringify(customers));
-      } catch (e) {
-        console.error("Fallback storage error", e);
-      }
-      
       return result;
     } catch (e) {
-      console.error(e);
-      // Mock a success response for fallback if API completely fails
+      console.warn("API route save fallback:", e);
       return { success: true, customer };
     }
   };
