@@ -9,14 +9,15 @@ import {
   getStores, createStore, deleteStore,
   getLensSettings, updateLensSettings,
   getNotifications, markNotificationRead, recordLoginEvent,
-  getSidebarCounts, loginAdmin
+  getSidebarCounts, loginAdmin,
+  getReferralData, saveReferralData
 } from '../controllers/admin.controller';
 import { authenticateAdmin } from '../middlewares/auth.middleware';
 
 const router = express.Router();
 
 // ==========================================
-// PUBLIC ROUTES (Used by Customer Frontend)
+// PUBLIC ROUTES (Used by Customer Frontend & Proxies)
 // ==========================================
 router.post('/login', loginAdmin);
 router.get('/settings', getSettings);
@@ -25,6 +26,11 @@ router.get('/eye-test/settings', getEyeTestSettings);
 router.post('/eye-test/bookings', createEyeTestBooking);
 router.get('/stores', getStores);
 router.get('/lenses/settings', getLensSettings);
+router.get('/customers', getCustomers);
+router.post('/customers', createOrUpdateCustomer);
+router.post('/customers/stats', syncCustomerStats);
+router.get('/referral-data', getReferralData);
+router.post('/referral-data', saveReferralData);
 
 // ==========================================
 // PROTECTED ROUTES (Used by Admin Panel)

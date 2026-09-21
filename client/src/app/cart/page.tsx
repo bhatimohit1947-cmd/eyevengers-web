@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Minus, Plus, Trash2, ShieldCheck, ChevronRight, Tag, ShoppingBag } from 'lucide-react';
+import { Minus, Plus, Trash2, ShieldCheck, ChevronRight, Tag, ShoppingBag, Sparkles, X } from 'lucide-react';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthGate } from '@/hooks/useAuthGate';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -12,7 +12,7 @@ export default function CartPage() {
   const router = useRouter();
   const { items: cartItems, removeItem, updateQuantity, totalPrice } = useCartStore();
   const { requireAuth } = useAuthGate();
-  const { membershipBenefits } = useAuthStore();
+  const { user, membershipBenefits } = useAuthStore();
 
   // We are assuming mrp is some fixed percentage higher for UI mock purposes, 
   // since useCartStore only stores `price`. Let's mock MRP as price * 1.5
@@ -33,34 +33,68 @@ export default function CartPage() {
     discount: 0
   });
 
-  const applyCoupon = async () => {
-    if (!couponCode) return;
+  const [userVouchers, setUserVouchers] = useState<any[]>([]);
+
+  // 1. Fetch Logged-in Customer's Active Rewards
+  useEffect(() => {
+    if (user?.phone) {
+      const cleanPhone = user.phone.replace(/[^0-9]/g, '').slice(-10);
+      fetch(`/api/referral?action=user-info&phone=${cleanPhone}&name=${encodeURIComponent(user.name || '')}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.success && Array.isArray(d.vouchers)) {
+            const activeVouchers = d.vouchers.filter((v: any) => v.status === 'ACTIVE');
+            setUserVouchers(activeVouchers);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user?.phone, user?.name]);
+
+  const executeApply = async (codeToApply: string) => {
+    if (!codeToApply.trim()) return;
+    const cleanCode = codeToApply.trim().toUpperCase();
     setCouponState({ type: 'none', message: 'Validating...', discount: 0 });
     
     // Check if referral voucher
-    if (couponCode.toUpperCase().startsWith('REF-')) {
+    if (cleanCode.startsWith('REF-')) {
       try {
         const res = await fetch('/api/referral', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'validate-voucher', code: couponCode })
+          body: JSON.stringify({ action: 'validate-voucher', code: cleanCode })
         });
         const data = await res.json();
         if (res.ok && data.valid) {
           let discountVal = 0;
           if (data.voucher.benefitType === 'FREE_FRAME') {
-            // Free frame discount: 100% of the cheapest frame or ₹1500
-            discountVal = Math.min(totalAmount, 1500);
+            // Free frame discount: deduct frame price up to ₹1500 (or totalAmount)
+            const frameItem = cartItems.find(i => !i.lensConfig || i.lensConfig.type === 'Standard' || i.price > 0) || cartItems[0];
+            const framePrice = frameItem ? frameItem.price : 1500;
+            discountVal = Math.min(totalAmount, Math.max(framePrice, 1500));
           } else if (data.voucher.benefitType === 'PERCENT_DISCOUNT') {
             discountVal = totalAmount * ((data.voucher.benefitValue || 30) / 100);
           } else {
-            discountVal = data.voucher.benefitValue || 200;
+            discountVal = Math.min(totalAmount, data.voucher.benefitValue || 200);
           }
+
           setCouponState({ 
             type: 'success', 
-            message: `🎉 ${data.voucher.benefitTitle} Applied! (Single-Use Only)`, 
+            message: `🎉 ${data.voucher.benefitTitle} Applied!`, 
             discount: discountVal 
           });
+
+          // Persist to session & local storage for Checkout carryover
+          const appliedObj = {
+            code: cleanCode,
+            discount: discountVal,
+            benefitType: data.voucher.benefitType,
+            title: data.voucher.benefitTitle
+          };
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('eyevengers_applied_coupon', JSON.stringify(appliedObj));
+            localStorage.setItem('eyevengers_applied_coupon', JSON.stringify(appliedObj));
+          }
           return;
         } else {
           setCouponState({ type: 'error', message: data.error || 'Invalid or already claimed referral voucher', discount: 0 });
@@ -76,7 +110,7 @@ export default function CartPage() {
       const res = await fetch(`https://eyevengers-web.onrender.com/api/offers/validate-coupon`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: couponCode, cartItems, user: { id: 'guest', orderCount: 0 } })
+        body: JSON.stringify({ code: cleanCode, cartItems, user: { id: 'guest', orderCount: 0 } })
       });
       const data = await res.json();
       
@@ -87,20 +121,69 @@ export default function CartPage() {
         } else {
           discountVal = data.offer.discountValue;
         }
-        setCouponState({ type: 'success', message: `${couponCode} applied!`, discount: discountVal });
+        setCouponState({ type: 'success', message: `${cleanCode} applied!`, discount: discountVal });
+
+        const appliedObj = {
+          code: cleanCode,
+          discount: discountVal,
+          benefitType: 'OFFER_COUPON',
+          title: `${cleanCode} Applied`
+        };
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('eyevengers_applied_coupon', JSON.stringify(appliedObj));
+          localStorage.setItem('eyevengers_applied_coupon', JSON.stringify(appliedObj));
+        }
       } else {
-        setCouponState({ type: 'error', message: data.error, discount: 0 });
+        setCouponState({ type: 'error', message: data.error || 'Invalid coupon code', discount: 0 });
       }
     } catch (err) {
       setCouponState({ type: 'error', message: 'Failed to apply coupon', discount: 0 });
     }
   };
 
+  const applyCoupon = () => {
+    executeApply(couponCode);
+  };
+
+  const removeCoupon = () => {
+    setCouponCode('');
+    setCouponState({ type: 'none', message: '', discount: 0 });
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('eyevengers_applied_coupon');
+      localStorage.removeItem('eyevengers_applied_coupon');
+    }
+  };
+
+  // 2. Auto apply if coupon code is passed in URL e.g. /cart?coupon=REF-FREE-789
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlCoupon = urlParams.get('coupon');
+      if (urlCoupon) {
+        setCouponCode(urlCoupon.toUpperCase());
+        executeApply(urlCoupon.toUpperCase());
+      } else {
+        // Load existing applied coupon
+        try {
+          const cached = sessionStorage.getItem('eyevengers_applied_coupon') || localStorage.getItem('eyevengers_applied_coupon');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed && parsed.code) {
+              setCouponCode(parsed.code);
+              executeApply(parsed.code);
+            }
+          }
+        } catch (e) {}
+      }
+    }
+  }, [totalAmount]);
+
   const handleCheckout = () => {
     requireAuth(() => {
       router.push('/checkout');
     });
   };
+
 
   if (cartItems.length === 0) {
     return (
@@ -203,6 +286,49 @@ export default function CartPage() {
           {/* Bill Details */}
           <div className="w-full md:w-1/3">
             
+            {/* Unlocked Referral Rewards List */}
+            {userVouchers.length > 0 && (
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200 p-4 mb-4 shadow-sm">
+                <div className="flex items-center gap-1.5 text-emerald-800 font-extrabold text-xs uppercase tracking-wider mb-2.5">
+                  <Sparkles size={15} className="text-emerald-600" />
+                  Your Unlocked Referral Benefits:
+                </div>
+                <div className="space-y-2">
+                  {userVouchers.map((v) => {
+                    const isAlreadyApplied = couponState.type === 'success' && couponCode.toUpperCase() === v.code.toUpperCase();
+                    return (
+                      <div 
+                        key={v.code} 
+                        className={`bg-white p-3 rounded-xl border flex items-center justify-between gap-2 shadow-xs transition ${
+                          isAlreadyApplied ? 'border-emerald-500 ring-1 ring-emerald-500' : 'border-emerald-100 hover:border-emerald-300'
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <div className="font-mono font-black text-xs text-gray-900">{v.code}</div>
+                          <div className="text-xs text-emerald-700 font-semibold truncate">{v.benefitTitle}</div>
+                        </div>
+                        {isAlreadyApplied ? (
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-1 rounded-md shrink-0">
+                            Applied ✓
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setCouponCode(v.code);
+                              executeApply(v.code);
+                            }}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shrink-0 shadow-xs"
+                          >
+                            Apply
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Coupon Code Input */}
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm mb-4">
               <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2"><Tag size={16} /> Have a Coupon?</h3>
@@ -211,7 +337,7 @@ export default function CartPage() {
                   type="text" 
                   value={couponCode}
                   onChange={e => setCouponCode(e.target.value.toUpperCase())}
-                  placeholder="Enter code" 
+                  placeholder="Enter code (e.g. REF-...)" 
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 uppercase font-mono text-sm focus:outline-none focus:ring-2 focus:ring-brand-navy"
                 />
                 <button 
@@ -222,7 +348,17 @@ export default function CartPage() {
                 </button>
               </div>
               {couponState.type === 'error' && <p className="text-red-500 text-xs font-bold mt-2">{couponState.message}</p>}
-              {couponState.type === 'success' && <p className="text-green-600 text-xs font-bold mt-2">{couponState.message}</p>}
+              {couponState.type === 'success' && (
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+                  <p className="text-green-600 text-xs font-bold">{couponState.message}</p>
+                  <button 
+                    onClick={removeCoupon}
+                    className="text-[11px] text-red-500 hover:underline font-bold flex items-center gap-0.5 ml-2"
+                  >
+                    <X size={12} /> Remove
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm sticky top-24">
@@ -268,8 +404,9 @@ export default function CartPage() {
 
               <div className="flex justify-between font-bold text-lg text-gray-900 mb-6">
                 <span>Total Payable</span>
-                <span>₹{(totalAmount + shippingCharge - couponState.discount - membershipDiscountAmount).toFixed(0)}</span>
+                <span>₹{Math.max(0, totalAmount + shippingCharge - couponState.discount - membershipDiscountAmount).toFixed(0)}</span>
               </div>
+
 
               <button 
                 onClick={handleCheckout}

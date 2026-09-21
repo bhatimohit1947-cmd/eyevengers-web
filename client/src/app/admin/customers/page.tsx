@@ -12,14 +12,16 @@ export default function CustomersPage() {
   const loadCustomerStats = async (customer: any) => {
     try {
       // Load orders from API
-      const res = await fetchWithAuth('https://eyevengers-web.onrender.com/api/orders');
+      const res = await fetchWithAuth('https://eyevengers-web.onrender.com/api/admin/orders');
       if (res.ok) {
         const orders = await res.json();
-        const userOrders = orders.filter((o: any) => 
+        const userOrders = Array.isArray(orders) ? orders.filter((o: any) => 
           o.userId === customer.id || 
           o.details?.userPhone === customer.phone || 
-          o.details?.customerName === customer.name
-        );
+          o.details?.customerName === customer.name ||
+          o.orderDetails?.userPhone === customer.phone ||
+          o.orderDetails?.customerName === customer.name
+        ) : [];
         
         setCustomerStats({
           orders: userOrders.length,
@@ -29,7 +31,6 @@ export default function CustomersPage() {
       }
     } catch (e) {
       console.error('Failed to load stats', e);
-      // Fallback
       setCustomerStats({
         orders: 0,
         cartItems: customer.cartCount || 0,
@@ -46,48 +47,95 @@ export default function CustomersPage() {
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
-        const res = await fetchWithAuth('/api/customers');
-        let apiCustomers = await res.json();
-        if (!Array.isArray(apiCustomers)) apiCustomers = [];
+        let backendCustomers: any[] = [];
+
+        // 1. Try Direct Render Backend with Admin Auth
+        try {
+          const res = await fetchWithAuth('https://eyevengers-web.onrender.com/api/admin/customers');
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) backendCustomers = data;
+          }
+        } catch (e) {
+          console.warn("Direct backend customer fetch warning:", e);
+        }
+
+        // 2. Try Next.js local API route fallback
+        let apiCustomers: any[] = [];
+        try {
+          const resLocal = await fetch('/api/customers');
+          if (resLocal.ok) {
+            const localData = await resLocal.json();
+            if (Array.isArray(localData)) apiCustomers = localData;
+          }
+        } catch (e) {}
         
-        // Also load from local storage fallback (for immediate feedback when backend is down)
-        let localCustomers = [];
+        // 3. Load from localStorage fallback
+        let localCustomers: any[] = [];
         try {
           if (typeof window !== 'undefined') {
             localCustomers = JSON.parse(localStorage.getItem('eyevengers_mock_customers') || '[]');
           }
         } catch (e) {}
         
-        // Merge them intelligently, preserving the highest counts
-        const map = new Map();
+        // Merge all sources intelligently by phone number
+        const map = new Map<string, any>();
         
-        apiCustomers.forEach((c: any) => map.set(c.phone, { ...c }));
-        
-        localCustomers.forEach((c: any) => {
-          if (map.has(c.phone)) {
-            const existing = map.get(c.phone);
-            map.set(c.phone, {
+        // Add backend customers first (source of truth)
+        backendCustomers.forEach((c: any) => {
+          if (c.phone) map.set(c.phone.slice(-10), { ...c });
+        });
+
+        // Merge Next.js customers
+        apiCustomers.forEach((c: any) => {
+          if (!c.phone) return;
+          const cleanPhone = c.phone.slice(-10);
+          if (map.has(cleanPhone)) {
+            const existing = map.get(cleanPhone);
+            map.set(cleanPhone, {
               ...existing,
               ...c,
-              // Keep the highest stats if there's a discrepancy
               cartCount: Math.max(existing.cartCount || 0, c.cartCount || 0),
               wishlistCount: Math.max(existing.wishlistCount || 0, c.wishlistCount || 0)
             });
           } else {
-            map.set(c.phone, c);
+            map.set(cleanPhone, c);
+          }
+        });
+        
+        // Merge localStorage customers and sync any missing ones to backend
+        localCustomers.forEach((c: any) => {
+          if (!c.phone) return;
+          const cleanPhone = c.phone.slice(-10);
+          if (map.has(cleanPhone)) {
+            const existing = map.get(cleanPhone);
+            map.set(cleanPhone, {
+              ...existing,
+              ...c,
+              cartCount: Math.max(existing.cartCount || 0, c.cartCount || 0),
+              wishlistCount: Math.max(existing.wishlistCount || 0, c.wishlistCount || 0)
+            });
+          } else {
+            map.set(cleanPhone, c);
+            // Proactively sync this newly discovered customer to the backend
+            fetch('https://eyevengers-web.onrender.com/api/admin/customers', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(c)
+            }).catch(() => {});
           }
         });
         
         const mergedCustomers = Array.from(map.values());
 
         const formatted = mergedCustomers.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          email: c.email,
+          id: c.id || `CUST-${c.phone}`,
+          name: c.name || 'Customer',
+          email: c.email || 'N/A',
           phone: c.phone,
           cartCount: c.cartCount || 0,
           wishlistCount: c.wishlistCount || 0,
-          joinedAt: c.createdAt || new Date().toISOString()
+          joinedAt: c.createdAt || c.joinedAt || new Date().toISOString()
         }));
         
         // Sort by newest first

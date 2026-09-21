@@ -649,3 +649,47 @@ export const updateLensSettings = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to update lens settings' });
   }
 };
+
+// ==========================
+// REFERRAL DATA PERSISTENCE
+// ==========================
+export const getReferralData = async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabase
+      .from('global_settings')
+      .select('value')
+      .eq('key', 'referral_system_data')
+      .single();
+
+    if (error || !data?.value) {
+      return res.json(null);
+    }
+
+    try {
+      const parsed = JSON.parse(data.value);
+      return res.json(parsed);
+    } catch {
+      return res.json(null);
+    }
+  } catch (err) {
+    console.error('Error fetching referral data:', err);
+    res.json(null);
+  }
+};
+
+export const saveReferralData = async (req: Request, res: Response) => {
+  try {
+    const value = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    const { error } = await supabase.from('global_settings').upsert({
+      key: 'referral_system_data',
+      value
+    });
+
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error('Error saving referral data:', err);
+    res.status(500).json({ error: 'Failed to save referral data' });
+  }
+};
+

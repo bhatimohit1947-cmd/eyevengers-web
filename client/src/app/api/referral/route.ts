@@ -57,13 +57,58 @@ if (!(globalThis as any).referralData) {
   };
 }
 
+let lastSyncTime = 0;
+
+const ensureStoreLoaded = async () => {
+  const store = (globalThis as any).referralData;
+  const now = Date.now();
+  // Resync every 15 seconds or on cold start
+  if (now - lastSyncTime > 15000) {
+    lastSyncTime = now;
+    try {
+      const res = await fetch('https://eyevengers-web.onrender.com/api/admin/referral-data', { cache: 'no-store' });
+      if (res.ok) {
+        const remoteData = await res.json();
+        if (remoteData && Array.isArray(remoteData.vouchers)) {
+          const voucherMap = new Map();
+          (store.vouchers || []).forEach((v: any) => voucherMap.set(v.code, v));
+          (remoteData.vouchers || []).forEach((v: any) => voucherMap.set(v.code, v));
+          store.vouchers = Array.from(voucherMap.values());
+
+          if (remoteData.config) store.config = { ...store.config, ...remoteData.config };
+          
+          if (Array.isArray(remoteData.users)) {
+            const userMap = new Map();
+            (store.users || []).forEach((u: any) => userMap.set(u.phone, u));
+            (remoteData.users || []).forEach((u: any) => userMap.set(u.phone, u));
+            store.users = Array.from(userMap.values());
+          }
+        }
+      }
+    } catch (e) {
+      // Backend not yet reached or offline, fallback to in-memory
+    }
+  }
+  return store;
+};
+
+const persistStore = (store: any) => {
+  try {
+    fetch('https://eyevengers-web.onrender.com/api/admin/referral-data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(store)
+    }).catch(() => {});
+  } catch (e) {}
+};
+
 const getStore = () => (globalThis as any).referralData;
 
 // GET /api/referral?action=user-info&phone=... OR action=lookup&query=... OR action=admin-all
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const action = searchParams.get('action') || 'config';
-  const store = getStore();
+  const store = await ensureStoreLoaded();
 
   if (action === 'config') {
     return NextResponse.json({ success: true, config: store.config });
@@ -146,7 +191,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { action } = body;
-    const store = getStore();
+    const store = await ensureStoreLoaded();
 
     if (action === 'validate-voucher') {
       const code = (body.code || '').trim().toUpperCase();
@@ -202,6 +247,8 @@ export async function POST(req: NextRequest) {
       voucher.claimedStaffName = staffName || 'Store Manager';
       voucher.claimedInvoiceNo = invoiceNo || `INV-${Date.now().toString().slice(-6)}`;
 
+      persistStore(store);
+
       return NextResponse.json({
         success: true,
         message: 'SUCCESS: Voucher has been marked as Claimed at Store. Code is now locked and cannot be reused.',
@@ -217,6 +264,7 @@ export async function POST(req: NextRequest) {
         voucher.claimedAt = new Date().toISOString();
         voucher.claimedChannel = 'ONLINE';
         voucher.claimedInvoiceNo = orderId || 'ONLINE-ORDER';
+        persistStore(store);
       }
       return NextResponse.json({ success: true, voucher });
     }
@@ -282,6 +330,8 @@ export async function POST(req: NextRequest) {
       };
       store.vouchers.unshift(friendVoucher);
 
+      persistStore(store);
+
       return NextResponse.json({ 
         success: true, 
         message: 'Referral registered successfully! Rewards generated for both Referrer and Friend.',
@@ -292,8 +342,10 @@ export async function POST(req: NextRequest) {
 
     if (action === 'update-config') {
       store.config = { ...store.config, ...body.config };
+      persistStore(store);
       return NextResponse.json({ success: true, config: store.config });
     }
+
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (err: any) {

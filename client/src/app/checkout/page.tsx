@@ -19,9 +19,29 @@ export default function CheckoutPage() {
   
   const [calculatedTotal, setCalculatedTotal] = useState(baseTotalPrice);
   
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discount: number;
+    title: string;
+    benefitType?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem('eyevengers_applied_coupon') || localStorage.getItem('eyevengers_applied_coupon');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed.discount === 'number' && parsed.discount > 0) {
+          setAppliedCoupon(parsed);
+        }
+      }
+    } catch (e) {}
+  }, []);
+
   const hasFreeShipping = membershipBenefits?.freeShipping === true;
   const shippingCharge = hasFreeShipping ? 0 : 50;
-  const finalTotalPrice = calculatedTotal + shippingCharge;
+  const couponDiscount = appliedCoupon?.discount || 0;
+  const finalTotalPrice = Math.max(0, calculatedTotal + shippingCharge - couponDiscount);
   
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
@@ -85,11 +105,14 @@ export default function CheckoutPage() {
     setTimeout(() => {
       const addresses = getUserAddresses();
       const selectedAddress = addresses.find(a => a.id === selectedAddressId);
+      const orderId = `ORD-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
       const orderPayload = {
-        id: `ORD-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+        id: orderId,
         userId: user?.id,
         createdAt: new Date().toISOString(),
         amount: finalTotalPrice,
+        discountApplied: couponDiscount,
+        couponCode: appliedCoupon?.code,
         status: 'Order Placed',
         paymentMethod: 'cod',
         paymentStatus: 'Pending',
@@ -103,9 +126,31 @@ export default function CheckoutPage() {
           power: cartItems[0]?.lensConfig?.power,
           customerName: user?.name || 'Guest Customer',
           userPhone: user?.phone || 'N/A',
-          email: user?.email || undefined
+          email: user?.email || undefined,
+          couponApplied: appliedCoupon?.code,
+          benefitTitle: appliedCoupon?.title,
+          couponDiscount: couponDiscount
         }
       };
+
+      // If referral voucher, lock it online as claimed
+      if (appliedCoupon?.code && appliedCoupon.code.startsWith('REF-')) {
+        fetch('/api/referral', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'claim-online',
+            code: appliedCoupon.code,
+            orderId: orderId
+          })
+        }).catch(console.error);
+      }
+
+      // Clear applied coupon
+      try {
+        sessionStorage.removeItem('eyevengers_applied_coupon');
+        localStorage.removeItem('eyevengers_applied_coupon');
+      } catch (e) {}
 
       try {
         const storedOrders = JSON.parse(localStorage.getItem('eyevengers_mock_orders') || '[]');
@@ -133,6 +178,7 @@ export default function CheckoutPage() {
       setOrderSuccess(true);
       clearCart();
     }, 1500);
+
   };
 
   if (!hydrated || !isLoggedIn) return null;
@@ -206,6 +252,12 @@ export default function CheckoutPage() {
                   <span>Subtotal</span>
                   <span>₹{calculatedTotal.toFixed(0)}</span>
                 </div>
+                {appliedCoupon && couponDiscount > 0 && (
+                  <div className="flex justify-between text-green-600 font-bold">
+                    <span>Discount ({appliedCoupon.title || appliedCoupon.code})</span>
+                    <span>-₹{couponDiscount.toFixed(0)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
                   {hasFreeShipping ? (
