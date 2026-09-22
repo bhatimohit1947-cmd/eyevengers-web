@@ -249,6 +249,7 @@ export default function CustomersPage() {
               <tr>
                 <th className="px-6 py-4">Customer Name</th>
                 <th className="px-6 py-4">Phone</th>
+                <th className="px-6 py-4">Referral Code</th>
                 <th className="px-6 py-4">Email</th>
                 <th className="px-6 py-4">Joined At</th>
                 <th className="px-6 py-4 text-right">Actions</th>
@@ -259,6 +260,7 @@ export default function CustomersPage() {
                 const date = new Date(customer.joinedAt).toLocaleDateString('en-IN', {
                   day: 'numeric', month: 'short', year: 'numeric'
                 });
+                const refCode = customer.referralCode || `EYE-${customer.name?.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 5) || 'EYE'}${customer.phone?.slice(-4) || '1234'}`;
 
                 return (
                   <tr key={customer.id} className="hover:bg-gray-50 transition-colors">
@@ -271,6 +273,11 @@ export default function CustomersPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">{customer.phone}</td>
+                    <td className="px-6 py-4">
+                      <span className="font-mono text-xs font-bold text-brand-navy bg-blue-50/70 border border-blue-100 px-2.5 py-1 rounded-md">
+                        {refCode}
+                      </span>
+                    </td>
                     <td className="px-6 py-4">{customer.email || '-'}</td>
                     <td className="px-6 py-4">{date}</td>
                     <td className="px-6 py-4 text-right">
@@ -338,6 +345,12 @@ export default function CustomersPage() {
                   <span className="text-gray-500 font-medium">Joined</span>
                   <span className="text-gray-900 font-bold">
                     {new Date(selectedCustomer.joinedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm items-center pt-1 border-t border-gray-50">
+                  <span className="text-gray-500 font-medium">Referral Code</span>
+                  <span className="font-mono text-xs font-bold text-brand-navy bg-blue-50 px-2.5 py-1 rounded border border-blue-100">
+                    {selectedCustomer.referralCode || `EYE-${selectedCustomer.name?.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 5) || 'EYE'}${selectedCustomer.phone?.slice(-4) || '1234'}`}
                   </span>
                 </div>
               </div>

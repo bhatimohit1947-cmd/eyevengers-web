@@ -258,6 +258,73 @@ export default function AdminReferralsPage() {
         </form>
       </div>
 
+      {/* Live Customer Referral Codes & Status */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm">
+        <h2 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
+          <Users className="text-brand-navy" size={20} />
+          Active Customer Referral Codes & Live Status
+        </h2>
+        <p className="text-xs text-gray-500 mb-5">Each registered customer gets a unique referral code. Track their codes, friends referred, and live benefit status here.</p>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-gray-600">
+            <thead className="bg-gray-50 text-gray-400 font-bold uppercase text-[10px] tracking-wider border-b border-gray-100">
+              <tr>
+                <th className="py-3 px-4">Customer</th>
+                <th className="py-3 px-4">Referral Code</th>
+                <th className="py-3 px-4">Referral Link</th>
+                <th className="py-3 px-4 text-center">Friends Referred</th>
+                <th className="py-3 px-4 text-center">Active Benefits</th>
+                <th className="py-3 px-4 text-center">Claimed Rewards</th>
+                <th className="py-3 px-4 text-right">Benefit Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {data?.users?.map((u: any) => {
+                const hasActive = (u.activeRewards || 0) > 0;
+                const hasClaimed = (u.claimedRewards || 0) > 0;
+                return (
+                  <tr key={u.id || u.phone} className="hover:bg-gray-50/50 transition">
+                    <td className="py-3 px-4">
+                      <div className="font-bold text-gray-900">{u.name}</div>
+                      <div className="text-gray-400 text-[10px]">{u.phone}</div>
+                    </td>
+                    <td className="py-3 px-4 font-mono font-bold text-brand-navy bg-blue-50/40 rounded-lg">
+                      {u.referralCode}
+                    </td>
+                    <td className="py-3 px-4 font-mono text-[11px] text-gray-500 max-w-[200px] truncate">
+                      https://www.eyevengers.com/?ref={u.referralCode}
+                    </td>
+                    <td className="py-3 px-4 text-center font-bold text-gray-800">
+                      {u.totalReferred || 0}
+                    </td>
+                    <td className="py-3 px-4 text-center font-bold text-green-600">
+                      {u.activeRewards || 0}
+                    </td>
+                    <td className="py-3 px-4 text-center font-bold text-gray-500">
+                      {u.claimedRewards || 0}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      {hasActive ? (
+                        <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">
+                          <CheckCircle2 size={11} /> LIVE BENEFIT ACTIVE
+                        </span>
+                      ) : hasClaimed ? (
+                        <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">
+                          CLAIMED
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-[10px] font-medium">Ready (Share Code)</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* All Issued Vouchers & Redemption Log */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm">
         <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">

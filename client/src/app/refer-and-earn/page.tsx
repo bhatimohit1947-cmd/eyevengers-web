@@ -35,12 +35,48 @@ export default function ReferAndEarnPage() {
   const [simulating, setSimulating] = useState(false);
   const [simSuccessMsg, setSimSuccessMsg] = useState('');
 
-  const phone = user?.phone || '9876543210';
-  const name = user?.name || 'Customer';
+  // Resolve customer details from auth store or active session
+  const [resolvedPhone, setResolvedPhone] = useState<string>('');
+  const [resolvedName, setResolvedName] = useState<string>('');
+
+  useEffect(() => {
+    let p = user?.phone || '';
+    let n = user?.name || '';
+
+    if (!p || !n) {
+      try {
+        const storedAuth = JSON.parse(localStorage.getItem('auth-storage') || '{}');
+        if (storedAuth?.state?.user) {
+          if (!p) p = storedAuth.state.user.phone || '';
+          if (!n) n = storedAuth.state.user.name || '';
+        }
+      } catch(e) {}
+    }
+
+    if ((!p || p.length < 10) && n) {
+      try {
+        const mockCusts = JSON.parse(localStorage.getItem('eyevengers_mock_customers') || '[]');
+        const found = mockCusts.find((c: any) => c.name?.toLowerCase() === n.toLowerCase());
+        if (found?.phone) p = found.phone;
+      } catch(e) {}
+    }
+
+    setResolvedPhone(p);
+    setResolvedName(n);
+  }, [user]);
 
   const fetchReferralInfo = async () => {
     try {
-      const res = await fetch(`/api/referral?action=user-info&phone=${encodeURIComponent(phone)}&name=${encodeURIComponent(name)}`);
+      let queryUrl = '/api/referral?action=user-info';
+      if (resolvedPhone) queryUrl += `&phone=${encodeURIComponent(resolvedPhone)}`;
+      if (resolvedName) queryUrl += `&name=${encodeURIComponent(resolvedName)}`;
+      
+      // If neither is known yet and not logged in, fetch campaign config only
+      if (!resolvedPhone && !resolvedName && !isLoggedIn) {
+        queryUrl = '/api/referral?action=config';
+      }
+
+      const res = await fetch(queryUrl);
       const json = await res.json();
       if (json.success) {
         setData(json);
@@ -54,7 +90,7 @@ export default function ReferAndEarnPage() {
 
   useEffect(() => {
     fetchReferralInfo();
-  }, [phone, name]);
+  }, [resolvedPhone, resolvedName, isLoggedIn]);
 
   const copyCode = () => {
     if (!data?.referralCode) return;

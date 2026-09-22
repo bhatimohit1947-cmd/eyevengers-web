@@ -15,10 +15,7 @@ if (!(globalThis as any).referralData) {
       minOrderValue: 999,
       validityDays: 60,
     },
-    users: [
-      { phone: '9876543210', name: 'Rahul Sharma', referralCode: 'EYE-RAHUL10', createdAt: new Date(Date.now() - 86400000 * 10).toISOString() },
-      { phone: '9876543211', name: 'Priya Verma', referralCode: 'EYE-PRIYA22', createdAt: new Date(Date.now() - 86400000 * 5).toISOString() }
-    ],
+    users: [],
     vouchers: [
       {
         id: 'VOUCH-101',
@@ -198,32 +195,64 @@ export async function GET(req: NextRequest) {
   }
 
   if (action === 'user-info') {
-    const phone = (searchParams.get('phone') || '').replace(/[^0-9]/g, '').slice(-10);
-    const name = searchParams.get('name') || '';
+    const phoneParam = (searchParams.get('phone') || '').replace(/[^0-9]/g, '').slice(-10);
+    const nameParam = (searchParams.get('name') || '').trim();
 
-    if (!phone) {
-      return NextResponse.json({ error: 'Phone number is required' }, { status: 400 });
+    let customerRecord: any = null;
+    let referralCode = '';
+
+    // 1. First look up directly in Supabase customers table
+    try {
+      let sbUrl = `${SUPABASE_URL}/rest/v1/customers?select=*`;
+      if (phoneParam) {
+        sbUrl += `&phone=eq.${phoneParam}`;
+      } else if (nameParam) {
+        sbUrl += `&name=ilike.%25${encodeURIComponent(nameParam)}%25`;
+      }
+      const sbRes = await fetch(sbUrl, { headers: supabaseHeaders, cache: 'no-store' });
+      if (sbRes.ok) {
+        const custs = await sbRes.json();
+        if (Array.isArray(custs) && custs.length > 0) {
+          customerRecord = custs[0];
+          referralCode = customerRecord.referral_code || '';
+        }
+      }
+    } catch(e) {}
+
+    const resolvedPhone = phoneParam || customerRecord?.phone || '';
+    const resolvedName = (customerRecord?.name || nameParam || 'Customer').trim();
+
+    // 2. If customer has no referralCode yet, generate one from their real name & phone
+    if (!referralCode && (resolvedPhone || resolvedName)) {
+      const cleanName = resolvedName.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 5) || 'EYE';
+      const last4 = (resolvedPhone || '1234').slice(-4);
+      referralCode = `EYE-${cleanName}${last4}`;
+
+      // Persist to Supabase customers table
+      if (resolvedPhone) {
+        fetch(`${SUPABASE_URL}/rest/v1/customers?phone=eq.${resolvedPhone}`, {
+          method: 'PATCH',
+          headers: supabaseHeaders,
+          body: JSON.stringify({ referral_code: referralCode })
+        }).catch(() => {});
+      }
     }
 
-    let user = store.users.find((u: any) => u.phone.slice(-10) === phone);
-    if (!user) {
-      const prefix = (name ? name.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 5) : 'EYE') || 'EYE';
-      const newCode = `${prefix}${phone.slice(-4) || '1234'}`;
-      user = {
-        phone,
-        name: name || 'Valued Customer',
-        referralCode: newCode,
-        createdAt: new Date().toISOString()
-      };
-      store.users.push(user);
-    }
+    // 3. Fetch vouchers belonging to this referrer from store & Supabase
+    const userVouchers = (store.vouchers || []).filter((v: any) => 
+      (resolvedPhone && v.referrerPhone && v.referrerPhone.slice(-10) === resolvedPhone) ||
+      (resolvedName && v.referrerName && v.referrerName.toLowerCase() === resolvedName.toLowerCase())
+    );
 
-    const userVouchers = store.vouchers.filter((v: any) => v.referrerPhone.slice(-10) === phone);
     return NextResponse.json({
       success: true,
-      referralCode: user.referralCode,
-      referralLink: `https://www.eyevengers.com/?ref=${user.referralCode}`,
+      referralCode: referralCode || `EYE-${(resolvedPhone || '1234').slice(-4)}`,
+      referralLink: `https://www.eyevengers.com/?ref=${referralCode || `EYE-${(resolvedPhone || '1234').slice(-4)}`}`,
       config: store.config,
+      customer: {
+        name: resolvedName,
+        phone: resolvedPhone
+      },
       stats: {
         totalReferred: userVouchers.length,
         activeRewardsCount: userVouchers.filter((v: any) => v.status === 'ACTIVE').length,
@@ -251,18 +280,40 @@ export async function GET(req: NextRequest) {
   }
 
   if (action === 'admin-all') {
+    let allCustomers: any[] = [];
+    try {
+      const cRes = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*`, { headers: supabaseHeaders, cache: 'no-store' });
+      if (cRes.ok) {
+        allCustomers = await cRes.json();
+      }
+    } catch(e) {}
+
+    const usersList = (allCustomers || []).map((c: any) => {
+      const cVouchers = (store.vouchers || []).filter((v: any) => v.referrerPhone?.slice(-10) === c.phone?.slice(-10));
+      return {
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        referralCode: c.referral_code || `EYE-${c.name?.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 5) || 'EYE'}${c.phone?.slice(-4) || '1234'}`,
+        totalReferred: cVouchers.length,
+        activeRewards: cVouchers.filter((v: any) => v.status === 'ACTIVE').length,
+        claimedRewards: cVouchers.filter((v: any) => v.status === 'CLAIMED').length,
+        createdAt: c.created_at
+      };
+    });
+
     return NextResponse.json({
       success: true,
       config: store.config,
       stats: {
-        totalUsersWithCode: store.users.length,
+        totalUsersWithCode: usersList.length,
         totalVouchersIssued: store.vouchers.length,
         totalClaimedAtStore: store.vouchers.filter((v: any) => v.status === 'CLAIMED' && v.claimedChannel === 'STORE').length,
         totalClaimedOnline: store.vouchers.filter((v: any) => v.status === 'CLAIMED' && v.claimedChannel === 'ONLINE').length,
         totalActiveVouchers: store.vouchers.filter((v: any) => v.status === 'ACTIVE').length
       },
       vouchers: store.vouchers,
-      users: store.users
+      users: usersList
     });
   }
 
