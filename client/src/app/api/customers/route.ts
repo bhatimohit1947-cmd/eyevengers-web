@@ -88,6 +88,36 @@ async function fetchSupabaseCustomers() {
       }
     });
 
+    // Also extract customers from orders so no customer who ordered or signed up is ever missed
+    try {
+      const ordersRes = await fetch(`${SUPABASE_URL}/rest/v1/orders?select=*`, {
+        headers: supabaseHeaders,
+        cache: 'no-store'
+      });
+      if (ordersRes.ok) {
+        const ordersData = await ordersRes.json();
+        if (Array.isArray(ordersData)) {
+          ordersData.forEach((o: any) => {
+            const phone = o.details?.userPhone || o.details?.phone;
+            const name = o.details?.customerName || o.details?.name;
+            if (phone) {
+              const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
+              const exists = users.some(u => u.phone && u.phone.slice(-10) === cleanPhone);
+              if (!exists && cleanPhone.length === 10) {
+                users.push({
+                  id: o.details?.address?.userId || `CUST-${cleanPhone}`,
+                  name: name || 'Customer',
+                  phone: cleanPhone,
+                  email: o.details?.email || 'N/A',
+                  createdAt: o.created_at || new Date().toISOString()
+                });
+              }
+            }
+          });
+        }
+      }
+    } catch (e) {}
+
     const formatted = users.map(u => {
       const userMembership = membershipMap[u.id];
       const isActive = userMembership?.status === 'active';
@@ -104,6 +134,7 @@ async function fetchSupabaseCustomers() {
         membershipTier: isActive ? userMembership.tier : 'none'
       };
     });
+
 
     formatted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return formatted;
