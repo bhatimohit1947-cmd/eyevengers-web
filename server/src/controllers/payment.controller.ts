@@ -90,7 +90,25 @@ export const verifyMembershipPayment = async (req: Request, res: Response) => {
       status: 'active'
     };
     
-    // Save to Supabase global_settings
+    // 1. Save to dedicated user_memberships table in Supabase
+    try {
+      await supabase.from('user_memberships').upsert({
+        id: `MEM-${userId}-${Date.now()}`,
+        customer_id: userId,
+        customer_phone: userId,
+        plan_id: planId,
+        tier: tier,
+        payment_id: razorpay_payment_id || 'manual_or_test_pay',
+        order_id: razorpay_order_id || 'manual_order',
+        start_date: startDate.toISOString(),
+        expiry_date: expiryDate.toISOString(),
+        status: 'active'
+      });
+    } catch(e) {
+      console.warn('user_memberships table insert warning:', e);
+    }
+
+    // 2. Also save to Supabase global_settings for backwards compatibility
     await supabase.from('global_settings').upsert({
       key: `membership_${userId}`,
       value: JSON.stringify(membershipUpdate)

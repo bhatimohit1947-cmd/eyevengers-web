@@ -57,6 +57,53 @@ if (!(globalThis as any).referralData) {
   };
 }
 
+const SUPABASE_URL = 'https://bhjfsthxmzqumajquyvn.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy';
+const supabaseHeaders = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': `Bearer ${SUPABASE_KEY}`,
+  'Content-Type': 'application/json',
+  'Prefer': 'resolution=merge-duplicates'
+};
+
+async function saveVoucherToSupabase(v: any) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/referral_vouchers`, {
+      method: 'POST',
+      headers: supabaseHeaders,
+      body: JSON.stringify({
+        id: v.id || `VOUCH-${v.code}`,
+        code: v.code,
+        referrer_phone: v.referrerPhone || '0000000000',
+        referrer_name: v.referrerName || 'Valued Customer',
+        referred_phone: v.referredPhone || null,
+        referred_name: v.referredName || null,
+        benefit_type: v.benefitType || 'PERCENT_DISCOUNT',
+        benefit_value: v.benefitValue || 0,
+        benefit_title: v.benefitTitle || 'Discount',
+        status: v.status || 'ACTIVE',
+        issued_at: v.issuedAt || new Date().toISOString(),
+        expires_at: v.expiresAt || null,
+        claimed_at: v.claimedAt || null,
+        claimed_channel: v.claimedChannel || null,
+        claimed_store: v.claimedStoreLocation || null,
+        claimed_by_staff: v.claimedStaffName || null,
+        invoice_no: v.claimedInvoiceNo || null
+      })
+    });
+  } catch(e) {}
+}
+
+async function updateVoucherInSupabase(code: string, updates: any) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/referral_vouchers?code=eq.${encodeURIComponent(code)}`, {
+      method: 'PATCH',
+      headers: supabaseHeaders,
+      body: JSON.stringify(updates)
+    });
+  } catch(e) {}
+}
+
 let lastSyncTime = 0;
 
 const ensureStoreLoaded = async () => {
@@ -65,6 +112,42 @@ const ensureStoreLoaded = async () => {
   // Resync every 15 seconds or on cold start
   if (now - lastSyncTime > 15000) {
     lastSyncTime = now;
+    // 1. Fetch from Supabase referral_vouchers table
+    try {
+      const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/referral_vouchers?select=*`, {
+        headers: supabaseHeaders,
+        cache: 'no-store'
+      });
+      if (sbRes.ok) {
+        const rows = await sbRes.json();
+        if (Array.isArray(rows) && rows.length > 0) {
+          const vMap = new Map();
+          (store.vouchers || []).forEach((v: any) => vMap.set(v.code, v));
+          rows.forEach((r: any) => {
+            vMap.set(r.code, {
+              id: r.id,
+              code: r.code,
+              referrerPhone: r.referrer_phone,
+              referrerName: r.referrer_name,
+              referredPhone: r.referred_phone,
+              referredName: r.referred_name,
+              benefitType: r.benefit_type,
+              benefitValue: Number(r.benefit_value),
+              benefitTitle: r.benefit_title,
+              status: r.status,
+              issuedAt: r.issued_at,
+              expiresAt: r.expires_at,
+              claimedAt: r.claimed_at,
+              claimedChannel: r.claimed_channel,
+              claimedStoreLocation: r.claimed_store,
+              claimedStaffName: r.claimed_by_staff,
+              claimedInvoiceNo: r.invoice_no
+            });
+          });
+          store.vouchers = Array.from(vMap.values());
+        }
+      }
+    } catch(e) {}
     try {
       const res = await fetch('https://eyevengers-web.onrender.com/api/admin/referral-data', { cache: 'no-store' });
       if (res.ok) {
@@ -248,6 +331,14 @@ export async function POST(req: NextRequest) {
       voucher.claimedInvoiceNo = invoiceNo || `INV-${Date.now().toString().slice(-6)}`;
 
       persistStore(store);
+      updateVoucherInSupabase(voucher.code, {
+        status: 'CLAIMED',
+        claimed_at: voucher.claimedAt,
+        claimed_channel: 'STORE',
+        claimed_store: voucher.claimedStoreLocation,
+        claimed_by_staff: voucher.claimedStaffName,
+        invoice_no: voucher.claimedInvoiceNo
+      });
 
       return NextResponse.json({
         success: true,
@@ -265,6 +356,12 @@ export async function POST(req: NextRequest) {
         voucher.claimedChannel = 'ONLINE';
         voucher.claimedInvoiceNo = orderId || 'ONLINE-ORDER';
         persistStore(store);
+        updateVoucherInSupabase(voucher.code, {
+          status: 'CLAIMED',
+          claimed_at: voucher.claimedAt,
+          claimed_channel: 'ONLINE',
+          invoice_no: voucher.claimedInvoiceNo
+        });
       }
       return NextResponse.json({ success: true, voucher });
     }
@@ -331,6 +428,8 @@ export async function POST(req: NextRequest) {
       store.vouchers.unshift(friendVoucher);
 
       persistStore(store);
+      saveVoucherToSupabase(referrerVoucher);
+      saveVoucherToSupabase(friendVoucher);
 
       return NextResponse.json({ 
         success: true, 
