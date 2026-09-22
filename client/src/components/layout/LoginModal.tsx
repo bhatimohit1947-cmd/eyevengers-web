@@ -27,6 +27,10 @@ interface CustomerRecord {
   addresses?: Address[];
   membershipTier?: 'none' | 'bronze' | 'silver' | 'gold' | 'platinum';
   membershipBenefits?: any;
+  cartCount?: number;
+  wishlistCount?: number;
+  referralCode?: string;
+  referredBy?: string;
 }
 
 class ModalErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -106,6 +110,33 @@ export function LoginModal() {
 
     // Direct Supabase fallback
     try {
+      // First try dedicated customers table
+      const custRes = await fetch('https://bhjfsthxmzqumajquyvn.supabase.co/rest/v1/customers?select=*', {
+        headers: {
+          'apikey': 'sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy',
+          'Authorization': 'Bearer sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy'
+        }
+      });
+      if (custRes.ok) {
+        const custData = await custRes.json();
+        if (Array.isArray(custData) && custData.length > 0) {
+          return custData.map((c: any) => ({
+            id: c.id || `CUST-${c.phone}`,
+            name: c.name || 'Valued Customer',
+            phone: c.phone,
+            email: c.email || undefined,
+            pin: c.pin || '0000',
+            cartCount: c.cart_count || 0,
+            wishlistCount: c.wishlist_count || 0,
+            membershipTier: c.membership_tier || 'none',
+            referralCode: c.referral_code,
+            referredBy: c.referred_by,
+            createdAt: c.created_at || new Date().toISOString()
+          }));
+        }
+      }
+
+      // Secondary fallback to global_settings
       const sbRes = await fetch('https://bhjfsthxmzqumajquyvn.supabase.co/rest/v1/global_settings?select=*&key=like.user_%25', {
         headers: {
           'apikey': 'sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy',
@@ -136,6 +167,35 @@ export function LoginModal() {
 
     // 1. Direct Supabase save (Immediate cloud persistence)
     if (cleanPhone) {
+      const custId = customer.id || `CUST-${cleanPhone}`;
+      const customerRecordPayload = {
+        id: custId,
+        name: customer.name || 'Valued Customer',
+        phone: cleanPhone,
+        email: customer.email || null,
+        pin: customer.pin || '0000',
+        membership_tier: customer.membershipTier || 'none',
+        cart_count: customer.cartCount ?? 0,
+        wishlist_count: customer.wishlistCount ?? 0,
+        referral_code: customer.referralCode || null,
+        referred_by: customer.referredBy || null,
+        created_at: customer.createdAt || new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // A) Save into dedicated customers table in Supabase
+      fetch('https://bhjfsthxmzqumajquyvn.supabase.co/rest/v1/customers', {
+        method: 'POST',
+        headers: {
+          'apikey': 'sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy',
+          'Authorization': 'Bearer sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy',
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify(customerRecordPayload)
+      }).catch(() => {});
+
+      // B) Also save into global_settings for backwards compatibility
       fetch('https://bhjfsthxmzqumajquyvn.supabase.co/rest/v1/global_settings', {
         method: 'POST',
         headers: {

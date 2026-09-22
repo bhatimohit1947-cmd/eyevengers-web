@@ -147,6 +147,21 @@ export const getMembershipCustomers = async (req: Request, res: Response) => {
       });
     }
 
+    // Also look up in dedicated customers table
+    try {
+      const { data: custRows } = await supabase.from('customers').select('*');
+      if (custRows && Array.isArray(custRows)) {
+        custRows.forEach(c => {
+          if (c.id) {
+            usersMap[c.id] = { ...usersMap[c.id], ...c };
+          }
+          if (c.phone) {
+            usersMap[c.phone] = { ...usersMap[c.phone], ...c };
+          }
+        });
+      }
+    } catch (e) {}
+
     const { data: plansData } = await supabase.from('memberships').select('id, name');
     const plansMap: Record<string, string> = {};
     if (plansData) {

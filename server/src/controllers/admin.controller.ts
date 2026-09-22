@@ -179,14 +179,40 @@ export const getOrders = async (req: Request, res: Response) => {
 // ==========================
 // CUSTOMERS
 // ==========================
-// Removed prisma import
 export const getCustomers = async (req: Request, res: Response) => {
   try {
-    // Fetch everything from global_settings in Supabase
-    const { data: settingsData, error } = await supabase.from('global_settings').select('*');
-    if (error) throw error;
+    const usersMap = new Map<string, any>();
 
-    const users: any[] = [];
+    // 1. Fetch from dedicated customers table in Supabase
+    try {
+      const { data: custData } = await supabase.from('customers').select('*');
+      if (custData && Array.isArray(custData)) {
+        custData.forEach(c => {
+          if (c.phone) {
+            const cleanPhone = c.phone.replace(/[^0-9]/g, '').slice(-10);
+            usersMap.set(cleanPhone, {
+              id: c.id || `CUST-${cleanPhone}`,
+              name: c.name || 'Valued Customer',
+              phone: cleanPhone,
+              email: c.email || 'N/A',
+              pin: c.pin || '0000',
+              cartCount: c.cart_count || 0,
+              wishlistCount: c.wishlist_count || 0,
+              membershipTier: c.membership_tier || 'none',
+              referralCode: c.referral_code,
+              referredBy: c.referred_by,
+              createdAt: c.created_at || new Date().toISOString()
+            });
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Dedicated customers table not ready in admin controller, using global_settings fallback');
+    }
+
+    // 2. Fetch everything from global_settings in Supabase as fallback
+    const { data: settingsData } = await supabase.from('global_settings').select('*');
+
     const statsMap: Record<string, any> = {};
     const pinMap: Record<string, string> = {};
     const membershipMap: Record<string, any> = {};
@@ -195,7 +221,13 @@ export const getCustomers = async (req: Request, res: Response) => {
       settingsData.forEach(row => {
         if (row.key.startsWith('user_')) {
           try {
-            users.push(JSON.parse(row.value));
+            const u = JSON.parse(row.value);
+            if (u && u.phone) {
+              const cleanPhone = u.phone.replace(/[^0-9]/g, '').slice(-10);
+              if (!usersMap.has(cleanPhone)) {
+                usersMap.set(cleanPhone, u);
+              }
+            }
           } catch(e) {}
         } else if (row.key.startsWith('stats_')) {
           try {
@@ -227,8 +259,7 @@ export const getCustomers = async (req: Request, res: Response) => {
       });
     }
 
-
-    const formatted = users.map(u => {
+    const formatted = Array.from(usersMap.values()).map(u => {
       const userMembership = membershipMap[u.id];
       const isActive = userMembership?.status === 'active';
       return {
@@ -236,12 +267,12 @@ export const getCustomers = async (req: Request, res: Response) => {
         name: u.name,
         phone: u.phone,
         email: u.email,
-        pin: u.pin || pinMap[u.id] || '0000', // Use stored pin or fallback
-        cartCount: statsMap[u.id]?.cartCount || 0,
-        wishlistCount: statsMap[u.id]?.wishlistCount || 0,
+        pin: u.pin || pinMap[u.id] || '0000',
+        cartCount: u.cartCount || statsMap[u.id]?.cartCount || 0,
+        wishlistCount: u.wishlistCount || statsMap[u.id]?.wishlistCount || 0,
         joinedAt: u.createdAt,
         createdAt: u.createdAt,
-        membershipTier: isActive ? userMembership.tier : 'none',
+        membershipTier: isActive ? userMembership.tier : (u.membershipTier || 'none'),
         membershipBenefits: isActive ? plansBenefitsMap[userMembership.plan_id] : undefined
       };
     });
@@ -258,51 +289,42 @@ export const getCustomers = async (req: Request, res: Response) => {
 
 export const createOrUpdateCustomer = async (req: Request, res: Response) => {
   try {
-    const { id, name, email, phone, pin } = req.body;
-    let user;
-    
-    const userKey = `user_${phone}`;
-    const { data: existingData } = await supabase
-      .from('global_settings')
-      .select('value')
-      .eq('key', userKey)
-      .single();
+    const { id, name, email, phone, pin, membershipTier } = req.body;
+    const cleanPhone = (phone || '').replace(/[^0-9]/g, '').slice(-10);
+    const custId = id || `CUST-${cleanPhone}`;
 
-    if (existingData) {
-      try {
-        user = JSON.parse(existingData.value);
-        user.name = name;
-        user.email = email || user.email;
-        if (pin) user.pin = pin;
-      } catch (e) {}
-    } else {
-      user = {
-        id: id || `CUST-${Date.now()}`,
-        name,
-        email: email || null,
-        phone,
-        pin,
-        createdAt: new Date().toISOString()
-      };
-    }
+    const userObj = {
+      id: custId,
+      name: name || 'Valued Customer',
+      email: email || null,
+      phone: cleanPhone,
+      pin: pin || '0000',
+      membership_tier: membershipTier || 'none',
+      updated_at: new Date().toISOString()
+    };
 
-    // Save to global_settings
+    // 1. Save to dedicated customers table
+    try {
+      await supabase.from('customers').upsert(userObj);
+    } catch (e) {}
+
+    // 2. Also save to global_settings for backwards compatibility
+    const userKey = `user_${cleanPhone}`;
     await supabase.from('global_settings').upsert({
       key: userKey,
-      value: JSON.stringify(user)
+      value: JSON.stringify({ ...userObj, createdAt: new Date().toISOString() })
     });
 
-    // Save PIN separately for backward compatibility with old stats logic
     if (pin) {
       await supabase.from('global_settings').upsert({
-        key: `pin_${user.id}`,
+        key: `pin_${custId}`,
         value: pin
       });
     }
 
-    res.json({ success: true, customer: user });
+    res.json(userObj);
   } catch (error) {
-    console.error('Failed to save customer:', error);
+    console.error('Failed to create/update customer:', error);
     res.status(500).json({ error: 'Failed to save customer' });
   }
 };

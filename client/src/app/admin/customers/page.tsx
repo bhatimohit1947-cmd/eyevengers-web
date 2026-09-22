@@ -51,6 +51,40 @@ export default function CustomersPage() {
 
         // 1. Direct Supabase Cloud REST (Primary Zero-Lag Source of Truth)
         try {
+          // A) Fetch from dedicated customers table
+          const custRes = await fetch('https://bhjfsthxmzqumajquyvn.supabase.co/rest/v1/customers?select=*', {
+            headers: {
+              'apikey': 'sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy',
+              'Authorization': 'Bearer sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy'
+            },
+            cache: 'no-store'
+          });
+          if (custRes.ok) {
+            const custRows = await custRes.json();
+            if (Array.isArray(custRows)) {
+              custRows.forEach((c: any) => {
+                if (c.phone) {
+                  const cleanPhone = c.phone.replace(/[^0-9]/g, '').slice(-10);
+                  map.set(cleanPhone, {
+                    id: c.id || `CUST-${cleanPhone}`,
+                    name: c.name || 'Valued Customer',
+                    phone: cleanPhone,
+                    email: c.email || 'N/A',
+                    pin: c.pin || '0000',
+                    cartCount: c.cart_count || 0,
+                    wishlistCount: c.wishlist_count || 0,
+                    membershipTier: c.membership_tier || 'none',
+                    referralCode: c.referral_code,
+                    referredBy: c.referred_by,
+                    createdAt: c.created_at || new Date().toISOString(),
+                    joinedAt: c.created_at || new Date().toISOString()
+                  });
+                }
+              });
+            }
+          }
+
+          // B) Also check global_settings for any legacy customers
           const sbRes = await fetch('https://bhjfsthxmzqumajquyvn.supabase.co/rest/v1/global_settings?select=*&key=like.user_%25', {
             headers: {
               'apikey': 'sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy',
@@ -65,7 +99,10 @@ export default function CustomersPage() {
                 try {
                   const u = JSON.parse(r.value);
                   if (u && u.phone) {
-                    map.set(u.phone.slice(-10), u);
+                    const cleanPhone = u.phone.slice(-10);
+                    if (!map.has(cleanPhone)) {
+                      map.set(cleanPhone, u);
+                    }
                   }
                 } catch(e) {}
               });

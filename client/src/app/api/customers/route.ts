@@ -57,38 +57,92 @@ const saveFallbackCustomer = (customer: any) => {
 
 async function fetchSupabaseCustomers() {
   try {
+    const usersMap = new Map<string, any>();
+
+    // 1. Primary: Fetch directly from dedicated 'customers' Supabase table
+    try {
+      const custRes = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*`, {
+        headers: supabaseHeaders,
+        cache: 'no-store'
+      });
+      if (custRes.ok) {
+        const custData = await custRes.json();
+        if (Array.isArray(custData)) {
+          custData.forEach((c: any) => {
+            if (c.phone) {
+              const cleanPhone = c.phone.replace(/[^0-9]/g, '').slice(-10);
+              usersMap.set(cleanPhone, {
+                id: c.id || `CUST-${cleanPhone}`,
+                name: c.name || 'Valued Customer',
+                phone: cleanPhone,
+                email: c.email || 'N/A',
+                pin: c.pin || '0000',
+                cartCount: c.cart_count || 0,
+                wishlistCount: c.wishlist_count || 0,
+                membershipTier: c.membership_tier || 'none',
+                referralCode: c.referral_code,
+                referredBy: c.referred_by,
+                createdAt: c.created_at || new Date().toISOString(),
+                joinedAt: c.created_at || new Date().toISOString()
+              });
+            }
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Dedicated customers table not ready or error, checking global_settings...', e);
+    }
+
+    // 2. Fetch from global_settings (Legacy & metadata sync)
     const res = await fetch(`${SUPABASE_URL}/rest/v1/global_settings?select=*`, {
       headers: supabaseHeaders,
       cache: 'no-store'
     });
-    if (!res.ok) return [];
-    const settingsData = await res.json();
-    if (!Array.isArray(settingsData)) return [];
+    
+    let settingsData: any[] = [];
+    if (res.ok) {
+      settingsData = await res.json();
+    }
 
-    const users: any[] = [];
     const statsMap: Record<string, any> = {};
     const pinMap: Record<string, string> = {};
     const membershipMap: Record<string, any> = {};
 
-    settingsData.forEach((row: any) => {
-      if (row.key && row.key.startsWith('user_')) {
-        try {
-          users.push(JSON.parse(row.value));
-        } catch(e) {}
-      } else if (row.key && row.key.startsWith('stats_')) {
-        try {
-          statsMap[row.key.replace('stats_', '')] = JSON.parse(row.value);
-        } catch(e) {}
-      } else if (row.key && row.key.startsWith('pin_')) {
-        pinMap[row.key.replace('pin_', '')] = row.value;
-      } else if (row.key && row.key.startsWith('membership_')) {
-        try {
-          membershipMap[row.key.replace('membership_', '')] = JSON.parse(row.value);
-        } catch(e) {}
-      }
-    });
+    if (Array.isArray(settingsData)) {
+      settingsData.forEach((row: any) => {
+        if (row.key && row.key.startsWith('user_')) {
+          try {
+            const u = JSON.parse(row.value);
+            if (u && u.phone) {
+              const cleanPhone = u.phone.replace(/[^0-9]/g, '').slice(-10);
+              if (!usersMap.has(cleanPhone)) {
+                usersMap.set(cleanPhone, {
+                  id: u.id || `CUST-${cleanPhone}`,
+                  name: u.name || 'Valued Customer',
+                  phone: cleanPhone,
+                  email: u.email || 'N/A',
+                  pin: u.pin || '0000',
+                  createdAt: u.createdAt || new Date().toISOString(),
+                  joinedAt: u.createdAt || new Date().toISOString()
+                });
+              }
+            }
+          } catch(e) {}
+        } else if (row.key && row.key.startsWith('stats_')) {
+          try {
+            statsMap[row.key.replace('stats_', '')] = JSON.parse(row.value);
+          } catch(e) {}
+        } else if (row.key && row.key.startsWith('pin_')) {
+          pinMap[row.key.replace('pin_', '')] = row.value;
+        } else if (row.key && row.key.startsWith('membership_')) {
+          try {
+            membershipMap[row.key.replace('membership_', '')] = JSON.parse(row.value);
+          } catch(e) {}
+        }
+      });
+    }
 
-    // Also extract customers from orders so no customer who ordered or signed up is ever missed
+    // 3. Also extract customers from orders so no ordering customer is ever missed
     try {
       const ordersRes = await fetch(`${SUPABASE_URL}/rest/v1/orders?select=*`, {
         headers: supabaseHeaders,
@@ -102,14 +156,15 @@ async function fetchSupabaseCustomers() {
             const name = o.details?.customerName || o.details?.name;
             if (phone) {
               const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
-              const exists = users.some(u => u.phone && u.phone.slice(-10) === cleanPhone);
-              if (!exists && cleanPhone.length === 10) {
-                users.push({
+              if (cleanPhone.length === 10 && !usersMap.has(cleanPhone)) {
+                usersMap.set(cleanPhone, {
                   id: o.details?.address?.userId || `CUST-${cleanPhone}`,
                   name: name || 'Customer',
                   phone: cleanPhone,
                   email: o.details?.email || 'N/A',
-                  createdAt: o.created_at || new Date().toISOString()
+                  pin: '0000',
+                  createdAt: o.created_at || new Date().toISOString(),
+                  joinedAt: o.created_at || new Date().toISOString()
                 });
               }
             }
@@ -118,7 +173,7 @@ async function fetchSupabaseCustomers() {
       }
     } catch (e) {}
 
-    const formatted = users.map(u => {
+    const formatted = Array.from(usersMap.values()).map(u => {
       const userMembership = membershipMap[u.id];
       const isActive = userMembership?.status === 'active';
       return {
@@ -127,14 +182,15 @@ async function fetchSupabaseCustomers() {
         phone: u.phone,
         email: u.email || 'N/A',
         pin: u.pin || pinMap[u.id] || '0000',
-        cartCount: statsMap[u.id]?.cartCount || 0,
-        wishlistCount: statsMap[u.id]?.wishlistCount || 0,
-        joinedAt: u.createdAt || new Date().toISOString(),
-        createdAt: u.createdAt || new Date().toISOString(),
-        membershipTier: isActive ? userMembership.tier : 'none'
+        cartCount: u.cartCount || statsMap[u.id]?.cartCount || 0,
+        wishlistCount: u.wishlistCount || statsMap[u.id]?.wishlistCount || 0,
+        joinedAt: u.createdAt || u.joinedAt || new Date().toISOString(),
+        createdAt: u.createdAt || u.joinedAt || new Date().toISOString(),
+        membershipTier: isActive ? userMembership.tier : (u.membershipTier || 'none'),
+        referralCode: u.referralCode,
+        referredBy: u.referredBy
       };
     });
-
 
     formatted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return formatted;
@@ -150,16 +206,37 @@ async function saveCustomerToSupabase(customer: any) {
     if (!cleanPhone) return null;
 
     const userKey = `user_${cleanPhone}`;
+    const custId = customer.id || `CUST-${cleanPhone}`;
     const userObj = {
-      id: customer.id || `CUST-${Date.now()}`,
+      id: custId,
       name: customer.name || 'Valued Customer',
       email: customer.email || null,
       phone: cleanPhone,
       pin: customer.pin || '0000',
-      createdAt: customer.createdAt || new Date().toISOString()
+      membership_tier: customer.membershipTier || customer.membership_tier || 'none',
+      cart_count: customer.cartCount ?? customer.cart_count ?? 0,
+      wishlist_count: customer.wishlistCount ?? customer.wishlist_count ?? 0,
+      referral_code: customer.referralCode || customer.referral_code || null,
+      referred_by: customer.referredBy || customer.referred_by || null,
+      created_at: customer.createdAt || customer.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
 
-    // Upsert into Supabase global_settings
+    // 1. Save directly into dedicated 'customers' Supabase table
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/customers`, {
+        method: 'POST',
+        headers: {
+          ...supabaseHeaders,
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify(userObj)
+      });
+    } catch (e) {
+      console.warn('Dedicated customers table insert failed, falling back to global_settings', e);
+    }
+
+    // 2. Also save into global_settings as backwards-compatible fallback
     await fetch(`${SUPABASE_URL}/rest/v1/global_settings`, {
       method: 'POST',
       headers: {
