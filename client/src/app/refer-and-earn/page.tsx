@@ -25,7 +25,7 @@ export default function ReferAndEarnPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<'rewards' | 'how-it-works'>('rewards');
+  const [activeTab, setActiveTab] = useState<'rewards' | 'friends' | 'how-it-works'>('rewards');
   const [selectedVoucherForQR, setSelectedVoucherForQR] = useState<any>(null);
 
   // Friend simulation modal (for testing right inside the app)
@@ -221,10 +221,10 @@ export default function ReferAndEarnPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-gray-200 mb-5 bg-white rounded-t-xl px-2 sm:px-4 pt-1 sm:pt-2">
+        <div className="flex border-b border-gray-200 mb-5 bg-white rounded-t-xl px-2 sm:px-4 pt-1 sm:pt-2 overflow-x-auto">
           <button
             onClick={() => setActiveTab('rewards')}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-2.5 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition ${
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 whitespace-nowrap transition ${
               activeTab === 'rewards'
                 ? 'border-brand-navy text-brand-navy'
                 : 'border-transparent text-gray-500 hover:text-gray-900'
@@ -234,8 +234,19 @@ export default function ReferAndEarnPage() {
             My Rewards ({data?.vouchers?.length || 0})
           </button>
           <button
+            onClick={() => setActiveTab('friends')}
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 whitespace-nowrap transition ${
+              activeTab === 'friends'
+                ? 'border-brand-navy text-brand-navy'
+                : 'border-transparent text-gray-500 hover:text-gray-900'
+            }`}
+          >
+            <Users size={15} />
+            Referred Friends ({data?.friends?.length || data?.stats?.totalReferred || 0})
+          </button>
+          <button
             onClick={() => setActiveTab('how-it-works')}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-2.5 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition ${
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 whitespace-nowrap transition ${
               activeTab === 'how-it-works'
                 ? 'border-brand-navy text-brand-navy'
                 : 'border-transparent text-gray-500 hover:text-gray-900'
@@ -275,7 +286,7 @@ export default function ReferAndEarnPage() {
                   >
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-gray-100 pb-3 mb-3">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
                             isClaimed 
                               ? 'bg-gray-200 text-gray-700' 
@@ -283,8 +294,10 @@ export default function ReferAndEarnPage() {
                           }`}>
                             {isClaimed ? 'ALREADY CLAIMED (EXPIRED)' : 'ACTIVE (READY TO CLAIM)'}
                           </span>
-                          <span className="text-xs text-gray-400">
-                            Referred: {v.referredName || 'Friend'}
+                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-900 border border-blue-200">
+                            <Users size={12} className="text-brand-navy" />
+                            Dost: <strong className="text-gray-900">{v.referredName || 'Friend'}</strong>
+                            {v.referredPhone ? <span className="text-blue-700 font-mono text-[11px]">(+91 {v.referredPhone})</span> : null}
                           </span>
                         </div>
                         <h4 className="text-base sm:text-lg font-bold text-gray-900 mt-1">
@@ -352,7 +365,100 @@ export default function ReferAndEarnPage() {
           </div>
         )}
 
-        {/* Tab 2: How to Claim at Shop Instructions */}
+        {/* Tab 2: Referred Friends List */}
+        {activeTab === 'friends' && (
+          <div className="space-y-4">
+            {(!data?.friends || data.friends.length === 0) ? (
+              <div className="bg-white rounded-2xl p-10 text-center border border-gray-200 shadow-sm">
+                <Users className="mx-auto text-gray-300 mb-3" size={48} />
+                <h3 className="text-base font-bold text-gray-800 mb-1">Abhi tak koi dost nahi juda</h3>
+                <p className="text-xs text-gray-500 max-w-sm mx-auto mb-4">
+                  Jab bhi aapka dost aapke referral code se account banayega ya sign up karega, uska naam aur mobile number yahan list me dikhega aur aapka Free Frame reward card unlock hoga!
+                </p>
+                <button
+                  onClick={shareWhatsApp}
+                  className="bg-brand-navy text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-blue-900 transition"
+                >
+                  Share Code on WhatsApp
+                </button>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="p-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                      <Users size={16} className="text-brand-navy" />
+                      Aapke Refer Kiye Hue Dost ({data.friends.length})
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Har ek dost ke join karne par aapko alag 100% FREE Frame ya 30% OFF voucher unlock hota hai.
+                    </p>
+                  </div>
+                  <button
+                    onClick={shareWhatsApp}
+                    className="self-start sm:self-auto inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                  >
+                    <Share2 size={13} />
+                    Aur Dosto ko Bhejein
+                  </button>
+                </div>
+
+                <div className="divide-y divide-gray-100">
+                  {data.friends.map((friend: any, idx: number) => {
+                    const isClaimed = friend.status === 'CLAIMED';
+                    return (
+                      <div key={idx} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-blue-50/30 transition">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-brand-navy/10 text-brand-navy flex items-center justify-center font-bold text-sm shrink-0 uppercase">
+                            {(friend.name || 'D').charAt(0)}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="text-sm font-bold text-gray-900">{friend.name || 'Friend'}</h4>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                isClaimed
+                                  ? 'bg-gray-100 text-gray-600'
+                                  : 'bg-green-100 text-green-800 border border-green-200'
+                              }`}>
+                                {isClaimed ? 'Voucher Claimed' : 'Reward Active'}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500 flex items-center gap-2 mt-0.5">
+                              {friend.phone && <span className="font-mono text-gray-600">📱 +91 {friend.phone}</span>}
+                              {friend.joinedAt && (
+                                <>
+                                  <span>•</span>
+                                  <span>Joined: {new Date(friend.joinedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 self-end sm:self-auto">
+                          {friend.voucherCode && (
+                            <div className="flex items-center gap-1.5 bg-gray-100 border border-gray-200 px-2.5 py-1 rounded-lg">
+                              <span className="text-[11px] text-gray-500">Code:</span>
+                              <span className="font-mono text-xs font-bold text-gray-800">{friend.voucherCode}</span>
+                            </div>
+                          )}
+                          <button
+                            onClick={() => setActiveTab('rewards')}
+                            className="text-xs text-brand-navy font-bold hover:underline px-2 py-1"
+                          >
+                            View Reward Card →
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 3: How to Claim at Shop Instructions */}
         {activeTab === 'how-it-works' && (
           <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm space-y-6">
             <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">

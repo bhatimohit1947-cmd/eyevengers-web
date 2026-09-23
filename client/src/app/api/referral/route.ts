@@ -252,6 +252,49 @@ export async function GET(req: NextRequest) {
       return Boolean(phoneMatch || last4Match || nameMatch);
     });
 
+    // 4. Fetch all referred friends directly from Supabase customers table
+    let referredFriendsList: any[] = [];
+    try {
+      const frndRes = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*&referred_by=eq.${encodeURIComponent(referralCode)}`, {
+        headers: supabaseHeaders,
+        cache: 'no-store'
+      });
+      if (frndRes.ok) {
+        const frndData = await frndRes.json();
+        if (Array.isArray(frndData)) {
+          referredFriendsList = frndData;
+        }
+      }
+    } catch(e) {}
+
+    // Merge friend list from vouchers & customers table
+    const friendsMap = new Map<string, any>();
+    referredFriendsList.forEach((c: any) => {
+      const p = (c.phone || '').slice(-10);
+      friendsMap.set(p, {
+        name: c.name || 'Friend',
+        phone: p,
+        joinedAt: c.created_at || new Date().toISOString(),
+        voucherCode: userVouchers.find((v: any) => (v.referredPhone || '').slice(-10) === p)?.code || 'REWARD-UNLOCKED',
+        status: userVouchers.find((v: any) => (v.referredPhone || '').slice(-10) === p)?.status || 'ACTIVE'
+      });
+    });
+
+    userVouchers.forEach((v: any) => {
+      const p = (v.referredPhone || '').slice(-10);
+      if (p && !friendsMap.has(p)) {
+        friendsMap.set(p, {
+          name: v.referredName || 'Friend',
+          phone: p,
+          joinedAt: v.issuedAt || new Date().toISOString(),
+          voucherCode: v.code,
+          status: v.status
+        });
+      }
+    });
+
+    const friends = Array.from(friendsMap.values());
+
     return NextResponse.json({
       success: true,
       referralCode: referralCode || `EYE-${(resolvedPhone || '1234').slice(-4)}`,
@@ -262,11 +305,12 @@ export async function GET(req: NextRequest) {
         phone: resolvedPhone
       },
       stats: {
-        totalReferred: userVouchers.length,
+        totalReferred: Math.max(userVouchers.length, friends.length),
         activeRewardsCount: userVouchers.filter((v: any) => v.status === 'ACTIVE').length,
         claimedRewardsCount: userVouchers.filter((v: any) => v.status === 'CLAIMED').length
       },
-      vouchers: userVouchers
+      vouchers: userVouchers,
+      friends
     });
   }
 
