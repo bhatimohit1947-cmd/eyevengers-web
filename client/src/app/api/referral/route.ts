@@ -239,10 +239,18 @@ export async function GET(req: NextRequest) {
     }
 
     // 3. Fetch vouchers belonging to this referrer from store & Supabase
-    const userVouchers = (store.vouchers || []).filter((v: any) => 
-      (resolvedPhone && v.referrerPhone && v.referrerPhone.slice(-10) === resolvedPhone) ||
-      (resolvedName && v.referrerName && v.referrerName.toLowerCase() === resolvedName.toLowerCase())
-    );
+    const cleanDigits = (resolvedPhone || '').replace(/[^0-9]/g, '').slice(-10);
+    const last4Digits = cleanDigits.slice(-4);
+    const userVouchers = (store.vouchers || []).filter((v: any) => {
+      const vPhoneDigits = (v.referrerPhone || '').replace(/[^0-9]/g, '');
+      const phoneMatch = cleanDigits && vPhoneDigits.slice(-10) === cleanDigits;
+      const last4Match = last4Digits && vPhoneDigits.slice(-4) === last4Digits;
+      const nameMatch = resolvedName && v.referrerName && (
+        v.referrerName.toLowerCase() === resolvedName.toLowerCase() ||
+        v.referrerName.toLowerCase().includes(resolvedName.toLowerCase())
+      );
+      return Boolean(phoneMatch || last4Match || nameMatch);
+    });
 
     return NextResponse.json({
       success: true,
@@ -422,18 +430,70 @@ export async function POST(req: NextRequest) {
       const cleanFriendPhone = (friendPhone || '').replace(/[^0-9]/g, '').slice(-10);
       const cleanRefCode = (referralCode || '').trim().toUpperCase();
 
-      // Find or dynamically resolve referrer by referral code
-      let referrer = store.users.find((u: any) => u.referralCode.toUpperCase() === cleanRefCode);
+      // 1. Look up real referrer from Supabase customers table by referral_code
+      let referrer: any = null;
+      try {
+        const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*&referral_code=eq.${encodeURIComponent(cleanRefCode)}`, {
+          headers: supabaseHeaders,
+          cache: 'no-store'
+        });
+        if (sbRes.ok) {
+          const custs = await sbRes.json();
+          if (Array.isArray(custs) && custs.length > 0) {
+            referrer = {
+              phone: custs[0].phone,
+              name: custs[0].name,
+              referralCode: custs[0].referral_code
+            };
+          }
+        }
+      } catch(e) {}
 
-      // If user not in memory yet, parse from code e.g. PRADE8860 or MOHIT1234
+      // 2. Fallback: match by last 4 digits in phone if code ends with 4 digits
       if (!referrer) {
-        referrer = {
-          phone: cleanRefCode.slice(-4),
-          name: cleanRefCode.replace(/[0-9]/g, ''),
-          referralCode: cleanRefCode,
-          createdAt: new Date().toISOString()
-        };
-        store.users.push(referrer);
+        const last4 = cleanRefCode.slice(-4);
+        if (/^\d{4}$/.test(last4)) {
+          try {
+            const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*&phone=like.%25${last4}`, {
+              headers: supabaseHeaders,
+              cache: 'no-store'
+            });
+            if (sbRes.ok) {
+              const custs = await sbRes.json();
+              if (Array.isArray(custs) && custs.length > 0) {
+                referrer = {
+                  phone: custs[0].phone,
+                  name: custs[0].name,
+                  referralCode: custs[0].referral_code || cleanRefCode
+                };
+              }
+            }
+          } catch(e) {}
+        }
+      }
+
+      // 3. Fallback: memory store
+      if (!referrer) {
+        const memoryRef = store.users.find((u: any) => u.referralCode.toUpperCase() === cleanRefCode);
+        if (memoryRef) {
+          referrer = memoryRef;
+        } else {
+          referrer = {
+            phone: cleanRefCode.slice(-4),
+            name: cleanRefCode.replace(/[0-9]/g, '') || 'Valued Referrer',
+            referralCode: cleanRefCode,
+            createdAt: new Date().toISOString()
+          };
+        }
+      }
+
+      // Proactively bind the friend's record in Supabase customers table
+      if (cleanFriendPhone) {
+        fetch(`${SUPABASE_URL}/rest/v1/customers?phone=eq.${cleanFriendPhone}`, {
+          method: 'PATCH',
+          headers: supabaseHeaders,
+          body: JSON.stringify({ referred_by: cleanRefCode })
+        }).catch(() => {});
       }
 
       if (referrer.phone.slice(-10) === cleanFriendPhone) {
