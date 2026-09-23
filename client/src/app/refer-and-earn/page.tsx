@@ -53,11 +53,27 @@ export default function ReferAndEarnPage() {
       } catch(e) {}
     }
 
+    if (!p) {
+      try {
+        const savedPhone = localStorage.getItem('eyevengers_last_phone') || '';
+        if (savedPhone) p = savedPhone;
+        const savedName = localStorage.getItem('eyevengers_last_name') || '';
+        if (!n && savedName) n = savedName;
+      } catch(e) {}
+    }
+
     if ((!p || p.length < 10) && n) {
       try {
         const mockCusts = JSON.parse(localStorage.getItem('eyevengers_mock_customers') || '[]');
         const found = mockCusts.find((c: any) => c.name?.toLowerCase() === n.toLowerCase());
         if (found?.phone) p = found.phone;
+      } catch(e) {}
+    }
+
+    if (p) {
+      try {
+        localStorage.setItem('eyevengers_last_phone', p);
+        if (n) localStorage.setItem('eyevengers_last_name', n);
       } catch(e) {}
     }
 
@@ -220,6 +236,41 @@ export default function ReferAndEarnPage() {
           </div>
         </div>
 
+        {/* Target Progress Banner (If Admin set limit > 1 friend) */}
+        {data?.target?.requiredFriendsCount > 1 && (
+          <div className="bg-gradient-to-r from-blue-900 to-brand-navy text-white rounded-2xl p-4 sm:p-5 mb-5 shadow-sm border border-blue-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-full bg-yellow-400 text-brand-navy font-black text-[10px] uppercase">
+                    Offer Rule
+                  </span>
+                  <span className="font-bold text-sm sm:text-base">
+                    Refer {data.target.requiredFriendsCount} Friends to Unlock 1 {data?.config?.rewardTitle || 'FREE Frame'}!
+                  </span>
+                </div>
+                <p className="text-xs text-blue-200 mt-1">
+                  {data.target.isGoalReached 
+                    ? `🎉 Badhaai ho! Aapne ${data.target.totalFriendsReferred} dost judwaaye hain aur aapka reward unlock ho chuka hai!`
+                    : `Aapke abhi ${data.target.totalFriendsReferred} dost jude hain. Bas ${data.target.friendsNeededForNext} aur dost judte hi reward unlock ho jayega.`}
+                </p>
+              </div>
+
+              <div className="sm:text-right shrink-0">
+                <div className="text-xs text-blue-200 font-semibold mb-1">
+                  Target Progress: <strong className="text-white text-sm">{data.target.totalFriendsReferred} / {data.target.requiredFriendsCount} Friends</strong>
+                </div>
+                <div className="w-full sm:w-44 bg-white/20 h-2.5 rounded-full overflow-hidden">
+                  <div
+                    className="bg-yellow-400 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(100, Math.round((data.target.totalFriendsReferred / data.target.requiredFriendsCount) * 100))}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Tab Navigation */}
         <div className="flex border-b border-gray-200 mb-5 bg-white rounded-t-xl px-2 sm:px-4 pt-1 sm:pt-2 overflow-x-auto">
           <button
@@ -260,6 +311,42 @@ export default function ReferAndEarnPage() {
         {/* Tab 1: Unlocked Rewards List */}
         {activeTab === 'rewards' && (
           <div className="space-y-4">
+            {/* Locked Target Card if limit > 1 and not yet reached */}
+            {data?.target?.requiredFriendsCount > 1 && data?.target?.totalFriendsReferred < data?.target?.requiredFriendsCount && (
+              <div className="bg-amber-50/90 rounded-2xl p-5 border-2 border-dashed border-amber-300 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-200 text-amber-900 flex items-center justify-center font-bold text-lg shrink-0">
+                      🔒
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 uppercase tracking-wider">
+                          LOCKED REWARD
+                        </span>
+                        <span className="text-xs text-amber-800 font-semibold">
+                          {data.target.totalFriendsReferred} / {data.target.requiredFriendsCount} Friends Joined
+                        </span>
+                      </div>
+                      <h4 className="text-base font-bold text-gray-900 mt-1">
+                        {data?.config?.rewardTitle || 'FREE Eyevengers Frame'}
+                      </h4>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        Bas <strong className="text-amber-900">{data.target.friendsNeededForNext} aur dost</strong> ko refer karein yeh reward voucher unlock karne ke liye!
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={shareWhatsApp}
+                    className="bg-brand-navy hover:bg-blue-900 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 self-start sm:self-auto shadow-sm"
+                  >
+                    <Share2 size={13} />
+                    Invite Next Friend
+                  </button>
+                </div>
+              </div>
+            )}
             {(!data?.vouchers || data.vouchers.length === 0) ? (
               <div className="bg-white rounded-2xl p-10 text-center border border-gray-200 shadow-sm">
                 <Gift className="mx-auto text-gray-300 mb-3" size={48} />

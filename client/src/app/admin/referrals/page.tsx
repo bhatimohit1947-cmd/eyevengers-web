@@ -11,7 +11,9 @@ import {
   Save, 
   RefreshCw,
   TrendingUp,
-  Percent
+  Percent,
+  Target,
+  UserCheck
 } from 'lucide-react';
 
 export default function AdminReferralsPage() {
@@ -28,6 +30,7 @@ export default function AdminReferralsPage() {
   const [friendWelcomeDiscount, setFriendWelcomeDiscount] = useState(200);
   const [minOrderValue, setMinOrderValue] = useState(999);
   const [validityDays, setValidityDays] = useState(60);
+  const [requiredFriendsCount, setRequiredFriendsCount] = useState(1);
 
   const fetchAdminData = async () => {
     setLoading(true);
@@ -43,6 +46,7 @@ export default function AdminReferralsPage() {
         setFriendWelcomeDiscount(json.config?.friendWelcomeDiscount ?? 200);
         setMinOrderValue(json.config?.minOrderValue ?? 999);
         setValidityDays(json.config?.validityDays ?? 60);
+        setRequiredFriendsCount(json.config?.requiredFriendsCount ?? 1);
       }
     } catch (err) {
       console.error("Failed to load referral admin data", err);
@@ -73,7 +77,8 @@ export default function AdminReferralsPage() {
             rewardTitle: rewardTitle || (rewardType === 'FREE_FRAME' ? 'FREE Eyevengers Frame' : `${rewardValue}% OFF on Next Order`),
             friendWelcomeDiscount: Number(friendWelcomeDiscount),
             minOrderValue: Number(minOrderValue),
-            validityDays: Number(validityDays)
+            validityDays: Number(validityDays),
+            requiredFriendsCount: Number(requiredFriendsCount)
           }
         })
       });
@@ -245,6 +250,43 @@ export default function AdminReferralsPage() {
             />
           </div>
 
+          {/* Referral Limit Setting (Friends Target) */}
+          <div className="sm:col-span-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 sm:p-5 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 bg-amber-500 text-white rounded-md text-[10px] font-black uppercase tracking-wider">
+                    TARGET LIMIT
+                  </span>
+                  <label className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                    <Target size={16} className="text-amber-600" />
+                    Offer Unlock Requirement (Kitne Friends Refer Karne Par Reward Milega?)
+                  </label>
+                </div>
+                <p className="text-xs text-gray-600">
+                  Set karein ki customer ko reward voucher (Free Frame ya 30% OFF) pane ke liye kam se kam kitne friends ko refer karna hoga.
+                  <br />
+                  <span className="text-amber-800 font-semibold">
+                    (Default: 1 = Har dost ke sign up par 1 reward voucher. Agar 2 set karenge toh jab tak 2 dost judenge tabhi 1 reward unlock hoga).
+                  </span>
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border-2 border-amber-400 shadow-inner self-start sm:self-auto">
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  required
+                  value={requiredFriendsCount}
+                  onChange={e => setRequiredFriendsCount(Math.max(1, Number(e.target.value)))}
+                  className="w-16 text-center text-lg font-black text-brand-navy focus:outline-none"
+                />
+                <span className="text-xs font-bold text-gray-700 whitespace-nowrap">Friend(s) required</span>
+              </div>
+            </div>
+          </div>
+
           <div className="sm:col-span-3 pt-2">
             <button
               type="submit"
@@ -283,11 +325,22 @@ export default function AdminReferralsPage() {
               {data?.users?.map((u: any) => {
                 const hasActive = (u.activeRewards || 0) > 0;
                 const hasClaimed = (u.claimedRewards || 0) > 0;
+                const reqCount = data?.config?.requiredFriendsCount || 1;
                 return (
                   <tr key={u.id || u.phone} className="hover:bg-gray-50/50 transition">
                     <td className="py-3 px-4">
                       <div className="font-bold text-gray-900">{u.name}</div>
                       <div className="text-gray-400 text-[10px]">{u.phone}</div>
+                      {u.friendsList && u.friendsList.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {u.friendsList.map((f: any, fIdx: number) => (
+                            <span key={fIdx} className="inline-flex items-center gap-1 text-[10px] font-semibold bg-blue-50 text-blue-800 px-2 py-0.5 rounded-md border border-blue-200">
+                              <UserCheck size={10} className="text-blue-600" />
+                              {f.name} ({f.phone})
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </td>
                     <td className="py-3 px-4 font-mono font-bold text-brand-navy bg-blue-50/40 rounded-lg">
                       {u.referralCode}
@@ -295,8 +348,13 @@ export default function AdminReferralsPage() {
                     <td className="py-3 px-4 font-mono text-[11px] text-gray-500 max-w-[200px] truncate">
                       https://www.eyevengers.com/?ref={u.referralCode}
                     </td>
-                    <td className="py-3 px-4 text-center font-bold text-gray-800">
-                      {u.totalReferred || 0}
+                    <td className="py-3 px-4 text-center">
+                      <div className="font-bold text-gray-800">{u.totalReferred || 0}</div>
+                      {reqCount > 1 && (
+                        <div className="text-[10px] text-amber-600 font-semibold mt-0.5">
+                          (Target: {reqCount} / reward)
+                        </div>
+                      )}
                     </td>
                     <td className="py-3 px-4 text-center font-bold text-green-600">
                       {u.activeRewards || 0}

@@ -14,6 +14,7 @@ if (!(globalThis as any).referralData) {
       friendWelcomeDiscount: 200,
       minOrderValue: 999,
       validityDays: 60,
+      requiredFriendsCount: 1, // Number of friends required to unlock each reward
     },
     users: [],
     vouchers: [
@@ -101,13 +102,26 @@ async function updateVoucherInSupabase(code: string, updates: any) {
   } catch(e) {}
 }
 
+async function saveConfigToSupabase(config: any) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/global_settings`, {
+      method: 'POST',
+      headers: supabaseHeaders,
+      body: JSON.stringify({
+        key: 'referral_campaign_config',
+        value: JSON.stringify(config)
+      })
+    });
+  } catch(e) {}
+}
+
 let lastSyncTime = 0;
 
 const ensureStoreLoaded = async () => {
   const store = (globalThis as any).referralData;
   const now = Date.now();
-  // Resync every 15 seconds or on cold start
-  if (now - lastSyncTime > 15000) {
+  // Resync every 10 seconds or on cold start
+  if (now - lastSyncTime > 10000) {
     lastSyncTime = now;
     // 1. Fetch from Supabase referral_vouchers table
     try {
@@ -145,6 +159,22 @@ const ensureStoreLoaded = async () => {
         }
       }
     } catch(e) {}
+
+    // 2. Fetch config from Supabase global_settings table
+    try {
+      const gsRes = await fetch(`${SUPABASE_URL}/rest/v1/global_settings?key=eq.referral_campaign_config`, {
+        headers: supabaseHeaders,
+        cache: 'no-store'
+      });
+      if (gsRes.ok) {
+        const gsRows = await gsRes.json();
+        if (Array.isArray(gsRows) && gsRows.length > 0 && gsRows[0].value) {
+          const cfg = typeof gsRows[0].value === 'string' ? JSON.parse(gsRows[0].value) : gsRows[0].value;
+          store.config = { ...store.config, ...cfg };
+        }
+      }
+    } catch(e) {}
+
     try {
       const res = await fetch('https://eyevengers-web.onrender.com/api/admin/referral-data', { cache: 'no-store' });
       if (res.ok) {
@@ -241,48 +271,116 @@ export async function GET(req: NextRequest) {
     // 3. Fetch vouchers belonging to this referrer from store & Supabase
     const cleanDigits = (resolvedPhone || '').replace(/[^0-9]/g, '').slice(-10);
     const last4Digits = cleanDigits.slice(-4);
-    const userVouchers = (store.vouchers || []).filter((v: any) => {
+    const voucherMap = new Map<string, any>();
+
+    (store.vouchers || []).forEach((v: any) => {
       const vPhoneDigits = (v.referrerPhone || '').replace(/[^0-9]/g, '');
       const phoneMatch = cleanDigits && vPhoneDigits.slice(-10) === cleanDigits;
       const last4Match = last4Digits && vPhoneDigits.slice(-4) === last4Digits;
-      const nameMatch = resolvedName && v.referrerName && (
+      const nameMatch = resolvedName && resolvedName !== 'Customer' && v.referrerName && (
         v.referrerName.toLowerCase() === resolvedName.toLowerCase() ||
         v.referrerName.toLowerCase().includes(resolvedName.toLowerCase())
       );
-      return Boolean(phoneMatch || last4Match || nameMatch);
+      if (phoneMatch || last4Match || nameMatch) {
+        voucherMap.set(v.code, v);
+      }
     });
+
+    // Also query Supabase referral_vouchers directly so fresh records never miss
+    try {
+      const vConditions = [
+        resolvedPhone ? `referrer_phone.eq.${encodeURIComponent(resolvedPhone)}` : '',
+        cleanDigits ? `referrer_phone.like.%25${cleanDigits}` : '',
+        last4Digits ? `referrer_phone.like.%25${last4Digits}` : '',
+        resolvedName && resolvedName !== 'Customer' ? `referrer_name.ilike.%25${encodeURIComponent(resolvedName)}%25` : ''
+      ].filter(Boolean).join(',');
+
+      if (vConditions) {
+        const sbVRes = await fetch(`${SUPABASE_URL}/rest/v1/referral_vouchers?select=*&or=(${vConditions})`, {
+          headers: supabaseHeaders,
+          cache: 'no-store'
+        });
+        if (sbVRes.ok) {
+          const sbVRows = await sbVRes.json();
+          if (Array.isArray(sbVRows)) {
+            sbVRows.forEach((r: any) => {
+              if (!voucherMap.has(r.code)) {
+                voucherMap.set(r.code, {
+                  id: r.id,
+                  code: r.code,
+                  referrerPhone: r.referrer_phone,
+                  referrerName: r.referrer_name,
+                  referredPhone: r.referred_phone,
+                  referredName: r.referred_name,
+                  benefitType: r.benefit_type,
+                  benefitValue: Number(r.benefit_value),
+                  benefitTitle: r.benefit_title,
+                  status: r.status,
+                  issuedAt: r.issued_at,
+                  expiresAt: r.expires_at,
+                  claimedAt: r.claimed_at,
+                  claimedChannel: r.claimed_channel,
+                  claimedStoreLocation: r.claimed_store,
+                  claimedStaffName: r.claimed_by_staff,
+                  claimedInvoiceNo: r.invoice_no
+                });
+              }
+            });
+          }
+        }
+      }
+    } catch(e) {}
+
+    const userVouchers = Array.from(voucherMap.values());
 
     // 4. Fetch all referred friends directly from Supabase customers table
     let referredFriendsList: any[] = [];
     try {
-      const frndRes = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*&referred_by=eq.${encodeURIComponent(referralCode)}`, {
+      const cleanCode = (referralCode || '').trim();
+      const codeWithoutPrefix = cleanCode.replace(/^EYE-/, '');
+      const orConditions = [
+        cleanCode ? `referred_by.eq.${encodeURIComponent(cleanCode)}` : '',
+        cleanCode ? `referred_by.ilike.%25${encodeURIComponent(cleanCode)}%25` : '',
+        codeWithoutPrefix ? `referred_by.ilike.%25${encodeURIComponent(codeWithoutPrefix)}%25` : '',
+        resolvedPhone ? `referred_by.eq.${encodeURIComponent(resolvedPhone)}` : '',
+        cleanDigits ? `referred_by.like.%25${cleanDigits}` : '',
+        last4Digits ? `referred_by.like.%25${last4Digits}` : '',
+        resolvedName && resolvedName !== 'Customer' ? `referred_by.ilike.%25${encodeURIComponent(resolvedName)}%25` : ''
+      ].filter(Boolean).join(',');
+
+      const frndRes = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*&or=(${orConditions})`, {
         headers: supabaseHeaders,
         cache: 'no-store'
       });
       if (frndRes.ok) {
         const frndData = await frndRes.json();
         if (Array.isArray(frndData)) {
-          referredFriendsList = frndData;
+          // Do not include self as friend
+          referredFriendsList = frndData.filter((c: any) => {
+            const cPhone = (c.phone || '').slice(-10);
+            return cPhone && cPhone !== cleanDigits;
+          });
         }
       }
     } catch(e) {}
 
-    // Merge friend list from vouchers & customers table
+    // Merge friend list from Supabase customers & vouchers (NEVER DROP ANY FRIEND)
     const friendsMap = new Map<string, any>();
     referredFriendsList.forEach((c: any) => {
       const p = (c.phone || '').slice(-10);
+      const vMatch = userVouchers.find((v: any) => (v.referredPhone || '').slice(-10) === p);
       friendsMap.set(p, {
         name: c.name || 'Friend',
         phone: p,
         joinedAt: c.created_at || new Date().toISOString(),
-        voucherCode: userVouchers.find((v: any) => (v.referredPhone || '').slice(-10) === p)?.code || 'REWARD-UNLOCKED',
-        status: userVouchers.find((v: any) => (v.referredPhone || '').slice(-10) === p)?.status || 'ACTIVE'
+        voucherCode: vMatch?.code || 'REWARD-ACTIVE',
+        status: vMatch?.status || 'ACTIVE'
       });
     });
 
     userVouchers.forEach((v: any) => {
       const p = (v.referredPhone || '').slice(-10);
-      if (p && !friendsMap.has(p)) {
+      if (p && p !== cleanDigits && !friendsMap.has(p)) {
         friendsMap.set(p, {
           name: v.referredName || 'Friend',
           phone: p,
@@ -295,6 +393,27 @@ export async function GET(req: NextRequest) {
 
     const friends = Array.from(friendsMap.values());
 
+    // 5. Target / Limit Calculation
+    const requiredFriendsCount = Math.max(1, Number(store.config.requiredFriendsCount || 1));
+    const totalFriends = friends.length;
+    const eligibleRewards = Math.floor(totalFriends / requiredFriendsCount);
+    const progressInCurrentCycle = totalFriends % requiredFriendsCount;
+    const friendsNeededForNext = progressInCurrentCycle === 0 
+      ? (totalFriends === 0 ? requiredFriendsCount : 0)
+      : (requiredFriendsCount - progressInCurrentCycle);
+
+    const target = {
+      requiredFriendsCount,
+      totalFriendsReferred: totalFriends,
+      eligibleRewards,
+      progressInCurrentCycle,
+      friendsNeededForNext,
+      isGoalReached: totalFriends >= requiredFriendsCount,
+      progressPercent: requiredFriendsCount > 1 
+        ? Math.min(100, Math.round(((progressInCurrentCycle || (totalFriends >= requiredFriendsCount ? requiredFriendsCount : 0)) / requiredFriendsCount) * 100))
+        : 100
+    };
+
     return NextResponse.json({
       success: true,
       referralCode: referralCode || `EYE-${(resolvedPhone || '1234').slice(-4)}`,
@@ -304,6 +423,7 @@ export async function GET(req: NextRequest) {
         name: resolvedName,
         phone: resolvedPhone
       },
+      target,
       stats: {
         totalReferred: Math.max(userVouchers.length, friends.length),
         activeRewardsCount: userVouchers.filter((v: any) => v.status === 'ACTIVE').length,
@@ -341,15 +461,53 @@ export async function GET(req: NextRequest) {
     } catch(e) {}
 
     const usersList = (allCustomers || []).map((c: any) => {
-      const cVouchers = (store.vouchers || []).filter((v: any) => v.referrerPhone?.slice(-10) === c.phone?.slice(-10));
+      const cPhoneDigits = (c.phone || '').replace(/[^0-9]/g, '').slice(-10);
+      const cRefCode = (c.referral_code || `EYE-${c.name?.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 5) || 'EYE'}${c.phone?.slice(-4) || '1234'}`).trim().toUpperCase();
+
+      // Find all friends in customers table who were referred by this customer
+      const directFriends = (allCustomers || []).filter((f: any) => {
+        if (f.id === c.id || f.phone === c.phone) return false;
+        const refBy = (f.referred_by || '').trim().toUpperCase();
+        return refBy && (refBy === cRefCode || refBy === cPhoneDigits || (c.name && refBy.includes(c.name.toUpperCase())));
+      });
+
+      // Find all vouchers for this customer
+      const cVouchers = (store.vouchers || []).filter((v: any) => {
+        const vPhone = (v.referrerPhone || '').replace(/[^0-9]/g, '').slice(-10);
+        return vPhone && vPhone === cPhoneDigits;
+      });
+
+      // Merge friends list
+      const friendMap = new Map<string, any>();
+      directFriends.forEach((f: any) => {
+        const p = (f.phone || '').slice(-10);
+        friendMap.set(p, {
+          name: f.name || 'Friend',
+          phone: p,
+          joinedAt: f.created_at || new Date().toISOString()
+        });
+      });
+      cVouchers.forEach((v: any) => {
+        const p = (v.referredPhone || '').slice(-10);
+        if (p && p !== cPhoneDigits && !friendMap.has(p)) {
+          friendMap.set(p, {
+            name: v.referredName || 'Friend',
+            phone: p,
+            joinedAt: v.issuedAt || new Date().toISOString()
+          });
+        }
+      });
+      const friendsList = Array.from(friendMap.values());
+
       return {
         id: c.id,
         name: c.name,
         phone: c.phone,
-        referralCode: c.referral_code || `EYE-${c.name?.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 5) || 'EYE'}${c.phone?.slice(-4) || '1234'}`,
-        totalReferred: cVouchers.length,
+        referralCode: cRefCode,
+        totalReferred: Math.max(friendsList.length, cVouchers.length),
         activeRewards: cVouchers.filter((v: any) => v.status === 'ACTIVE').length,
         claimedRewards: cVouchers.filter((v: any) => v.status === 'CLAIMED').length,
+        friendsList,
         createdAt: c.created_at
       };
     });
@@ -546,23 +704,43 @@ export async function POST(req: NextRequest) {
 
       const expiresAt = new Date(Date.now() + store.config.validityDays * 86400000).toISOString();
 
-      // 1. Generate Referrer Reward Voucher (e.g. Free Frame or 30% OFF)
-      const referrerVoucherCode = `REF-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
-      const referrerVoucher = {
-        id: `VOUCH-${Date.now()}-REF`,
-        code: referrerVoucherCode,
-        referrerPhone: referrer.phone,
-        referrerName: referrer.name,
-        referredPhone: cleanFriendPhone,
-        referredName: friendName || 'New Friend',
-        benefitType: store.config.rewardType,
-        benefitValue: store.config.rewardValue,
-        benefitTitle: store.config.rewardTitle,
-        status: 'ACTIVE',
-        issuedAt: new Date().toISOString(),
-        expiresAt,
-      };
-      store.vouchers.unshift(referrerVoucher);
+      // Count total friends referred by this referrer so far (including this new one)
+      let totalFriendsCount = 1;
+      try {
+        const frndCountRes = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=id&referred_by=eq.${encodeURIComponent(cleanRefCode)}`, {
+          headers: supabaseHeaders,
+          cache: 'no-store'
+        });
+        if (frndCountRes.ok) {
+          const frnds = await frndCountRes.json();
+          totalFriendsCount = (Array.isArray(frnds) ? frnds.length : 0) + 1;
+        }
+      } catch(e) {}
+
+      const requiredFriends = Math.max(1, Number(store.config.requiredFriendsCount || 1));
+      const shouldIssueReferrerReward = (totalFriendsCount % requiredFriends === 0) || requiredFriends === 1;
+
+      let referrerVoucher: any = null;
+      if (shouldIssueReferrerReward) {
+        // 1. Generate Referrer Reward Voucher (e.g. Free Frame or 30% OFF)
+        const referrerVoucherCode = `REF-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
+        referrerVoucher = {
+          id: `VOUCH-${Date.now()}-REF`,
+          code: referrerVoucherCode,
+          referrerPhone: referrer.phone,
+          referrerName: referrer.name,
+          referredPhone: cleanFriendPhone,
+          referredName: friendName || 'New Friend',
+          benefitType: store.config.rewardType,
+          benefitValue: store.config.rewardValue,
+          benefitTitle: store.config.rewardTitle,
+          status: 'ACTIVE',
+          issuedAt: new Date().toISOString(),
+          expiresAt,
+        };
+        store.vouchers.unshift(referrerVoucher);
+        saveVoucherToSupabase(referrerVoucher);
+      }
 
       // 2. Generate Friend Welcome Voucher (e.g. Flat ₹200 OFF on First Purchase)
       const friendVoucherCode = `REF-WELCOME-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -581,22 +759,32 @@ export async function POST(req: NextRequest) {
         expiresAt,
       };
       store.vouchers.unshift(friendVoucher);
+      saveVoucherToSupabase(friendVoucher);
 
       persistStore(store);
-      saveVoucherToSupabase(referrerVoucher);
-      saveVoucherToSupabase(friendVoucher);
 
       return NextResponse.json({ 
         success: true, 
-        message: 'Referral registered successfully! Rewards generated for both Referrer and Friend.',
+        message: shouldIssueReferrerReward 
+          ? 'Referral registered successfully! Rewards generated for both Referrer and Friend.'
+          : `Referral registered! ${totalFriendsCount} / ${requiredFriends} friends joined.`,
         voucher: referrerVoucher,
-        friendVoucher 
+        friendVoucher,
+        target: {
+          totalFriendsCount,
+          requiredFriends,
+          isRewardUnlocked: shouldIssueReferrerReward
+        }
       });
     }
 
     if (action === 'update-config') {
       store.config = { ...store.config, ...body.config };
+      if (body.config?.requiredFriendsCount !== undefined) {
+        store.config.requiredFriendsCount = Math.max(1, Number(body.config.requiredFriendsCount));
+      }
       persistStore(store);
+      await saveConfigToSupabase(store.config);
       return NextResponse.json({ success: true, config: store.config });
     }
 
