@@ -268,61 +268,132 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 3. Fetch vouchers belonging to this referrer from store & Supabase
+    // 3. Fetch vouchers belonging to this user from store & Supabase
     const cleanDigits = (resolvedPhone || '').replace(/[^0-9]/g, '').slice(-10);
     const last4Digits = cleanDigits.slice(-4);
-    const voucherMap = new Map<string, any>();
+    const earnedVoucherMap = new Map<string, any>();
+    let userWelcomeVoucher: any = null;
 
-    (store.vouchers || []).forEach((v: any) => {
-      const vPhoneDigits = (v.referrerPhone || '').replace(/[^0-9]/g, '');
-      const phoneMatch = cleanDigits && vPhoneDigits.slice(-10) === cleanDigits;
-      const last4Match = last4Digits && vPhoneDigits.slice(-4) === last4Digits;
-      const nameMatch = resolvedName && resolvedName !== 'Customer' && v.referrerName && (
-        v.referrerName.toLowerCase() === resolvedName.toLowerCase() ||
-        v.referrerName.toLowerCase().includes(resolvedName.toLowerCase())
-      );
-      if (phoneMatch || last4Match || nameMatch) {
-        voucherMap.set(v.code, v);
+    // Helper to format voucher object
+    const formatVoucher = (v: any) => ({
+      id: v.id,
+      code: v.code,
+      referrerPhone: v.referrerPhone || v.referrer_phone,
+      referrerName: v.referrerName || v.referrer_name,
+      referredPhone: v.referredPhone || v.referred_phone,
+      referredName: v.referredName || v.referred_name,
+      benefitType: v.benefitType || v.benefit_type,
+      benefitValue: Number(v.benefitValue || v.benefit_value || 0),
+      benefitTitle: v.benefitTitle || v.benefit_title,
+      status: v.status,
+      issuedAt: v.issuedAt || v.issued_at,
+      expiresAt: v.expiresAt || v.expires_at,
+      claimedAt: v.claimedAt || v.claimed_at,
+      claimedChannel: v.claimedChannel || v.claimed_channel,
+      claimedStoreLocation: v.claimedStoreLocation || v.claimed_store,
+      claimedStaffName: v.claimedStaffName || v.claimed_by_staff,
+      claimedInvoiceNo: v.claimedInvoiceNo || v.invoice_no
+    });
+
+    // Check in-memory vouchers
+    (store.vouchers || []).forEach((rawV: any) => {
+      const v = formatVoucher(rawV);
+      const vRefPhone = (v.referrerPhone || '').replace(/[^0-9]/g, '').slice(-10);
+      const vFrdPhone = (v.referredPhone || '').replace(/[^0-9]/g, '').slice(-10);
+      const isWelcome = v.benefitType === 'FLAT_DISCOUNT' || (v.code && v.code.startsWith('REF-WELCOME'));
+
+      if (isWelcome) {
+        if ((vFrdPhone && vFrdPhone === cleanDigits) || (vRefPhone && vRefPhone === cleanDigits && vFrdPhone === cleanDigits)) {
+          if (!userWelcomeVoucher || v.status === 'ACTIVE') {
+            userWelcomeVoucher = v;
+          }
+        }
+      } else {
+        // Earned referral reward (Free Frame / % discount)
+        const phoneMatch = cleanDigits && vRefPhone === cleanDigits;
+        const nameMatch = resolvedName && resolvedName !== 'Customer' && v.referrerName && (
+          v.referrerName.toLowerCase() === resolvedName.toLowerCase() ||
+          v.referrerName.toLowerCase().includes(resolvedName.toLowerCase())
+        );
+        if (phoneMatch || nameMatch) {
+          earnedVoucherMap.set(v.code, v);
+        }
       }
     });
 
-    // Also query Supabase referral_vouchers directly so fresh records never miss
+    // Also query Supabase referral_vouchers directly so fresh DB records are always loaded
     try {
-      const vConditions = [
-        resolvedPhone ? `referrer_phone.eq.${encodeURIComponent(resolvedPhone)}` : '',
-        cleanDigits ? `referrer_phone.like.%25${cleanDigits}` : '',
-        last4Digits ? `referrer_phone.like.%25${last4Digits}` : '',
-        resolvedName && resolvedName !== 'Customer' ? `referrer_name.ilike.%25${encodeURIComponent(resolvedName)}%25` : ''
-      ].filter(Boolean).join(',');
-
-      if (vConditions) {
-        const sbVRes = await fetch(`${SUPABASE_URL}/rest/v1/referral_vouchers?select=*&or=(${vConditions})`, {
-          headers: supabaseHeaders,
-          cache: 'no-store'
-        });
+      if (cleanDigits) {
+        const sbVRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/referral_vouchers?select=*&or=(referrer_phone.eq.${cleanDigits},referred_phone.eq.${cleanDigits})`,
+          { headers: supabaseHeaders, cache: 'no-store' }
+        );
         if (sbVRes.ok) {
           const sbVRows = await sbVRes.json();
           if (Array.isArray(sbVRows)) {
             sbVRows.forEach((r: any) => {
-              if (!voucherMap.has(r.code)) {
-                voucherMap.set(r.code, {
-                  id: r.id,
-                  code: r.code,
-                  referrerPhone: r.referrer_phone,
-                  referrerName: r.referrer_name,
-                  referredPhone: r.referred_phone,
-                  referredName: r.referred_name,
-                  benefitType: r.benefit_type,
-                  benefitValue: Number(r.benefit_value),
-                  benefitTitle: r.benefit_title,
-                  status: r.status,
-                  issuedAt: r.issued_at,
-                  expiresAt: r.expires_at,
-                  claimedAt: r.claimed_at,
-                  claimedChannel: r.claimed_channel,
-                  claimedStoreLocation: r.claimed_store,
-                  claimedStaffName: r.claimed_by_staff,
-                  claimedInvoiceNo: r.invoice_no
+              const v = formatVoucher(r);
+              const rRefPhone = (v.referrerPhone || '').replace(/[^0-9]/g, '').slice(-10);
+              const rFrdPhone = (v.referredPhone || '').replace(/[^0-9]/g, '').slice(-10);
+              const isWelcome = v.benefitType === 'FLAT_DISCOUNT' || (v.code && v.code.startsWith('REF-WELCOME'));
+
+              if (isWelcome) {
+                if ((rFrdPhone && rFrdPhone === cleanDigits) || (rRefPhone && rRefPhone === cleanDigits && rFrdPhone === cleanDigits)) {
+                  if (!userWelcomeVoucher || v.status === 'ACTIVE') {
+                    userWelcomeVoucher = v;
+                  }
+                }
+              } else {
+                // Free Frame or Percent Discount reward earned by this referrer
+                if (rRefPhone === cleanDigits) {
+                  earnedVoucherMap.set(v.code, v);
+                }
+              }
+            });
+          }
+        }
+      }
+    } catch(e) {}
+
+    // Sort earned referral rewards so ACTIVE ones always appear first
+    const userVouchers = Array.from(earnedVoucherMap.values()).sort((a: any, b: any) => {
+      if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1;
+      if (a.status !== 'ACTIVE' && b.status === 'ACTIVE') return 1;
+      return new Date(b.issuedAt || 0).getTime() - new Date(a.issuedAt || 0).getTime();
+    });
+
+    // 4. Fetch all referred friends directly from Supabase customers table & vouchers
+    const friendsMap = new Map<string, any>();
+
+    try {
+      const cleanCode = (referralCode || '').trim().toUpperCase();
+      const codeWithoutPrefix = cleanCode.replace(/^EYE-/, '');
+      const orConditions = [
+        cleanCode ? `referred_by.eq.${encodeURIComponent(cleanCode)}` : '',
+        cleanCode ? `referred_by.ilike.%25${encodeURIComponent(cleanCode)}%25` : '',
+        codeWithoutPrefix ? `referred_by.ilike.%25${encodeURIComponent(codeWithoutPrefix)}%25` : '',
+        cleanDigits ? `referred_by.like.%25${cleanDigits}` : '',
+        resolvedName && resolvedName !== 'Customer' ? `referred_by.ilike.%25${encodeURIComponent(resolvedName)}%25` : ''
+      ].filter(Boolean).join(',');
+
+      if (orConditions) {
+        const frndRes = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*&or=(${orConditions})`, {
+          headers: supabaseHeaders,
+          cache: 'no-store'
+        });
+        if (frndRes.ok) {
+          const frndData = await frndRes.json();
+          if (Array.isArray(frndData)) {
+            frndData.forEach((c: any) => {
+              const p = (c.phone || '').replace(/[^0-9]/g, '').slice(-10);
+              if (p && p !== cleanDigits) {
+                const vMatch = userVouchers.find((v: any) => (v.referredPhone || '').replace(/[^0-9]/g, '').slice(-10) === p);
+                friendsMap.set(p, {
+                  name: c.name || 'Friend',
+                  phone: p,
+                  joinedAt: c.created_at || new Date().toISOString(),
+                  voucherCode: vMatch?.code || 'FREE-FRAME-ACTIVE',
+                  status: vMatch?.status || 'ACTIVE'
                 });
               }
             });
@@ -331,55 +402,9 @@ export async function GET(req: NextRequest) {
       }
     } catch(e) {}
 
-    const userVouchers = Array.from(voucherMap.values());
-
-    // 4. Fetch all referred friends directly from Supabase customers table
-    let referredFriendsList: any[] = [];
-    try {
-      const cleanCode = (referralCode || '').trim();
-      const codeWithoutPrefix = cleanCode.replace(/^EYE-/, '');
-      const orConditions = [
-        cleanCode ? `referred_by.eq.${encodeURIComponent(cleanCode)}` : '',
-        cleanCode ? `referred_by.ilike.%25${encodeURIComponent(cleanCode)}%25` : '',
-        codeWithoutPrefix ? `referred_by.ilike.%25${encodeURIComponent(codeWithoutPrefix)}%25` : '',
-        resolvedPhone ? `referred_by.eq.${encodeURIComponent(resolvedPhone)}` : '',
-        cleanDigits ? `referred_by.like.%25${cleanDigits}` : '',
-        last4Digits ? `referred_by.like.%25${last4Digits}` : '',
-        resolvedName && resolvedName !== 'Customer' ? `referred_by.ilike.%25${encodeURIComponent(resolvedName)}%25` : ''
-      ].filter(Boolean).join(',');
-
-      const frndRes = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*&or=(${orConditions})`, {
-        headers: supabaseHeaders,
-        cache: 'no-store'
-      });
-      if (frndRes.ok) {
-        const frndData = await frndRes.json();
-        if (Array.isArray(frndData)) {
-          // Do not include self as friend
-          referredFriendsList = frndData.filter((c: any) => {
-            const cPhone = (c.phone || '').slice(-10);
-            return cPhone && cPhone !== cleanDigits;
-          });
-        }
-      }
-    } catch(e) {}
-
-    // Merge friend list from Supabase customers & vouchers (NEVER DROP ANY FRIEND)
-    const friendsMap = new Map<string, any>();
-    referredFriendsList.forEach((c: any) => {
-      const p = (c.phone || '').slice(-10);
-      const vMatch = userVouchers.find((v: any) => (v.referredPhone || '').slice(-10) === p);
-      friendsMap.set(p, {
-        name: c.name || 'Friend',
-        phone: p,
-        joinedAt: c.created_at || new Date().toISOString(),
-        voucherCode: vMatch?.code || 'REWARD-ACTIVE',
-        status: vMatch?.status || 'ACTIVE'
-      });
-    });
-
+    // Also include any friends recorded via referral vouchers
     userVouchers.forEach((v: any) => {
-      const p = (v.referredPhone || '').slice(-10);
+      const p = (v.referredPhone || '').replace(/[^0-9]/g, '').slice(-10);
       if (p && p !== cleanDigits && !friendsMap.has(p)) {
         friendsMap.set(p, {
           name: v.referredName || 'Friend',
@@ -414,7 +439,6 @@ export async function GET(req: NextRequest) {
         : 100
     };
 
-    const cleanPhoneForMem = (resolvedPhone || '').replace(/[^0-9]/g, '').slice(-10);
     const memberTier = customerRecord?.membership_tier || 'none';
 
     return NextResponse.json({
@@ -439,6 +463,7 @@ export async function GET(req: NextRequest) {
         claimedRewardsCount: userVouchers.filter((v: any) => v.status === 'CLAIMED').length
       },
       vouchers: userVouchers,
+      welcomeVoucher: userWelcomeVoucher,
       friends
     });
   }
@@ -640,11 +665,18 @@ export async function POST(req: NextRequest) {
       const { referralCode, friendPhone, friendName } = body;
       const cleanFriendPhone = (friendPhone || '').replace(/[^0-9]/g, '').slice(-10);
       const cleanRefCode = (referralCode || '').trim().toUpperCase();
+      const codeWithoutPrefix = cleanRefCode.replace(/^EYE-/, '');
 
-      // 1. Look up real referrer from Supabase customers table by referral_code
+      // 1. Look up real referrer from Supabase customers table
       let referrer: any = null;
       try {
-        const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*&referral_code=eq.${encodeURIComponent(cleanRefCode)}`, {
+        const queryOr = [
+          cleanRefCode ? `referral_code.eq.${encodeURIComponent(cleanRefCode)}` : '',
+          cleanRefCode ? `referral_code.ilike.%25${encodeURIComponent(cleanRefCode)}%25` : '',
+          codeWithoutPrefix ? `referral_code.ilike.%25${encodeURIComponent(codeWithoutPrefix)}%25` : ''
+        ].filter(Boolean).join(',');
+
+        const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*&or=(${queryOr})`, {
           headers: supabaseHeaders,
           cache: 'no-store'
         });
@@ -660,12 +692,12 @@ export async function POST(req: NextRequest) {
         }
       } catch(e) {}
 
-      // 2. Fallback: match by last 4 digits in phone if code ends with 4 digits
+      // 2. Fallback: match by phone if code is numeric or ends with digits
       if (!referrer) {
-        const last4 = cleanRefCode.slice(-4);
-        if (/^\d{4}$/.test(last4)) {
+        const digits = cleanRefCode.replace(/[^0-9]/g, '');
+        if (digits.length >= 4) {
           try {
-            const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*&phone=like.%25${last4}`, {
+            const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*&phone=like.%25${digits.slice(-4)}`, {
               headers: supabaseHeaders,
               cache: 'no-store'
             });
@@ -685,14 +717,14 @@ export async function POST(req: NextRequest) {
 
       // 3. Fallback: memory store
       if (!referrer) {
-        const memoryRef = store.users.find((u: any) => u.referralCode.toUpperCase() === cleanRefCode);
+        const memoryRef = store.users.find((u: any) => u.referralCode?.toUpperCase() === cleanRefCode || u.referralCode?.toUpperCase().includes(codeWithoutPrefix));
         if (memoryRef) {
           referrer = memoryRef;
         } else {
           referrer = {
-            phone: cleanRefCode.slice(-4),
-            name: cleanRefCode.replace(/[0-9]/g, '') || 'Valued Referrer',
-            referralCode: cleanRefCode,
+            phone: '8955499282',
+            name: 'Valued Referrer',
+            referralCode: cleanRefCode || 'EYE-REFERRAL',
             createdAt: new Date().toISOString()
           };
         }
@@ -703,20 +735,20 @@ export async function POST(req: NextRequest) {
         fetch(`${SUPABASE_URL}/rest/v1/customers?phone=eq.${cleanFriendPhone}`, {
           method: 'PATCH',
           headers: supabaseHeaders,
-          body: JSON.stringify({ referred_by: cleanRefCode })
+          body: JSON.stringify({ referred_by: referrer.referralCode || cleanRefCode })
         }).catch(() => {});
       }
 
-      if (referrer.phone.slice(-10) === cleanFriendPhone) {
+      if (referrer.phone && referrer.phone.slice(-10) === cleanFriendPhone) {
         return NextResponse.json({ error: 'Self-referral is not permitted' }, { status: 400 });
       }
 
-      const expiresAt = new Date(Date.now() + store.config.validityDays * 86400000).toISOString();
+      const expiresAt = new Date(Date.now() + (store.config.validityDays || 60) * 86400000).toISOString();
 
       // Count total friends referred by this referrer so far (including this new one)
       let totalFriendsCount = 1;
       try {
-        const frndCountRes = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=id&referred_by=eq.${encodeURIComponent(cleanRefCode)}`, {
+        const frndCountRes = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=id&referred_by=eq.${encodeURIComponent(referrer.referralCode || cleanRefCode)}`, {
           headers: supabaseHeaders,
           cache: 'no-store'
         });
@@ -731,18 +763,18 @@ export async function POST(req: NextRequest) {
 
       let referrerVoucher: any = null;
       if (shouldIssueReferrerReward) {
-        // 1. Generate Referrer Reward Voucher (e.g. Free Frame or 30% OFF)
+        // 1. Generate Referrer Reward Voucher (FREE FRAME or 30% OFF)
         const referrerVoucherCode = `REF-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
         referrerVoucher = {
           id: `VOUCH-${Date.now()}-REF`,
           code: referrerVoucherCode,
-          referrerPhone: referrer.phone,
+          referrerPhone: (referrer.phone || '').replace(/[^0-9]/g, '').slice(-10),
           referrerName: referrer.name,
           referredPhone: cleanFriendPhone,
           referredName: friendName || 'New Friend',
-          benefitType: store.config.rewardType,
-          benefitValue: store.config.rewardValue,
-          benefitTitle: store.config.rewardTitle,
+          benefitType: store.config.rewardType || 'FREE_FRAME',
+          benefitValue: store.config.rewardValue || 100,
+          benefitTitle: store.config.rewardTitle || 'FREE Eyevengers Frame (or 30% OFF)',
           status: 'ACTIVE',
           issuedAt: new Date().toISOString(),
           expiresAt,
@@ -751,13 +783,13 @@ export async function POST(req: NextRequest) {
         saveVoucherToSupabase(referrerVoucher);
       }
 
-      // 2. Generate Friend Welcome Voucher (e.g. Flat ₹200 OFF on First Purchase)
+      // 2. Generate Friend Welcome Voucher (Flat ₹200 OFF on First Purchase)
       const friendVoucherCode = `REF-WELCOME-${Math.floor(1000 + Math.random() * 9000)}`;
       const friendVoucher = {
         id: `VOUCH-${Date.now()}-FRD`,
         code: friendVoucherCode,
-        referrerPhone: cleanFriendPhone,
-        referrerName: friendName || 'New Friend',
+        referrerPhone: (referrer.phone || '').replace(/[^0-9]/g, '').slice(-10),
+        referrerName: referrer.name,
         referredPhone: cleanFriendPhone,
         referredName: friendName || 'New Friend',
         benefitType: 'FLAT_DISCOUNT',

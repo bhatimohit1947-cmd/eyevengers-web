@@ -42,25 +42,30 @@ export default function ReferAndEarnPage() {
   const [resolvedName, setResolvedName] = useState<string>('');
 
   useEffect(() => {
-    let p = user?.phone || '';
-    let n = user?.name || '';
+    let p = (user?.phone || '').replace(/[^0-9]/g, '').slice(-10);
+    let n = (user?.name || '').trim();
 
     if (!p || !n) {
       try {
-        const storedAuth = JSON.parse(localStorage.getItem('auth-storage') || '{}');
+        const storedAuth = JSON.parse(
+          localStorage.getItem('eyevengers-auth-storage') || 
+          localStorage.getItem('auth-storage') || 
+          '{}'
+        );
         if (storedAuth?.state?.user) {
-          if (!p) p = storedAuth.state.user.phone || '';
-          if (!n) n = storedAuth.state.user.name || '';
+          const rawP = (storedAuth.state.user.phone || '').replace(/[^0-9]/g, '').slice(-10);
+          if (!p && rawP) p = rawP;
+          if (!n && storedAuth.state.user.name) n = storedAuth.state.user.name.trim();
         }
       } catch(e) {}
     }
 
     if (!p) {
       try {
-        const savedPhone = localStorage.getItem('eyevengers_last_phone') || '';
+        const savedPhone = (localStorage.getItem('eyevengers_last_phone') || '').replace(/[^0-9]/g, '').slice(-10);
         if (savedPhone) p = savedPhone;
         const savedName = localStorage.getItem('eyevengers_last_name') || '';
-        if (!n && savedName) n = savedName;
+        if (!n && savedName) n = savedName.trim();
       } catch(e) {}
     }
 
@@ -68,7 +73,7 @@ export default function ReferAndEarnPage() {
       try {
         const mockCusts = JSON.parse(localStorage.getItem('eyevengers_mock_customers') || '[]');
         const found = mockCusts.find((c: any) => c.name?.toLowerCase() === n.toLowerCase());
-        if (found?.phone) p = found.phone;
+        if (found?.phone) p = found.phone.replace(/[^0-9]/g, '').slice(-10);
       } catch(e) {}
     }
 
@@ -324,48 +329,53 @@ export default function ReferAndEarnPage() {
               </div>
 
               {/* Option 2: Referral Reward Voucher */}
-              <div 
-                onClick={() => setMemberBenefitChoice('referral')}
-                className={`cursor-pointer rounded-2xl p-4 border-2 transition relative flex flex-col justify-between ${
-                  memberBenefitChoice === 'referral'
-                    ? 'border-emerald-600 bg-emerald-50/60 ring-2 ring-emerald-600/20'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-                }`}
-              >
-                <div>
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-full">
-                      <Gift size={14} /> Option 2: Referral Reward
+              {(() => {
+                const earnedReward = data?.vouchers?.find((v: any) => v.benefitType === 'FREE_FRAME' || v.benefitType === 'PERCENT_DISCOUNT') || data?.vouchers?.[0];
+                return (
+                  <div 
+                    onClick={() => setMemberBenefitChoice('referral')}
+                    className={`cursor-pointer rounded-2xl p-4 border-2 transition relative flex flex-col justify-between ${
+                      memberBenefitChoice === 'referral'
+                        ? 'border-emerald-600 bg-emerald-50/60 ring-2 ring-emerald-600/20'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-full">
+                          <Gift size={14} /> Option 2: Referral Reward
+                        </div>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          memberBenefitChoice === 'referral' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-300'
+                        }`}>
+                          {memberBenefitChoice === 'referral' && <Check size={12} strokeWidth={3} />}
+                        </div>
+                      </div>
+                      <h4 className="font-bold text-gray-900 text-sm sm:text-base">
+                        {earnedReward?.benefitTitle || '100% FREE Frame (or 30% OFF)'}
+                      </h4>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Dost ko refer karne par mila hua special voucher code: <strong className="font-mono text-emerald-800">{earnedReward?.code || data?.referralCode || 'REFER-TO-UNLOCK'}</strong>
+                      </p>
                     </div>
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                      memberBenefitChoice === 'referral' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-300'
-                    }`}>
-                      {memberBenefitChoice === 'referral' && <Check size={12} strokeWidth={3} />}
+                    <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                      <span className="text-gray-500 font-medium">Status: {earnedReward ? 'Voucher Unlocked' : 'Refer to Unlock'}</span>
+                      <Link
+                        href={`/cart?prefer=referral${earnedReward?.code ? `&coupon=${earnedReward.code}` : ''}`}
+                        onClick={() => {
+                          if (typeof window !== 'undefined') {
+                            localStorage.setItem('eyevengers_chosen_benefit', 'referral');
+                            sessionStorage.setItem('eyevengers_chosen_benefit', 'referral');
+                          }
+                        }}
+                        className="font-bold text-emerald-700 hover:underline"
+                      >
+                        Apply in Cart →
+                      </Link>
                     </div>
                   </div>
-                  <h4 className="font-bold text-gray-900 text-sm sm:text-base">
-                    {data?.vouchers?.[0]?.benefitTitle || '100% FREE Frame (or 30% OFF)'}
-                  </h4>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Dost ko refer karne par mila hua special voucher code: <strong className="font-mono text-emerald-800">{data?.vouchers?.[0]?.code || 'REF-RE6P-193'}</strong>
-                  </p>
-                </div>
-                <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-                  <span className="text-gray-500 font-medium">Status: {data?.vouchers?.length ? 'Voucher Unlocked' : 'Refer to Unlock'}</span>
-                  <Link
-                    href={`/cart?prefer=referral${data?.vouchers?.[0]?.code ? `&coupon=${data.vouchers[0].code}` : ''}`}
-                    onClick={() => {
-                      if (typeof window !== 'undefined') {
-                        localStorage.setItem('eyevengers_chosen_benefit', 'referral');
-                        sessionStorage.setItem('eyevengers_chosen_benefit', 'referral');
-                      }
-                    }}
-                    className="font-bold text-emerald-700 hover:underline"
-                  >
-                    Apply in Cart →
-                  </Link>
-                </div>
-              </div>
+                );
+              })()}
             </div>
 
             <div className="p-3 bg-amber-100/60 rounded-xl text-[11px] text-amber-900 flex items-start gap-2">
@@ -488,6 +498,49 @@ export default function ReferAndEarnPage() {
                 </div>
               </div>
             )}
+            {/* Friend Welcome Voucher Banner (if user joined via a referral link) */}
+            {data?.welcomeVoucher && (
+              <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-brand-navy text-white rounded-2xl p-5 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-lg shrink-0">
+                      🎁
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-400 text-brand-navy uppercase tracking-wider">
+                          FRIEND WELCOME GIFT
+                        </span>
+                        <span className="text-xs text-blue-200 font-semibold">
+                          First Purchase Voucher
+                        </span>
+                      </div>
+                      <h4 className="text-base font-bold text-white mt-1">
+                        {data.welcomeVoucher.benefitTitle || 'Flat ₹200 OFF on First Order'}
+                      </h4>
+                      <p className="text-xs text-blue-100 mt-0.5">
+                        Code: <strong className="font-mono text-yellow-300">{data.welcomeVoucher.code}</strong>
+                        {data.welcomeVoucher.status === 'CLAIMED' ? ' (Claimed)' : ' • Valid on orders above ₹999'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {data.welcomeVoucher.status !== 'CLAIMED' ? (
+                    <Link
+                      href={`/cart?coupon=${encodeURIComponent(data.welcomeVoucher.code)}`}
+                      className="bg-yellow-400 hover:bg-yellow-300 text-brand-navy font-black text-xs px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 self-start sm:self-auto shadow-sm"
+                    >
+                      Apply ₹200 OFF in Cart →
+                    </Link>
+                  ) : (
+                    <span className="text-xs text-blue-200 bg-white/10 px-3 py-1.5 rounded-lg">
+                      Redeemed
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
             {(!data?.vouchers || data.vouchers.length === 0) ? (
               <div className="bg-white rounded-2xl p-10 text-center border border-gray-200 shadow-sm">
                 <Gift className="mx-auto text-gray-300 mb-3" size={48} />
