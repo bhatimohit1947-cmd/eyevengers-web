@@ -26,8 +26,14 @@ export default function CheckoutPage() {
     benefitType?: string;
   } | null>(null);
 
+  const [chosenBenefit, setChosenBenefit] = useState<'membership' | 'referral' | 'auto'>('auto');
+
   useEffect(() => {
     try {
+      const pref = sessionStorage.getItem('eyevengers_chosen_benefit') || localStorage.getItem('eyevengers_chosen_benefit');
+      if (pref === 'membership' || pref === 'referral') {
+        setChosenBenefit(pref);
+      }
       const cached = sessionStorage.getItem('eyevengers_applied_coupon') || localStorage.getItem('eyevengers_applied_coupon');
       if (cached) {
         const parsed = JSON.parse(cached);
@@ -40,7 +46,7 @@ export default function CheckoutPage() {
 
   const hasFreeShipping = membershipBenefits?.freeShipping === true;
   const shippingCharge = hasFreeShipping ? 0 : 50;
-  const couponDiscount = appliedCoupon?.discount || 0;
+  const couponDiscount = (chosenBenefit === 'membership') ? 0 : (appliedCoupon?.discount || 0);
   const finalTotalPrice = Math.max(0, calculatedTotal + shippingCharge - couponDiscount);
   
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -61,9 +67,11 @@ export default function CheckoutPage() {
         }
         
         let newTotal = 0;
+        const effectiveTier = (chosenBenefit === 'referral') ? 'none' : (membershipTier || 'none');
+        const effectiveBenefits = (chosenBenefit === 'referral') ? undefined : membershipBenefits;
         const userContext: UserContext = {
-          tier: membershipTier || 'none',
-          membershipBenefits
+          tier: effectiveTier,
+          membershipBenefits: effectiveBenefits
         };
 
         for (const item of cartItems) {
@@ -81,7 +89,7 @@ export default function CheckoutPage() {
         console.error("Failed to load offers for checkout", err);
         setCalculatedTotal(baseTotalPrice); // Fallback
       });
-  }, [cartItems, user, membershipBenefits, baseTotalPrice]);
+  }, [cartItems, user, membershipBenefits, membershipTier, baseTotalPrice, chosenBenefit]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -133,8 +141,8 @@ export default function CheckoutPage() {
         }
       };
 
-      // If referral voucher, lock it online as claimed
-      if (appliedCoupon?.code && appliedCoupon.code.startsWith('REF-')) {
+      // If referral voucher was used, lock it online as claimed
+      if (chosenBenefit !== 'membership' && appliedCoupon?.code && appliedCoupon.code.startsWith('REF-')) {
         fetch('/api/referral', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

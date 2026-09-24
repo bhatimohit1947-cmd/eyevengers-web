@@ -17,16 +17,18 @@ import {
   ArrowRight,
   ShieldCheck,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Crown
 } from 'lucide-react';
 
 export default function ReferAndEarnPage() {
-  const { user, isLoggedIn, openLoginModal } = useAuthStore();
+  const { user, isLoggedIn, openLoginModal, membershipTier, membershipBenefits } = useAuthStore();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'rewards' | 'friends' | 'how-it-works'>('rewards');
   const [selectedVoucherForQR, setSelectedVoucherForQR] = useState<any>(null);
+  const [memberBenefitChoice, setMemberBenefitChoice] = useState<'referral' | 'membership'>('referral');
 
   // Friend simulation modal (for testing right inside the app)
   const [showSimulateModal, setShowSimulateModal] = useState(false);
@@ -236,6 +238,129 @@ export default function ReferAndEarnPage() {
           </div>
         </div>
 
+        {/* Special Member Benefit Choice (for active members) */}
+        {isLoggedIn && membershipTier && membershipTier !== 'none' && (
+          <div className="bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-white border-2 border-amber-300 rounded-3xl p-5 sm:p-6 mb-5 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200 pb-3 mb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 bg-amber-500 text-white rounded-lg">
+                    <Crown size={18} />
+                  </span>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-gray-900 capitalize">
+                      Active {membershipTier} Member Benefit Choice
+                    </h3>
+                    <p className="text-xs text-gray-600">
+                      Aapke paas Membership perks bhi hain aur Referral rewards bhi! Chun sakte hain ki konsa benefit use karna hai:
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wider bg-amber-500 text-white px-3 py-1 rounded-full self-start sm:self-auto">
+                ⭐ {membershipTier} Member
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              {/* Option 1: Membership Benefit */}
+              <div 
+                onClick={() => setMemberBenefitChoice('membership')}
+                className={`cursor-pointer rounded-2xl p-4 border-2 transition relative flex flex-col justify-between ${
+                  memberBenefitChoice === 'membership'
+                    ? 'border-brand-navy bg-blue-50/60 ring-2 ring-brand-navy/20'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <div>
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-navy bg-brand-navy/10 px-2.5 py-1 rounded-full">
+                      <Crown size={14} className="text-amber-500" /> Option 1: Membership Perk
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                      memberBenefitChoice === 'membership' ? 'border-brand-navy bg-brand-navy text-white' : 'border-gray-300'
+                    }`}>
+                      {memberBenefitChoice === 'membership' && <Check size={12} strokeWidth={3} />}
+                    </div>
+                  </div>
+                  <h4 className="font-bold text-gray-900 text-sm sm:text-base">
+                    {membershipBenefits?.discountPercent || 15}% Instant Discount + Free Shipping
+                  </h4>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Valid on your entire cart items without any coupon code required.
+                  </p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                  <span className="text-gray-500 font-medium">Status: Unlimited Year-Round</span>
+                  <Link
+                    href="/cart?prefer=membership"
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        localStorage.setItem('eyevengers_chosen_benefit', 'membership');
+                        sessionStorage.setItem('eyevengers_chosen_benefit', 'membership');
+                      }
+                    }}
+                    className="font-bold text-brand-navy hover:underline"
+                  >
+                    Apply in Cart →
+                  </Link>
+                </div>
+              </div>
+
+              {/* Option 2: Referral Reward Voucher */}
+              <div 
+                onClick={() => setMemberBenefitChoice('referral')}
+                className={`cursor-pointer rounded-2xl p-4 border-2 transition relative flex flex-col justify-between ${
+                  memberBenefitChoice === 'referral'
+                    ? 'border-emerald-600 bg-emerald-50/60 ring-2 ring-emerald-600/20'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <div>
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-full">
+                      <Gift size={14} /> Option 2: Referral Reward
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                      memberBenefitChoice === 'referral' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-300'
+                    }`}>
+                      {memberBenefitChoice === 'referral' && <Check size={12} strokeWidth={3} />}
+                    </div>
+                  </div>
+                  <h4 className="font-bold text-gray-900 text-sm sm:text-base">
+                    {data?.vouchers?.[0]?.benefitTitle || '100% FREE Frame (or 30% OFF)'}
+                  </h4>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Dost ko refer karne par mila hua special voucher code: <strong className="font-mono text-emerald-800">{data?.vouchers?.[0]?.code || 'REF-RE6P-193'}</strong>
+                  </p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                  <span className="text-gray-500 font-medium">Status: {data?.vouchers?.length ? 'Voucher Unlocked' : 'Refer to Unlock'}</span>
+                  <Link
+                    href={`/cart?prefer=referral${data?.vouchers?.[0]?.code ? `&coupon=${data.vouchers[0].code}` : ''}`}
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        localStorage.setItem('eyevengers_chosen_benefit', 'referral');
+                        sessionStorage.setItem('eyevengers_chosen_benefit', 'referral');
+                      }
+                    }}
+                    className="font-bold text-emerald-700 hover:underline"
+                  >
+                    Apply in Cart →
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-100/60 rounded-xl text-[11px] text-amber-900 flex items-start gap-2">
+              <span className="font-bold shrink-0">💡 Store Policy:</span>
+              <span>
+                Ek order par ya toh <strong>Membership discount</strong> apply hota hai ya <strong>Referral voucher</strong>. Cart page par aap dono ki savings compare karke kabhi bhi apna pasandeeda benefit select kar sakte hain.
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Target Progress Banner (If Admin set limit > 1 friend) */}
         {data?.target?.requiredFriendsCount > 1 && (
           <div className="bg-gradient-to-r from-blue-900 to-brand-navy text-white rounded-2xl p-4 sm:p-5 mb-5 shadow-sm border border-blue-800">
@@ -432,7 +557,13 @@ export default function ReferAndEarnPage() {
                             Show QR at Shop
                           </button>
                           <Link
-                            href={`/cart?coupon=${encodeURIComponent(v.code)}`}
+                            href={`/cart?coupon=${encodeURIComponent(v.code)}&prefer=referral`}
+                            onClick={() => {
+                              if (typeof window !== 'undefined') {
+                                localStorage.setItem('eyevengers_chosen_benefit', 'referral');
+                                sessionStorage.setItem('eyevengers_chosen_benefit', 'referral');
+                              }
+                            }}
                             className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1 bg-gray-900 text-white px-3.5 py-2 rounded-xl text-xs font-bold hover:bg-black transition"
                           >
                             Use in Cart

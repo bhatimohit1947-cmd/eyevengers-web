@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Minus, Plus, Trash2, ShieldCheck, ChevronRight, Tag, ShoppingBag, Sparkles, X } from 'lucide-react';
+import { Minus, Plus, Trash2, ShieldCheck, ChevronRight, Tag, ShoppingBag, Sparkles, X, Crown, Gift, Check } from 'lucide-react';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthGate } from '@/hooks/useAuthGate';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -12,7 +12,7 @@ export default function CartPage() {
   const router = useRouter();
   const { items: cartItems, removeItem, updateQuantity, totalPrice } = useCartStore();
   const { requireAuth } = useAuthGate();
-  const { user, membershipBenefits } = useAuthStore();
+  const { user, membershipBenefits, membershipTier } = useAuthStore();
 
   // We are assuming mrp is some fixed percentage higher for UI mock purposes, 
   // since useCartStore only stores `price`. Let's mock MRP as price * 1.5
@@ -20,11 +20,14 @@ export default function CartPage() {
   const totalDiscount = cartItems.reduce((acc, item) => acc + ((item.price * 1.5 - item.price) * item.qty), 0);
   const totalAmount = totalPrice;
   
+  const hasMembership = Boolean(membershipTier && membershipTier !== 'none');
   const discountPercent = membershipBenefits?.discountPercent || 0;
-  const membershipDiscountAmount = discountPercent > 0 ? (totalAmount * (discountPercent / 100)) : 0;
+  const rawMembershipDiscount = (hasMembership && discountPercent > 0) ? (totalAmount * (discountPercent / 100)) : 0;
   
   const hasFreeShipping = membershipBenefits?.freeShipping === true;
   const shippingCharge = hasFreeShipping ? 0 : 50;
+
+  const [chosenBenefit, setChosenBenefit] = useState<'membership' | 'referral'>('membership');
 
   const [couponCode, setCouponCode] = useState("");
   const [couponState, setCouponState] = useState<{type: 'none' | 'success' | 'error', message: string, discount: number}>({
@@ -154,14 +157,32 @@ export default function CartPage() {
     }
   };
 
-  // 2. Auto apply if coupon code is passed in URL e.g. /cart?coupon=REF-FREE-789
+  // 2. Auto apply if coupon code or preference is passed in URL e.g. /cart?coupon=REF-FREE-789&prefer=referral
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const urlCoupon = urlParams.get('coupon');
+      const urlPrefer = urlParams.get('prefer');
+
+      if (urlPrefer === 'referral' || urlPrefer === 'membership') {
+        setChosenBenefit(urlPrefer);
+        sessionStorage.setItem('eyevengers_chosen_benefit', urlPrefer);
+        localStorage.setItem('eyevengers_chosen_benefit', urlPrefer);
+      } else {
+        const cachedPref = sessionStorage.getItem('eyevengers_chosen_benefit') || localStorage.getItem('eyevengers_chosen_benefit');
+        if (cachedPref === 'referral' || cachedPref === 'membership') {
+          setChosenBenefit(cachedPref);
+        }
+      }
+
       if (urlCoupon) {
         setCouponCode(urlCoupon.toUpperCase());
         executeApply(urlCoupon.toUpperCase());
+        if (urlPrefer === 'referral' || !urlPrefer) {
+          setChosenBenefit('referral');
+          sessionStorage.setItem('eyevengers_chosen_benefit', 'referral');
+          localStorage.setItem('eyevengers_chosen_benefit', 'referral');
+        }
       } else {
         // Load existing applied coupon
         try {
@@ -178,8 +199,35 @@ export default function CartPage() {
     }
   }, [totalAmount]);
 
+  const rawReferralDiscount = couponState.type === 'success' ? couponState.discount : 0;
+  const hasBothBenefits = hasMembership && rawReferralDiscount > 0;
+
+  let effectiveMembershipDiscount = 0;
+  let effectiveReferralDiscount = 0;
+
+  if (hasBothBenefits) {
+    if (chosenBenefit === 'membership') {
+      effectiveMembershipDiscount = rawMembershipDiscount;
+      effectiveReferralDiscount = 0;
+    } else {
+      effectiveMembershipDiscount = 0;
+      effectiveReferralDiscount = rawReferralDiscount;
+    }
+  } else {
+    effectiveMembershipDiscount = rawMembershipDiscount;
+    effectiveReferralDiscount = rawReferralDiscount;
+  }
+
   const handleCheckout = () => {
     requireAuth(() => {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('eyevengers_chosen_benefit', chosenBenefit);
+        localStorage.setItem('eyevengers_chosen_benefit', chosenBenefit);
+        if (hasBothBenefits && chosenBenefit === 'membership') {
+          sessionStorage.removeItem('eyevengers_applied_coupon');
+          localStorage.removeItem('eyevengers_applied_coupon');
+        }
+      }
       router.push('/checkout');
     });
   };
@@ -361,6 +409,115 @@ export default function CartPage() {
               )}
             </div>
 
+            {/* Exclusive Benefit Choice Selector (If Customer is a Member and has Referral Voucher) */}
+            {hasBothBenefits && (
+              <div className="bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-4 mb-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2.5 border-b border-amber-200 pb-2">
+                  <div className="flex items-center gap-1.5 text-amber-900 font-extrabold text-xs uppercase tracking-wider">
+                    <Crown size={15} className="text-amber-600" />
+                    Benefit Choice: Choose What to Apply
+                  </div>
+                  <span className="text-[10px] font-black bg-amber-500 text-white px-2 py-0.5 rounded-full uppercase">
+                    {membershipTier} Member
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-gray-600 mb-3">
+                  Aapke paas Membership perks bhi hain aur Referral Voucher bhi! Chun sakte hain ki is order me konsa benefit lena hai:
+                </p>
+
+                <div className="space-y-2">
+                  {/* Option 1: Membership Perk */}
+                  <div
+                    onClick={() => {
+                      setChosenBenefit('membership');
+                      if (typeof window !== 'undefined') {
+                        sessionStorage.setItem('eyevengers_chosen_benefit', 'membership');
+                        localStorage.setItem('eyevengers_chosen_benefit', 'membership');
+                      }
+                    }}
+                    className={`cursor-pointer p-3 rounded-xl border-2 transition flex items-center justify-between gap-3 ${
+                      chosenBenefit === 'membership'
+                        ? 'border-brand-navy bg-white ring-2 ring-brand-navy/20 shadow-xs'
+                        : 'border-amber-200/60 bg-white/70 hover:bg-white'
+                    }`}
+                  >
+                    <div className="flex items-start gap-2.5 min-w-0">
+                      <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                        chosenBenefit === 'membership' ? 'border-brand-navy bg-brand-navy text-white' : 'border-gray-300'
+                      }`}>
+                        {chosenBenefit === 'membership' && <Check size={10} strokeWidth={3} />}
+                      </div>
+                      <div>
+                        <div className="font-bold text-xs text-brand-navy flex items-center gap-1">
+                          <Crown size={12} className="text-amber-500" />
+                          {membershipTier?.toUpperCase()} Membership Discount
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {discountPercent}% OFF on products + Free Delivery
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-xs font-black text-brand-navy">
+                        -₹{rawMembershipDiscount.toFixed(0)}
+                      </div>
+                      <div className="text-[10px] font-bold text-blue-700">
+                        {chosenBenefit === 'membership' ? 'Applied ✓' : 'Select'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Option 2: Referral Voucher */}
+                  <div
+                    onClick={() => {
+                      setChosenBenefit('referral');
+                      if (typeof window !== 'undefined') {
+                        sessionStorage.setItem('eyevengers_chosen_benefit', 'referral');
+                        localStorage.setItem('eyevengers_chosen_benefit', 'referral');
+                      }
+                    }}
+                    className={`cursor-pointer p-3 rounded-xl border-2 transition flex items-center justify-between gap-3 ${
+                      chosenBenefit === 'referral'
+                        ? 'border-emerald-600 bg-white ring-2 ring-emerald-600/20 shadow-xs'
+                        : 'border-amber-200/60 bg-white/70 hover:bg-white'
+                    }`}
+                  >
+                    <div className="flex items-start gap-2.5 min-w-0">
+                      <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                        chosenBenefit === 'referral' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-300'
+                      }`}>
+                        {chosenBenefit === 'referral' && <Check size={10} strokeWidth={3} />}
+                      </div>
+                      <div>
+                        <div className="font-bold text-xs text-emerald-800 flex items-center gap-1">
+                          <Gift size={12} className="text-emerald-600" />
+                          Referral Voucher ({couponCode})
+                        </div>
+                        <div className="text-xs text-gray-500 truncate mt-0.5">
+                          {couponState.message.replace('Applied!', '').replace('🎉', '').trim() || 'Reward Voucher'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-xs font-black text-emerald-700">
+                        -₹{rawReferralDiscount.toFixed(0)}
+                      </div>
+                      <div className="text-[10px] font-bold text-emerald-700">
+                        {chosenBenefit === 'referral' ? 'Applied ✓' : 'Select'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-2 text-[10px] text-amber-800">
+                  {chosenBenefit === 'membership' 
+                    ? `💡 Aapka Referral voucher (${couponCode}) agle order ke liye secure rahega!`
+                    : `👑 Aapke ${membershipTier} membership perks agle orders ke liye active rahenge!`}
+                </div>
+              </div>
+            )}
+
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm sticky top-24">
               <h2 className="font-bold text-gray-900 mb-4">Bill Details</h2>
               
@@ -388,25 +545,37 @@ export default function CartPage() {
                   <span>Taxes & Fees</span>
                   <span>₹0</span>
                 </div>
-                {couponState.type === 'success' && (
-                  <div className="flex justify-between text-green-600 font-bold">
-                    <span>Coupon Discount</span>
-                    <span>-₹{couponState.discount.toFixed(0)}</span>
+
+                {effectiveReferralDiscount > 0 && (
+                  <div className="flex justify-between text-emerald-600 font-bold">
+                    <span>Referral Discount ({couponCode})</span>
+                    <span>-₹{effectiveReferralDiscount.toFixed(0)}</span>
                   </div>
                 )}
-                {membershipDiscountAmount > 0 && (
+
+                {effectiveMembershipDiscount > 0 && (
                   <div className="flex justify-between text-brand-gold font-bold">
                     <span>Member Discount ({discountPercent}%)</span>
-                    <span>-₹{membershipDiscountAmount.toFixed(0)}</span>
+                    <span>-₹{effectiveMembershipDiscount.toFixed(0)}</span>
+                  </div>
+                )}
+
+                {hasBothBenefits && chosenBenefit === 'membership' && (
+                  <div className="text-[11px] text-gray-500 bg-gray-50 p-2 rounded-lg border border-gray-200">
+                    🎁 Referral voucher <strong>{couponCode}</strong> agle order ke liye bacha rahega.
+                  </div>
+                )}
+                {hasBothBenefits && chosenBenefit === 'referral' && (
+                  <div className="text-[11px] text-gray-500 bg-gray-50 p-2 rounded-lg border border-gray-200">
+                    👑 Aapke <strong>{membershipTier?.toUpperCase()}</strong> Member benefits aane wale orders ke liye active rahenge.
                   </div>
                 )}
               </div>
 
               <div className="flex justify-between font-bold text-lg text-gray-900 mb-6">
                 <span>Total Payable</span>
-                <span>₹{Math.max(0, totalAmount + shippingCharge - couponState.discount - membershipDiscountAmount).toFixed(0)}</span>
+                <span>₹{Math.max(0, totalAmount + shippingCharge - effectiveReferralDiscount - effectiveMembershipDiscount).toFixed(0)}</span>
               </div>
-
 
               <button 
                 onClick={handleCheckout}
