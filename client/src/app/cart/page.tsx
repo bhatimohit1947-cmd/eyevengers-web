@@ -258,13 +258,13 @@ export default function CartPage() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen pb-24 md:pb-12">
+    <div className="bg-gray-50 min-h-screen pb-24 md:pb-12 text-gray-900">
       <div className="max-w-4xl mx-auto md:px-4 py-4 md:py-8">
         <h1 className="text-xl md:text-2xl font-bold text-gray-900 px-4 md:px-0 mb-4">Cart ({cartItems.length} items)</h1>
         
         <div className="flex flex-col md:flex-row gap-6">
           
-          {/* Cart Items */}
+          {/* Cart Items Column */}
           <div className="w-full md:w-2/3 flex flex-col gap-4">
             {cartItems.map((item) => (
               <div key={item.id} className="bg-white rounded-xl border border-gray-200 p-3 md:p-4 shadow-sm flex gap-3 md:gap-4 items-start">
@@ -277,7 +277,7 @@ export default function CartPage() {
                       <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                     )
                   ) : (
-                    <svg className="w-10 h-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   )}
@@ -287,17 +287,19 @@ export default function CartPage() {
                   <div>
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest">EYEVENGERS</p>
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">EYEVENGERS</p>
                         <Link href={`/products/${item.productId}`} className="block hover:text-brand-navy transition-colors">
-                          <h3 className="text-sm md:text-base font-semibold text-gray-900 leading-tight mb-1">{item.title}</h3>
+                          {/* Issue 5 Fix: Use H2 instead of H3 to avoid skipped heading level */}
+                          <h2 className="text-sm md:text-base font-semibold text-gray-900 leading-tight mb-1">{item.title}</h2>
                         </Link>
-                        <p className="text-xs md:text-sm text-gray-500">Lens: <span className="font-medium text-gray-900">{item.lensConfig?.type || 'Standard'}</span></p>
+                        <p className="text-xs md:text-sm text-gray-600">Lens: <span className="font-medium text-gray-900">{item.lensConfig?.type || 'Standard'}</span></p>
                       </div>
                       <button 
                         onClick={() => removeItem(item.id)}
-                        className="text-gray-400 hover:text-red-500 p-1 transition ml-2"
+                        aria-label={`Remove ${item.title} from cart`}
+                        className="text-gray-400 hover:text-red-600 p-1.5 transition ml-2 rounded-lg"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={18} aria-hidden="true" />
                       </button>
                     </div>
                   </div>
@@ -307,20 +309,22 @@ export default function CartPage() {
                       <button 
                         onClick={() => updateQuantity(item.id, Math.max(1, item.qty - 1))}
                         disabled={item.qty <= 1}
-                        className="p-1 text-gray-500 hover:text-brand-navy disabled:opacity-50"
+                        aria-label="Decrease quantity"
+                        className="p-1 text-gray-600 hover:text-brand-navy disabled:opacity-40"
                       >
-                        <Minus size={14} />
+                        <Minus size={14} aria-hidden="true" />
                       </button>
-                      <span className="text-sm font-bold w-4 text-center">{item.qty}</span>
+                      <span className="text-sm font-bold w-4 text-center tabular-nums">{item.qty}</span>
                       <button 
                         onClick={() => updateQuantity(item.id, item.qty + 1)}
-                        className="p-1 text-gray-500 hover:text-brand-navy"
+                        aria-label="Increase quantity"
+                        className="p-1 text-gray-600 hover:text-brand-navy"
                       >
-                        <Plus size={14} />
+                        <Plus size={14} aria-hidden="true" />
                       </button>
                     </div>
 
-                    <div className="flex flex-col items-end">
+                    <div className="flex flex-col items-end tabular-nums">
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-400 line-through">₹{item.price * 1.5}</span>
                         <span className="text-lg font-bold text-gray-900">₹{item.price}</span>
@@ -330,268 +334,268 @@ export default function CartPage() {
                 </div>
               </div>
             ))}
-
-            <div className="bg-[#fcf8e3] rounded-xl p-4 flex items-start gap-3 mt-2">
-              <ShieldCheck size={20} className="text-yellow-600 shrink-0 mt-0.5" />
-              <div className="text-sm text-gray-700">
-                Safe and Secure Payments. Easy returns. 100% Authentic products.
-              </div>
-            </div>
           </div>
 
-          {/* Bill Details */}
-          <div className="w-full md:w-1/3">
+          {/* Sidebar: Unified Offers & Bill Details */}
+          <div className="w-full md:w-1/3 flex flex-col gap-4">
             
-            {/* Unlocked Referral Rewards List */}
-            {userVouchers.length > 0 && (
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200 p-4 mb-4 shadow-sm">
-                <div className="flex items-center gap-1.5 text-emerald-800 font-extrabold text-xs uppercase tracking-wider mb-2.5">
-                  <Sparkles size={15} className="text-emerald-600" />
-                  Your Unlocked Referral Benefits:
-                </div>
-                <div className="space-y-2">
-                  {userVouchers.map((v) => {
-                    const isAlreadyApplied = couponState.type === 'success' && couponCode.toUpperCase() === v.code.toUpperCase();
-                    return (
-                      <div 
-                        key={v.code} 
-                        className={`bg-white p-3 rounded-xl border flex items-center justify-between gap-2 shadow-xs transition ${
-                          isAlreadyApplied ? 'border-emerald-500 ring-1 ring-emerald-500' : 'border-emerald-100 hover:border-emerald-300'
-                        }`}
-                      >
-                        <div className="min-w-0">
-                          <div className="font-mono font-black text-xs text-gray-900">{v.code}</div>
-                          <div className="text-xs text-emerald-700 font-semibold truncate">{v.benefitTitle}</div>
-                        </div>
-                        {isAlreadyApplied ? (
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-1 rounded-md shrink-0">
-                            Applied ✓
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              setCouponCode(v.code);
-                              executeApply(v.code);
-                            }}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shrink-0 shadow-xs"
-                          >
-                            Apply
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+            {/* Issue 6 & 7 Fix: Consolidated unified 'Offers & Coupons' section */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-sm">
+              <h2 className="font-bold text-gray-900 text-sm mb-3 flex items-center gap-2">
+                <Tag size={16} className="text-brand-navy" aria-hidden="true" />
+                Offers & Coupons
+              </h2>
 
-            {/* Coupon Code Input */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm mb-4">
-              <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2"><Tag size={16} /> Have a Coupon?</h3>
-              <div className="flex gap-2">
+              {/* Coupon Input */}
+              <div className="flex gap-2 mb-3">
                 <input 
                   type="text" 
                   value={couponCode}
                   onChange={e => setCouponCode(e.target.value.toUpperCase())}
-                  placeholder="Enter code (e.g. REF-...)" 
+                  placeholder="Enter coupon code" 
+                  aria-label="Enter coupon code"
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 uppercase font-mono text-sm focus:outline-none focus:ring-2 focus:ring-brand-navy"
                 />
                 <button 
                   onClick={applyCoupon}
-                  className="bg-gray-900 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-gray-800 transition"
+                  className="bg-gray-900 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-black transition"
                 >
                   APPLY
                 </button>
               </div>
-              {couponState.type === 'error' && <p className="text-red-500 text-xs font-bold mt-2">{couponState.message}</p>}
+
+              {couponState.type === 'error' && (
+                <p className="text-red-600 text-xs font-semibold mb-2" role="alert">{couponState.message}</p>
+              )}
+
               {couponState.type === 'success' && (
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
-                  <p className="text-green-600 text-xs font-bold">{couponState.message}</p>
+                <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg mb-3">
+                  <p className="text-emerald-700 text-xs font-semibold">{couponState.message}</p>
+                  {/* Issue 10 Fix: Consistent Trash2 remove icon */}
                   <button 
                     onClick={removeCoupon}
-                    className="text-[11px] text-red-500 hover:underline font-bold flex items-center gap-0.5 ml-2"
+                    aria-label="Remove applied coupon"
+                    className="text-xs text-red-600 hover:text-red-700 font-semibold flex items-center gap-1 ml-2 transition"
                   >
-                    <X size={12} /> Remove
+                    <Trash2 size={13} aria-hidden="true" />
+                    <span>Remove</span>
                   </button>
+                </div>
+              )}
+
+              {/* Unlocked Referral Rewards List */}
+              {userVouchers.length > 0 && (
+                <div className="pt-3 border-t border-gray-100">
+                  <div className="flex items-center gap-1.5 text-gray-900 font-bold text-xs uppercase tracking-wider mb-2">
+                    <Sparkles size={14} className="text-emerald-700" aria-hidden="true" />
+                    Available Referral Rewards
+                  </div>
+                  <div className="space-y-2">
+                    {userVouchers.map((v) => {
+                      const isAlreadyApplied = couponState.type === 'success' && couponCode.toUpperCase() === v.code.toUpperCase();
+                      return (
+                        <div 
+                          key={v.code} 
+                          className={`p-2.5 rounded-lg border flex items-center justify-between gap-2 transition ${
+                            isAlreadyApplied ? 'bg-emerald-50/60 border-emerald-300' : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <div className="font-mono font-bold text-xs text-gray-900">{v.code}</div>
+                            <div className="text-xs text-gray-600 truncate">{v.benefitTitle}</div>
+                          </div>
+                          {isAlreadyApplied ? (
+                            <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full shrink-0">
+                              Applied ✓
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setCouponCode(v.code);
+                                executeApply(v.code);
+                              }}
+                              className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shrink-0"
+                            >
+                              Apply
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Issue 7 & 4 Fix: Clean, accessible Benefit Choice selector with proper font size (min 12px) */}
+              {hasBothBenefits && (
+                <div className="mt-4 pt-3.5 border-t border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5 text-gray-900 font-bold text-xs uppercase tracking-wider">
+                      <Crown size={14} className="text-amber-800" aria-hidden="true" />
+                      Benefit Selection
+                    </div>
+                    <span className="text-xs font-bold bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full capitalize">
+                      {membershipTier} Member
+                    </span>
+                  </div>
+
+                  {/* Issue 4 Fix: Increased body text from 11px to 12px (text-xs) */}
+                  <p className="text-xs text-gray-600 mb-3">
+                    Choose which discount benefit to apply on this order:
+                  </p>
+
+                  <div className="space-y-2">
+                    {/* Option 1: Membership Perk */}
+                    <div
+                      onClick={() => {
+                        setChosenBenefit('membership');
+                        if (typeof window !== 'undefined') {
+                          sessionStorage.setItem('eyevengers_chosen_benefit', 'membership');
+                          localStorage.setItem('eyevengers_chosen_benefit', 'membership');
+                        }
+                      }}
+                      className={`cursor-pointer p-3 rounded-lg border transition flex items-center justify-between gap-3 ${
+                        chosenBenefit === 'membership'
+                          ? 'border-brand-navy bg-blue-50/40 ring-1 ring-brand-navy'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                          chosenBenefit === 'membership' ? 'border-brand-navy bg-brand-navy text-white' : 'border-gray-300'
+                        }`}>
+                          {chosenBenefit === 'membership' && <Check size={10} strokeWidth={3} aria-hidden="true" />}
+                        </div>
+                        <div>
+                          <div className="font-bold text-xs text-gray-900 flex items-center gap-1">
+                            <Crown size={12} className="text-amber-800" aria-hidden="true" />
+                            {membershipTier?.toUpperCase()} Member Discount
+                          </div>
+                          <div className="text-xs text-gray-600 mt-0.5">
+                            {discountPercent}% Instant Discount + Free Shipping
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0 tabular-nums">
+                        <div className="text-xs font-bold text-brand-navy">
+                          -₹{rawMembershipDiscount.toFixed(0)}
+                        </div>
+                        <div className="text-xs font-medium text-gray-500">
+                          {chosenBenefit === 'membership' ? 'Active ✓' : 'Select'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Option 2: Referral Voucher */}
+                    <div
+                      onClick={() => {
+                        setChosenBenefit('referral');
+                        if (typeof window !== 'undefined') {
+                          sessionStorage.setItem('eyevengers_chosen_benefit', 'referral');
+                          localStorage.setItem('eyevengers_chosen_benefit', 'referral');
+                        }
+                      }}
+                      className={`cursor-pointer p-3 rounded-lg border transition flex items-center justify-between gap-3 ${
+                        chosenBenefit === 'referral'
+                          ? 'border-emerald-700 bg-emerald-50/40 ring-1 ring-emerald-700'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                          chosenBenefit === 'referral' ? 'border-emerald-700 bg-emerald-700 text-white' : 'border-gray-300'
+                        }`}>
+                          {chosenBenefit === 'referral' && <Check size={10} strokeWidth={3} aria-hidden="true" />}
+                        </div>
+                        <div>
+                          <div className="font-bold text-xs text-gray-900 flex items-center gap-1">
+                            <Gift size={12} className="text-emerald-700" aria-hidden="true" />
+                            Referral Voucher ({couponCode})
+                          </div>
+                          <div className="text-xs text-gray-600 truncate mt-0.5">
+                            {couponState.message.replace('Applied!', '').replace('🎉', '').trim() || 'Reward Voucher'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0 tabular-nums">
+                        <div className="text-xs font-bold text-emerald-700">
+                          -₹{rawReferralDiscount.toFixed(0)}
+                        </div>
+                        <div className="text-xs font-medium text-gray-500">
+                          {chosenBenefit === 'referral' ? 'Active ✓' : 'Select'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Exclusive Benefit Choice Selector (If Customer is a Member and has Referral Voucher) */}
-            {hasBothBenefits && (
-              <div className="bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-4 mb-4 shadow-sm">
-                <div className="flex items-center justify-between mb-2.5 border-b border-amber-200 pb-2">
-                  <div className="flex items-center gap-1.5 text-amber-900 font-extrabold text-xs uppercase tracking-wider">
-                    <Crown size={15} className="text-amber-600" />
-                    Benefit Choice: Choose What to Apply
-                  </div>
-                  <span className="text-[10px] font-black bg-amber-500 text-white px-2 py-0.5 rounded-full uppercase">
-                    {membershipTier} Member
-                  </span>
-                </div>
-
-                <p className="text-[11px] text-gray-600 mb-3">
-                  Aapke paas Membership perks bhi hain aur Referral Voucher bhi! Chun sakte hain ki is order me konsa benefit lena hai:
-                </p>
-
-                <div className="space-y-2">
-                  {/* Option 1: Membership Perk */}
-                  <div
-                    onClick={() => {
-                      setChosenBenefit('membership');
-                      if (typeof window !== 'undefined') {
-                        sessionStorage.setItem('eyevengers_chosen_benefit', 'membership');
-                        localStorage.setItem('eyevengers_chosen_benefit', 'membership');
-                      }
-                    }}
-                    className={`cursor-pointer p-3 rounded-xl border-2 transition flex items-center justify-between gap-3 ${
-                      chosenBenefit === 'membership'
-                        ? 'border-brand-navy bg-white ring-2 ring-brand-navy/20 shadow-xs'
-                        : 'border-amber-200/60 bg-white/70 hover:bg-white'
-                    }`}
-                  >
-                    <div className="flex items-start gap-2.5 min-w-0">
-                      <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        chosenBenefit === 'membership' ? 'border-brand-navy bg-brand-navy text-white' : 'border-gray-300'
-                      }`}>
-                        {chosenBenefit === 'membership' && <Check size={10} strokeWidth={3} />}
-                      </div>
-                      <div>
-                        <div className="font-bold text-xs text-brand-navy flex items-center gap-1">
-                          <Crown size={12} className="text-amber-500" />
-                          {membershipTier?.toUpperCase()} Membership Discount
-                        </div>
-                        <div className="text-xs text-gray-500 mt-0.5">
-                          {discountPercent}% OFF on products + Free Delivery
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-xs font-black text-brand-navy">
-                        -₹{rawMembershipDiscount.toFixed(0)}
-                      </div>
-                      <div className="text-[10px] font-bold text-blue-700">
-                        {chosenBenefit === 'membership' ? 'Applied ✓' : 'Select'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Option 2: Referral Voucher */}
-                  <div
-                    onClick={() => {
-                      setChosenBenefit('referral');
-                      if (typeof window !== 'undefined') {
-                        sessionStorage.setItem('eyevengers_chosen_benefit', 'referral');
-                        localStorage.setItem('eyevengers_chosen_benefit', 'referral');
-                      }
-                    }}
-                    className={`cursor-pointer p-3 rounded-xl border-2 transition flex items-center justify-between gap-3 ${
-                      chosenBenefit === 'referral'
-                        ? 'border-emerald-600 bg-white ring-2 ring-emerald-600/20 shadow-xs'
-                        : 'border-amber-200/60 bg-white/70 hover:bg-white'
-                    }`}
-                  >
-                    <div className="flex items-start gap-2.5 min-w-0">
-                      <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        chosenBenefit === 'referral' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-300'
-                      }`}>
-                        {chosenBenefit === 'referral' && <Check size={10} strokeWidth={3} />}
-                      </div>
-                      <div>
-                        <div className="font-bold text-xs text-emerald-800 flex items-center gap-1">
-                          <Gift size={12} className="text-emerald-600" />
-                          Referral Voucher ({couponCode})
-                        </div>
-                        <div className="text-xs text-gray-500 truncate mt-0.5">
-                          {couponState.message.replace('Applied!', '').replace('🎉', '').trim() || 'Reward Voucher'}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-xs font-black text-emerald-700">
-                        -₹{rawReferralDiscount.toFixed(0)}
-                      </div>
-                      <div className="text-[10px] font-bold text-emerald-700">
-                        {chosenBenefit === 'referral' ? 'Applied ✓' : 'Select'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-2 text-[10px] text-amber-800">
-                  {chosenBenefit === 'membership' 
-                    ? `💡 Aapka Referral voucher (${couponCode}) agle order ke liye secure rahega!`
-                    : `👑 Aapke ${membershipTier} membership perks agle orders ke liye active rahenge!`}
-                </div>
-              </div>
-            )}
-
+            {/* Bill Details Summary Card */}
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm sticky top-24">
-              <h2 className="font-bold text-gray-900 mb-4">Bill Details</h2>
+              <h2 className="font-bold text-gray-900 mb-4 text-base">Bill Details</h2>
               
+              {/* Issue 9 Fix: Standardized vertical right-aligned axis using text-right tabular-nums */}
               <div className="space-y-3 text-sm mb-4 border-b border-gray-100 pb-4">
-                <div className="flex justify-between text-gray-600">
+                <div className="flex justify-between items-center text-gray-600">
                   <span>Total MRP</span>
-                  <span>₹{totalMrp}</span>
+                  <span className="text-right tabular-nums text-gray-900 font-medium">₹{totalMrp}</span>
                 </div>
-                <div className="flex justify-between text-green-600 font-medium">
+                <div className="flex justify-between items-center text-gray-600">
                   <span>Total Discount</span>
-                  <span>-₹{totalDiscount}</span>
+                  <span className="text-right tabular-nums text-emerald-700 font-medium">-₹{totalDiscount}</span>
                 </div>
-                <div className="flex justify-between text-gray-600">
+                <div className="flex justify-between items-center text-gray-600">
                   <span>Shipping Charges</span>
-                  {hasFreeShipping ? (
-                    <div className="flex items-center gap-2">
-                      <span className="line-through text-xs text-gray-400">₹50</span>
-                      <span className="text-green-600 font-bold">FREE</span>
-                    </div>
-                  ) : (
-                    <span>₹{shippingCharge}</span>
-                  )}
+                  <div className="text-right tabular-nums">
+                    {hasFreeShipping ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="line-through text-xs text-gray-400">₹50</span>
+                        <span className="text-emerald-700 font-bold">FREE</span>
+                      </span>
+                    ) : (
+                      <span className="text-gray-900 font-medium">₹{shippingCharge}</span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex justify-between text-gray-600">
+                <div className="flex justify-between items-center text-gray-600">
                   <span>Taxes & Fees</span>
-                  <span>₹0</span>
+                  <span className="text-right tabular-nums text-gray-900 font-medium">₹0</span>
                 </div>
 
                 {effectiveReferralDiscount > 0 && (
-                  <div className="flex justify-between text-emerald-600 font-bold">
-                    <span>Referral Discount ({couponCode})</span>
-                    <span>-₹{effectiveReferralDiscount.toFixed(0)}</span>
+                  <div className="flex justify-between items-center text-gray-900">
+                    <span className="text-emerald-700 font-medium">Referral Discount ({couponCode})</span>
+                    <span className="text-right tabular-nums text-emerald-700 font-bold">-₹{effectiveReferralDiscount.toFixed(0)}</span>
                   </div>
                 )}
 
                 {effectiveMembershipDiscount > 0 && (
-                  <div className="flex justify-between text-brand-gold font-bold">
-                    <span>Member Discount ({discountPercent}%)</span>
-                    <span>-₹{effectiveMembershipDiscount.toFixed(0)}</span>
-                  </div>
-                )}
-
-                {hasBothBenefits && chosenBenefit === 'membership' && (
-                  <div className="text-[11px] text-gray-500 bg-gray-50 p-2 rounded-lg border border-gray-200">
-                    🎁 Referral voucher <strong>{couponCode}</strong> agle order ke liye bacha rahega.
-                  </div>
-                )}
-                {hasBothBenefits && chosenBenefit === 'referral' && (
-                  <div className="text-[11px] text-gray-500 bg-gray-50 p-2 rounded-lg border border-gray-200">
-                    👑 Aapke <strong>{membershipTier?.toUpperCase()}</strong> Member benefits aane wale orders ke liye active rahenge.
+                  <div className="flex justify-between items-center text-gray-900">
+                    <span className="text-brand-navy font-medium">Member Discount ({discountPercent}%)</span>
+                    <span className="text-right tabular-nums text-brand-navy font-bold">-₹{effectiveMembershipDiscount.toFixed(0)}</span>
                   </div>
                 )}
               </div>
 
-              <div className="flex justify-between font-bold text-lg text-gray-900 mb-6">
+              <div className="flex justify-between items-center font-bold text-lg text-gray-900 mb-5">
                 <span>Total Payable</span>
-                <span>₹{Math.max(0, totalAmount + shippingCharge - effectiveReferralDiscount - effectiveMembershipDiscount).toFixed(0)}</span>
+                <span className="text-right tabular-nums">₹{Math.max(0, totalAmount + shippingCharge - effectiveReferralDiscount - effectiveMembershipDiscount).toFixed(0)}</span>
               </div>
 
               <button 
                 onClick={handleCheckout}
                 className="w-full bg-brand-navy text-white font-bold text-base rounded-full py-3.5 hover:bg-blue-900 transition flex items-center justify-center gap-2 shadow-md shadow-blue-900/20"
               >
-                PROCEED TO CHECKOUT
-                <ChevronRight size={18} />
+                <span>PROCEED TO CHECKOUT</span>
+                <ChevronRight size={18} aria-hidden="true" />
               </button>
+
+              {/* Issue 8 Fix: Trust signals integrated into checkout summary area */}
+              <div className="flex items-center justify-center gap-2 pt-3 text-xs text-gray-500 text-center">
+                <ShieldCheck size={16} className="text-emerald-700 shrink-0" aria-hidden="true" />
+                <span>Safe & Secure Payments • Easy Returns • 100% Authentic</span>
+              </div>
             </div>
           </div>
           
