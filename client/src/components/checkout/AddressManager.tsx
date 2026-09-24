@@ -13,12 +13,24 @@ export default function AddressManager({ selectedAddressId, setSelectedAddressId
   
   // Use a reactive selector to get addresses, which guarantees re-renders on state change
   const allAddresses = useAddressStore(state => state.addresses);
-  const { addAddress, removeAddress, setDefaultAddress } = useAddressStore();
+  const { addAddress, removeAddress, setDefaultAddress, syncWithServer } = useAddressStore();
   
+  // Sync addresses on mount if user is logged in
+  useEffect(() => {
+    if (user?.phone) {
+      syncWithServer(user.phone);
+    }
+  }, [user?.phone, syncWithServer]);
+
   // Compute user-specific addresses
   const addresses = React.useMemo(() => {
     if (!user) return [];
-    return allAddresses.filter(a => a.userId === user.id).sort((a, b) => {
+    const cleanPhone = (user.phone || '').replace(/[^0-9]/g, '').slice(-10);
+    return allAddresses.filter(a => 
+      a.userId === user.id || 
+      a.userId === user.phone || 
+      (cleanPhone && (a.userId === cleanPhone || a.userId === `CUST-${cleanPhone}`))
+    ).sort((a, b) => {
       if (a.isDefault && !b.isDefault) return -1;
       if (!a.isDefault && b.isDefault) return 1;
       return 0;

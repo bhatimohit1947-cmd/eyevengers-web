@@ -18,6 +18,7 @@ import { useUIStore } from '@/store/useUIStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCartStore } from '@/store/useCartStore';
 import { useWishlistStore } from '@/store/useWishlistStore';
+import { useAddressStore } from '@/store/useAddressStore';
 import { useAuthGate } from '@/hooks/useAuthGate';
 import { LanguageToggle } from '@/components/layout/LanguageToggle';
 
@@ -43,9 +44,10 @@ export function Header() {
     setIsHydrated(true);
   }, []);
 
-  // Background sync user state
+  // Background sync user state & cloud data (Cart, Wishlist, Address)
   useEffect(() => {
     if (isHydrated && isLoggedIn && user?.phone) {
+      // Sync membership
       fetch('/api/customers', { cache: 'no-store' })
         .then(res => res.json())
         .then(customers => {
@@ -60,6 +62,11 @@ export function Header() {
           }
         })
         .catch(console.error);
+
+      // Sync Cart, Wishlist, and Addresses from cloud
+      useCartStore.getState().syncWithServer(user.phone);
+      useWishlistStore.getState().syncWithServer(user.phone);
+      useAddressStore.getState().syncWithServer(user.phone);
     }
   }, [isHydrated, isLoggedIn, user?.phone]);
 

@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useCartStore } from '@/store/useCartStore';
+import { useWishlistStore } from '@/store/useWishlistStore';
+import { useAddressStore } from '@/store/useAddressStore';
 import { X, Loader2, ChevronLeft, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 interface Address {
@@ -254,6 +257,14 @@ export function LoginModal() {
       phone: customer.phone,
     }, customer.membershipTier || 'none', customer.membershipBenefits);
     
+    // Switch and immediately sync Cart, Wishlist, and Addresses from cloud database
+    const cleanPhone = customer.phone.replace(/[^0-9]/g, '').slice(-10);
+    useCartStore.getState().switchUser(customer.id, cleanPhone);
+    useCartStore.getState().syncWithServer(cleanPhone);
+    useWishlistStore.getState().switchUser(customer.id, cleanPhone);
+    useWishlistStore.getState().syncWithServer(cleanPhone);
+    useAddressStore.getState().syncWithServer(cleanPhone);
+
     // Simulate backend login notification API call
     fetch(`https://eyevengers-web.onrender.com/api/admin/login-event`, {
       method: 'POST',

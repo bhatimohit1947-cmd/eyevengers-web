@@ -35,7 +35,8 @@ interface CartState {
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, qty: number) => void;
   clearCart: () => void;
-  switchUser: (userId: string | null) => void;
+  switchUser: (userId: string | null, userPhone?: string) => void;
+  syncWithServer: (phone?: string) => Promise<void>;
 }
 
 const getEmptyCart = (): UserCart => ({
@@ -43,6 +44,27 @@ const getEmptyCart = (): UserCart => ({
   totalCount: 0,
   totalPrice: 0,
 });
+
+// Background helper to persist cart to cloud
+const persistCartToCloud = async (phone: string | undefined, items: CartItem[]) => {
+  if (!phone) {
+    try {
+      const auth = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('eyevengers-auth-storage') || '{}') : null;
+      phone = auth?.state?.user?.phone;
+    } catch(e) {}
+  }
+  if (!phone) return;
+  const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
+  if (!cleanPhone) return;
+
+  try {
+    fetch('/api/cart', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: cleanPhone, items })
+    }).catch(() => {});
+  } catch(e) {}
+};
 
 export const useCartStore = create<CartState>()(
   persist(
@@ -75,6 +97,10 @@ export const useCartStore = create<CartState>()(
           const newTotalCount = newItems.reduce((acc, item) => acc + item.qty, 0);
           const newTotalPrice = newItems.reduce((acc, item) => acc + (item.price * item.qty), 0);
 
+          if (uId !== 'guest') {
+            persistCartToCloud(uId, newItems);
+          }
+
           return {
             cartsByUser: {
               ...state.cartsByUser,
@@ -95,6 +121,10 @@ export const useCartStore = create<CartState>()(
           const newItems = userCart.items.filter((item) => item.id !== itemId);
           const newTotalCount = newItems.reduce((acc, item) => acc + item.qty, 0);
           const newTotalPrice = newItems.reduce((acc, item) => acc + (item.price * item.qty), 0);
+
+          if (uId !== 'guest') {
+            persistCartToCloud(uId, newItems);
+          }
 
           return {
             cartsByUser: {
@@ -119,6 +149,10 @@ export const useCartStore = create<CartState>()(
           const newTotalCount = newItems.reduce((acc, item) => acc + item.qty, 0);
           const newTotalPrice = newItems.reduce((acc, item) => acc + (item.price * item.qty), 0);
 
+          if (uId !== 'guest') {
+            persistCartToCloud(uId, newItems);
+          }
+
           return {
             cartsByUser: {
               ...state.cartsByUser,
@@ -132,8 +166,12 @@ export const useCartStore = create<CartState>()(
       },
 
       clearCart: () => {
+        const uId = get().activeUserId;
+        if (uId !== 'guest') {
+          persistCartToCloud(uId, []);
+        }
+
         set((state) => {
-          const uId = state.activeUserId;
           return {
             cartsByUser: {
               ...state.cartsByUser,
@@ -146,7 +184,7 @@ export const useCartStore = create<CartState>()(
         });
       },
 
-      switchUser: (userId) => {
+      switchUser: (userId, userPhone) => {
         set((state) => {
           const newUserId = userId || 'guest';
           
@@ -155,7 +193,7 @@ export const useCartStore = create<CartState>()(
             const guestCart = state.cartsByUser['guest'] || getEmptyCart();
             const userCart = state.cartsByUser[newUserId] || getEmptyCart();
             
-            // Merge guest items into user cart. (A simple concat, could be enhanced to merge quantities)
+            // Merge guest items into user cart
             let mergedItems = [...userCart.items];
             guestCart.items.forEach(guestItem => {
               const existingIdx = mergedItems.findIndex(
@@ -173,6 +211,10 @@ export const useCartStore = create<CartState>()(
             const newTotalCount = mergedItems.reduce((acc, item) => acc + item.qty, 0);
             const newTotalPrice = mergedItems.reduce((acc, item) => acc + (item.price * item.qty), 0);
 
+            if (userPhone || newUserId) {
+              persistCartToCloud(userPhone || newUserId, mergedItems);
+            }
+
             return {
               activeUserId: newUserId,
               cartsByUser: {
@@ -186,7 +228,7 @@ export const useCartStore = create<CartState>()(
             };
           }
 
-          // Otherwise just switch normally (e.g. logging out or switching users)
+          // Otherwise just switch normally
           const targetCart = state.cartsByUser[newUserId] || getEmptyCart();
           
           return {
@@ -196,12 +238,75 @@ export const useCartStore = create<CartState>()(
             totalPrice: targetCart.totalPrice
           };
         });
+
+        // Trigger background sync with server
+        if (userId && userId !== 'guest') {
+          get().syncWithServer(userPhone || userId);
+        }
+      },
+
+      syncWithServer: async (phone) => {
+        let targetPhone = phone;
+        if (!targetPhone) {
+          try {
+            const auth = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('eyevengers-auth-storage') || '{}') : null;
+            targetPhone = auth?.state?.user?.phone;
+          } catch(e) {}
+        }
+        if (!targetPhone) return;
+
+        const cleanPhone = targetPhone.replace(/[^0-9]/g, '').slice(-10);
+        if (!cleanPhone) return;
+
+        try {
+          const res = await fetch(`/api/cart?phone=${cleanPhone}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.cart) {
+              const serverItems = Array.isArray(data.cart.items) ? data.cart.items : [];
+              const currentState = get();
+              const activeId = currentState.activeUserId;
+
+              // If server has items, merge them with local or adopt server items
+              let combinedItems = [...serverItems];
+              currentState.items.forEach(localItem => {
+                const exists = combinedItems.some(si => 
+                  si.productId === localItem.productId && 
+                  si.variantId === localItem.variantId &&
+                  JSON.stringify(si.lensConfig) === JSON.stringify(localItem.lensConfig)
+                );
+                if (!exists) {
+                  combinedItems.push(localItem);
+                }
+              });
+
+              const count = combinedItems.reduce((sum, i) => sum + (Number(i.qty) || 1), 0);
+              const price = combinedItems.reduce((sum, i) => sum + ((Number(i.price) || 0) * (Number(i.qty) || 1)), 0);
+
+              set((state) => ({
+                cartsByUser: {
+                  ...state.cartsByUser,
+                  [activeId]: { items: combinedItems, totalCount: count, totalPrice: price }
+                },
+                items: combinedItems,
+                totalCount: count,
+                totalPrice: price
+              }));
+
+              // If local had extra items not on server, sync combined back
+              if (combinedItems.length !== serverItems.length) {
+                persistCartToCloud(cleanPhone, combinedItems);
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Cart server sync warning:', e);
+        }
       }
     }),
     {
-      name: 'eyevengers-multi-cart', // rename to avoid persisting over the old format
+      name: 'eyevengers-multi-cart',
       storage: createJSONStorage(() => localStorage),
-      // We hydrate the active computed fields from cartsByUser when loading from storage
       onRehydrateStorage: () => (state) => {
         if (state) {
           const uId = state.activeUserId;
