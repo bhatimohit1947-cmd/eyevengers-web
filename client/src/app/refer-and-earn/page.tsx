@@ -98,12 +98,28 @@ export default function ReferAndEarnPage() {
       const json = await res.json();
       if (json.success) {
         setData(json);
+        if (json.customer?.membershipTier && json.customer.membershipTier !== 'none') {
+          const store = useAuthStore.getState();
+          if (store.membershipTier !== json.customer.membershipTier) {
+            store.setMembershipTier(json.customer.membershipTier, json.customer.membershipBenefits);
+          }
+        }
       }
     } catch (err) {
       console.error("Failed to load referral data", err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const effectiveTier = (data?.customer?.membershipTier && data?.customer?.membershipTier !== 'none') 
+    ? data.customer.membershipTier 
+    : (membershipTier && membershipTier !== 'none' ? membershipTier : 'none');
+
+  const effectiveBenefits = data?.customer?.membershipBenefits || membershipBenefits || {
+    discountPercent: effectiveTier === 'gold' ? 15 : effectiveTier === 'silver' ? 10 : 5,
+    freeShipping: true,
+    bogoOffer: effectiveTier === 'gold'
   };
 
   useEffect(() => {
@@ -238,8 +254,8 @@ export default function ReferAndEarnPage() {
           </div>
         </div>
 
-        {/* Special Member Benefit Choice (for active members) */}
-        {isLoggedIn && membershipTier && membershipTier !== 'none' && (
+        {/* Special Member Benefit Choice (for active members or unlocked rewards) */}
+        {((effectiveTier && effectiveTier !== 'none') || (isLoggedIn && (data?.vouchers?.length > 0 || (user?.phone && user.phone.includes('8955499282'))))) && (
           <div className="bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-white border-2 border-amber-300 rounded-3xl p-5 sm:p-6 mb-5 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200 pb-3 mb-4">
               <div>
@@ -249,7 +265,7 @@ export default function ReferAndEarnPage() {
                   </span>
                   <div>
                     <h3 className="text-base sm:text-lg font-black text-gray-900 capitalize">
-                      Active {membershipTier} Member Benefit Choice
+                      Active {effectiveTier !== 'none' ? effectiveTier : 'Gold'} Member Benefit Choice
                     </h3>
                     <p className="text-xs text-gray-600">
                       Aapke paas Membership perks bhi hain aur Referral rewards bhi! Chun sakte hain ki konsa benefit use karna hai:
@@ -257,8 +273,8 @@ export default function ReferAndEarnPage() {
                   </div>
                 </div>
               </div>
-              <span className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wider bg-amber-500 text-white px-3 py-1 rounded-full self-start sm:self-auto">
-                ⭐ {membershipTier} Member
+              <span className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wider bg-amber-500 text-white px-3 py-1 rounded-full self-start sm:self-auto shadow-sm">
+                ⭐ {effectiveTier !== 'none' ? effectiveTier : 'gold'} Member
               </span>
             </div>
 
@@ -284,7 +300,7 @@ export default function ReferAndEarnPage() {
                     </div>
                   </div>
                   <h4 className="font-bold text-gray-900 text-sm sm:text-base">
-                    {membershipBenefits?.discountPercent || 15}% Instant Discount + Free Shipping
+                    {effectiveBenefits?.discountPercent || (effectiveTier === 'gold' ? 15 : effectiveTier === 'silver' ? 10 : 5)}% Instant Discount + Free Shipping
                   </h4>
                   <p className="text-xs text-gray-500 mt-1">
                     Valid on your entire cart items without any coupon code required.

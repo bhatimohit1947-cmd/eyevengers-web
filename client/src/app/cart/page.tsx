@@ -21,10 +21,10 @@ export default function CartPage() {
   const totalAmount = totalPrice;
   
   const hasMembership = Boolean(membershipTier && membershipTier !== 'none');
-  const discountPercent = membershipBenefits?.discountPercent || 0;
+  const discountPercent = membershipBenefits?.discountPercent || (membershipTier === 'gold' ? 15 : membershipTier === 'silver' ? 10 : membershipTier === 'bronze' ? 5 : 0);
   const rawMembershipDiscount = (hasMembership && discountPercent > 0) ? (totalAmount * (discountPercent / 100)) : 0;
   
-  const hasFreeShipping = membershipBenefits?.freeShipping === true;
+  const hasFreeShipping = membershipBenefits?.freeShipping === true || hasMembership;
   const shippingCharge = hasFreeShipping ? 0 : 50;
 
   const [chosenBenefit, setChosenBenefit] = useState<'membership' | 'referral'>('membership');
@@ -38,16 +38,24 @@ export default function CartPage() {
 
   const [userVouchers, setUserVouchers] = useState<any[]>([]);
 
-  // 1. Fetch Logged-in Customer's Active Rewards
+  // 1. Fetch Logged-in Customer's Active Rewards & sync membership tier
   useEffect(() => {
     if (user?.phone) {
       const cleanPhone = user.phone.replace(/[^0-9]/g, '').slice(-10);
       fetch(`/api/referral?action=user-info&phone=${cleanPhone}&name=${encodeURIComponent(user.name || '')}`)
         .then(r => r.json())
         .then(d => {
-          if (d.success && Array.isArray(d.vouchers)) {
-            const activeVouchers = d.vouchers.filter((v: any) => v.status === 'ACTIVE');
-            setUserVouchers(activeVouchers);
+          if (d.success) {
+            if (Array.isArray(d.vouchers)) {
+              const activeVouchers = d.vouchers.filter((v: any) => v.status === 'ACTIVE');
+              setUserVouchers(activeVouchers);
+            }
+            if (d.customer?.membershipTier && d.customer.membershipTier !== 'none') {
+              const currentTier = useAuthStore.getState().membershipTier;
+              if (currentTier !== d.customer.membershipTier) {
+                useAuthStore.getState().setMembershipTier(d.customer.membershipTier, d.customer.membershipBenefits);
+              }
+            }
           }
         })
         .catch(() => {});

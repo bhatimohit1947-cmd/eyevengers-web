@@ -414,6 +414,9 @@ export async function GET(req: NextRequest) {
         : 100
     };
 
+    const cleanPhoneForMem = (resolvedPhone || '').replace(/[^0-9]/g, '').slice(-10);
+    const memberTier = customerRecord?.membership_tier || 'none';
+
     return NextResponse.json({
       success: true,
       referralCode: referralCode || `EYE-${(resolvedPhone || '1234').slice(-4)}`,
@@ -421,7 +424,13 @@ export async function GET(req: NextRequest) {
       config: store.config,
       customer: {
         name: resolvedName,
-        phone: resolvedPhone
+        phone: resolvedPhone,
+        membershipTier: memberTier,
+        membershipBenefits: memberTier !== 'none' ? {
+          discountPercent: memberTier === 'gold' ? 15 : memberTier === 'silver' ? 10 : 5,
+          freeShipping: true,
+          bogoOffer: memberTier === 'gold'
+        } : undefined
       },
       target,
       stats: {

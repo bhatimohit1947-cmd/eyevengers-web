@@ -216,6 +216,9 @@ export const getCustomers = async (req: Request, res: Response) => {
     const statsMap: Record<string, any> = {};
     const pinMap: Record<string, string> = {};
     const membershipMap: Record<string, any> = {};
+    const phoneToIdMap: Record<string, string[]> = {};
+    const idToPhoneMap: Record<string, string> = {};
+    const phoneToMembershipMap: Record<string, any> = {};
 
     if (settingsData) {
       settingsData.forEach(row => {
@@ -224,6 +227,11 @@ export const getCustomers = async (req: Request, res: Response) => {
             const u = JSON.parse(row.value);
             if (u && u.phone) {
               const cleanPhone = u.phone.replace(/[^0-9]/g, '').slice(-10);
+              if (u.id) {
+                idToPhoneMap[u.id] = cleanPhone;
+                if (!phoneToIdMap[cleanPhone]) phoneToIdMap[cleanPhone] = [];
+                phoneToIdMap[cleanPhone].push(u.id);
+              }
               if (!usersMap.has(cleanPhone)) {
                 usersMap.set(cleanPhone, u);
               }
@@ -237,7 +245,17 @@ export const getCustomers = async (req: Request, res: Response) => {
           pinMap[row.key.replace('pin_', '')] = row.value;
         } else if (row.key.startsWith('membership_')) {
           try {
-            membershipMap[row.key.replace('membership_', '')] = JSON.parse(row.value);
+            const memId = row.key.replace('membership_', '');
+            const memObj = JSON.parse(row.value);
+            membershipMap[memId] = memObj;
+            if (memObj.user_id) membershipMap[memObj.user_id] = memObj;
+
+            const phone = idToPhoneMap[memId] || (memObj.user_id ? idToPhoneMap[memObj.user_id] : null);
+            if (phone) {
+              phoneToMembershipMap[phone] = memObj;
+              membershipMap[phone] = memObj;
+              membershipMap[`CUST-${phone}`] = memObj;
+            }
           } catch(e) {}
         }
       });
@@ -260,7 +278,12 @@ export const getCustomers = async (req: Request, res: Response) => {
     }
 
     const formatted = Array.from(usersMap.values()).map(u => {
-      const userMembership = membershipMap[u.id];
+      const cleanPhone = (u.phone || '').replace(/[^0-9]/g, '').slice(-10);
+      const userMembership = membershipMap[u.id]
+        || membershipMap[cleanPhone]
+        || membershipMap[`CUST-${cleanPhone}`]
+        || phoneToMembershipMap[cleanPhone]
+        || (phoneToIdMap[cleanPhone]?.map(id => membershipMap[id]).find(m => m?.status === 'active'));
       const isActive = userMembership?.status === 'active';
       return {
         id: u.id,
@@ -272,7 +295,7 @@ export const getCustomers = async (req: Request, res: Response) => {
         wishlistCount: u.wishlistCount || statsMap[u.id]?.wishlistCount || 0,
         joinedAt: u.createdAt,
         createdAt: u.createdAt,
-        membershipTier: isActive ? userMembership.tier : (u.membershipTier || 'none'),
+        membershipTier: isActive ? userMembership.tier : (u.membershipTier && u.membershipTier !== 'none' ? u.membershipTier : (u.membership_tier && u.membership_tier !== 'none' ? u.membership_tier : 'none')),
         membershipBenefits: isActive ? plansBenefitsMap[userMembership.plan_id] : undefined
       };
     });

@@ -107,6 +107,9 @@ async function fetchSupabaseCustomers() {
     const statsMap: Record<string, any> = {};
     const pinMap: Record<string, string> = {};
     const membershipMap: Record<string, any> = {};
+    const phoneToIdMap: Record<string, string[]> = {};
+    const idToPhoneMap: Record<string, string> = {};
+    const phoneToMembershipMap: Record<string, any> = {};
 
     if (Array.isArray(settingsData)) {
       settingsData.forEach((row: any) => {
@@ -115,6 +118,11 @@ async function fetchSupabaseCustomers() {
             const u = JSON.parse(row.value);
             if (u && u.phone) {
               const cleanPhone = u.phone.replace(/[^0-9]/g, '').slice(-10);
+              if (u.id) {
+                idToPhoneMap[u.id] = cleanPhone;
+                if (!phoneToIdMap[cleanPhone]) phoneToIdMap[cleanPhone] = [];
+                phoneToIdMap[cleanPhone].push(u.id);
+              }
               if (!usersMap.has(cleanPhone)) {
                 usersMap.set(cleanPhone, {
                   id: u.id || `CUST-${cleanPhone}`,
@@ -122,6 +130,7 @@ async function fetchSupabaseCustomers() {
                   phone: cleanPhone,
                   email: u.email || 'N/A',
                   pin: u.pin || '0000',
+                  membershipTier: u.membership_tier || u.membershipTier || 'none',
                   createdAt: u.createdAt || new Date().toISOString(),
                   joinedAt: u.createdAt || new Date().toISOString()
                 });
@@ -136,7 +145,18 @@ async function fetchSupabaseCustomers() {
           pinMap[row.key.replace('pin_', '')] = row.value;
         } else if (row.key && row.key.startsWith('membership_')) {
           try {
-            membershipMap[row.key.replace('membership_', '')] = JSON.parse(row.value);
+            const memId = row.key.replace('membership_', '');
+            const memObj = JSON.parse(row.value);
+            membershipMap[memId] = memObj;
+            if (memObj.user_id) membershipMap[memObj.user_id] = memObj;
+            
+            // Map via idToPhoneMap
+            const phone = idToPhoneMap[memId] || (memObj.user_id ? idToPhoneMap[memObj.user_id] : null);
+            if (phone) {
+              phoneToMembershipMap[phone] = memObj;
+              membershipMap[phone] = memObj;
+              membershipMap[`CUST-${phone}`] = memObj;
+            }
           } catch(e) {}
         }
       });
@@ -174,7 +194,12 @@ async function fetchSupabaseCustomers() {
     } catch (e) {}
 
     const formatted = Array.from(usersMap.values()).map(u => {
-      const userMembership = membershipMap[u.id];
+      const cleanPhone = (u.phone || '').replace(/[^0-9]/g, '').slice(-10);
+      const userMembership = membershipMap[u.id]
+        || membershipMap[cleanPhone]
+        || membershipMap[`CUST-${cleanPhone}`]
+        || phoneToMembershipMap[cleanPhone]
+        || (phoneToIdMap[cleanPhone]?.map(id => membershipMap[id]).find(m => m?.status === 'active'));
       const isActive = userMembership?.status === 'active';
       return {
         id: u.id || `CUST-${u.phone}`,
@@ -186,7 +211,7 @@ async function fetchSupabaseCustomers() {
         wishlistCount: u.wishlistCount || statsMap[u.id]?.wishlistCount || 0,
         joinedAt: u.createdAt || u.joinedAt || new Date().toISOString(),
         createdAt: u.createdAt || u.joinedAt || new Date().toISOString(),
-        membershipTier: isActive ? userMembership.tier : (u.membershipTier || 'none'),
+        membershipTier: isActive ? userMembership.tier : (u.membershipTier && u.membershipTier !== 'none' ? u.membershipTier : 'none'),
         referralCode: u.referralCode,
         referredBy: u.referredBy
       };
