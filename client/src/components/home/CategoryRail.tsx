@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
 interface CategoryTile {
   label: string;
@@ -59,10 +60,12 @@ export function CategoryRail({ data }: CategoryRailProps) {
                     autoPlay loop muted playsInline
                   />
                 ) : (
-                  <img 
+                  <OptimizedImage 
                     src={tile.imageUrl} 
                     alt={tile.label} 
-                    className="absolute inset-0 w-full h-full object-cover rounded-[18px] md:rounded-[32px] group-hover:scale-105 transition-transform"
+                    fill
+                    sizes="(max-width: 768px) 25vw, 200px"
+                    className="object-cover rounded-[18px] md:rounded-[32px] group-hover:scale-105 transition-transform"
                   />
                 )
               ) : (

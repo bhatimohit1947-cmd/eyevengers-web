@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useAddressStore } from '@/store/useAddressStore';
 import { CheckCircle2, ArrowRight } from 'lucide-react';
 import AddressManager from '@/components/checkout/AddressManager';
@@ -239,7 +240,7 @@ export default function CheckoutPage() {
                           item.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
                             <video src={item.imageUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
                           ) : (
-                            <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+                            <OptimizedImage src={item.imageUrl} alt={item.title || "Product"} fill sizes="48px" className="object-cover" />
                           )
                         ) : (
                           <div className="w-full h-full bg-gray-200"></div>

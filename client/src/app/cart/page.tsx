@@ -7,6 +7,7 @@ import { useCartStore } from '@/store/useCartStore';
 import { useAuthGate } from '@/hooks/useAuthGate';
 import { useAuthStore } from '@/store/useAuthStore';
 import Link from 'next/link';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
 export default function CartPage() {
   const router = useRouter();
@@ -291,7 +292,7 @@ export default function CartPage() {
                     item.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
                       <video src={item.imageUrl} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" autoPlay loop muted playsInline />
                     ) : (
-                      <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                      <OptimizedImage src={item.imageUrl} alt={item.title} fill sizes="128px" className="object-cover transition-transform duration-500 group-hover:scale-105" />
                     )
                   ) : (
                     <svg className="w-10 h-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

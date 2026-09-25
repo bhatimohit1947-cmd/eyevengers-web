@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Settings, Glasses, Sun, ScanFace, Sparkles } from 'lucide-react';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
 interface SpecialsItem {
   label: string;
@@ -46,11 +47,15 @@ export function SpecialsGrid({ data }: SpecialsGridProps) {
                     autoPlay loop muted playsInline
                   />
                 ) : (
-                  <img 
-                    src={item.iconImageUrl} 
-                    alt={item.label}
-                    className="w-full h-full object-contain"
-                  />
+                  <div className="relative w-full h-full">
+                    <OptimizedImage 
+                      src={item.iconImageUrl} 
+                      alt={item.label}
+                      fill
+                      sizes="64px"
+                      className="object-contain"
+                    />
+                  </div>
                 )}
               </div>
             ) : (

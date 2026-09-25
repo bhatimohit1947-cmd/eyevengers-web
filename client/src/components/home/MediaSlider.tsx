@@ -3,6 +3,7 @@
 import React, { useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Play } from 'lucide-react';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
 interface MediaCard {
   mediaType: 'image' | 'video';
@@ -42,10 +43,12 @@ export function MediaSlider({ data }: MediaSliderProps) {
                   </div>
                 </>
               ) : (
-                <img 
+                <OptimizedImage 
                   src={card.mediaUrl} 
                   alt={card.title} 
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  fill
+                  sizes="(max-width: 768px) 40vw, 320px"
+                  className="object-cover group-hover:scale-105 transition-transform duration-700"
                 />
               )
             ) : (

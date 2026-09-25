@@ -1,11 +1,11 @@
 "use client";
 
 import React from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, Star, Clock } from 'lucide-react';
 import { useCountdown } from '@/hooks/useCountdown';
 import { WishlistButton } from '@/components/ui/WishlistButton';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
 interface ProductCardProps {
   product: {
@@ -92,10 +92,12 @@ export function ProductCard({ product, appliedOffer }: ProductCardProps) {
               autoPlay loop muted playsInline
             />
           ) : (
-            <img 
+            <OptimizedImage 
               src={product.imageUrl.split(',')[0].trim()} 
               alt={product.name}
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="object-cover transition-transform duration-700 group-hover:scale-110"
             />
           )
         ) : (

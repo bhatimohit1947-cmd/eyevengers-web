@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingBag, ChevronRight, CheckCircle2, Clock, Glasses } from 'lucide-react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/useAuthStore';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useRouter } from 'next/navigation';
 
 export default function OrdersPage() {
@@ -157,12 +158,12 @@ export default function OrdersPage() {
               </div>
               
               <div className="p-4 sm:p-6 flex flex-col sm:flex-row gap-6">
-                <div className="w-24 h-24 bg-gray-100 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden">
+                <div className="relative w-24 h-24 bg-gray-100 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden">
                   {order.details?.imageUrl ? (
                     order.details.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
                       <video src={order.details.imageUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
                     ) : (
-                      <img src={order.details.imageUrl} alt="Product" className="w-full h-full object-cover" />
+                      <OptimizedImage src={order.details.imageUrl} alt="Product" fill sizes="96px" className="object-cover" />
                     )
                   ) : (
                     <Glasses className="w-10 h-10 text-gray-400" />

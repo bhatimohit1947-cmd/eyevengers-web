@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
 interface CollectionCard {
   title: string;
@@ -39,10 +40,11 @@ export function CollectionCardsGrid({ data }: CollectionGridProps) {
             href={`/products?${card.filterQuery}`}
             className="group block"
           >
-            <div className="bg-gray-50 rounded-[20px] md:rounded-[24px] overflow-hidden relative aspect-square mb-3 md:mb-4 border-2 transition-colors duration-300 group-hover:shadow-lg"
-                 style={{ borderColor: 'transparent' }}
-                 onMouseEnter={(e) => (e.currentTarget.style.borderColor = card.accentBorderColor)}
-                 onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
+            <div 
+              className="bg-gray-50 rounded-[20px] md:rounded-[24px] overflow-hidden relative aspect-square mb-3 md:mb-4 border-2 transition-colors duration-300 group-hover:shadow-lg"
+              style={{ borderColor: 'transparent' }}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = card.accentBorderColor)}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
             >
                {card.imageUrl ? (
                  card.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
@@ -52,10 +54,12 @@ export function CollectionCardsGrid({ data }: CollectionGridProps) {
                      autoPlay loop muted playsInline
                    />
                  ) : (
-                   <img 
+                   <OptimizedImage 
                      src={card.imageUrl} 
                      alt={card.title} 
-                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                     fill
+                     sizes="(max-width: 768px) 50vw, 600px"
+                     className="object-cover group-hover:scale-105 transition-transform duration-700"
                    />
                  )
                ) : (

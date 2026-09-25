@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Clock, Sparkles } from 'lucide-react';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
 interface HeroBannerProps {
   data: {
@@ -93,9 +94,11 @@ export function HeroBanner({ data }: HeroBannerProps) {
                   autoPlay loop muted playsInline
                 />
               ) : (
-                <img 
+                <OptimizedImage 
                   src={data.bannerImageUrl} 
                   alt={data.title || "Eyevengers Banner"} 
+                  priority={true}
+                  sizes="100vw"
                   className="w-full h-auto max-h-[85vh] object-contain block mx-auto"
                 />
               )}

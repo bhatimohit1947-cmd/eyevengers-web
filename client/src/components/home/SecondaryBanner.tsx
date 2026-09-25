@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
 interface SecondaryBannerProps {
   data: {
@@ -65,9 +66,10 @@ export function SecondaryBanner({ data }: SecondaryBannerProps) {
                 autoPlay loop muted playsInline
               />
             ) : (
-              <img 
+              <OptimizedImage 
                 src={data.bannerImageUrl} 
                 alt={data.title || "Offer Banner"} 
+                sizes="(max-width: 768px) 100vw, 1280px"
                 className="w-full h-auto block rounded-[20px]"
               />
             )

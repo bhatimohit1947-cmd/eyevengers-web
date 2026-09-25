@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
 interface PromoSlide {
   imageUrl?: string;
@@ -79,10 +80,12 @@ export function PromoSlider({ data }: PromoSliderProps) {
                     autoPlay loop muted playsInline
                   />
                 ) : (
-                  <img 
+                  <OptimizedImage 
                     src={slide.imageUrl} 
                     alt="Promo Banner" 
-                    className="w-full h-full object-cover object-center" 
+                    fill
+                    sizes="100vw"
+                    className="object-cover object-center" 
                   />
                 )
               ) : (

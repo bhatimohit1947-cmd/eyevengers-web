@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
 interface Slide {
   imageUrl: string;
@@ -55,10 +56,13 @@ export function SliderBanner({ data }: SliderBannerProps) {
                     autoPlay loop muted playsInline
                   />
                 ) : (
-                  <img 
+                  <OptimizedImage 
                     src={slide.imageUrl}
                     alt={slide.headline}
-                    className="absolute inset-0 w-full h-full object-cover"
+                    fill
+                    priority={index === 0}
+                    sizes="(max-width: 768px) 100vw, 1280px"
+                    className="object-cover"
                   />
                 )
               ) : (

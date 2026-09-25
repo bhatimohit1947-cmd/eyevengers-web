@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
 interface Poster {
   imageUrl: string;
@@ -47,10 +48,12 @@ export function PosterSlider({ data }: PosterSliderProps) {
                   autoPlay loop muted playsInline
                 />
               ) : (
-                <img 
+                <OptimizedImage 
                   src={poster.imageUrl} 
                   alt={poster.ctaText} 
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  fill
+                  sizes="(max-width: 768px) 45vw, 400px"
+                  className="object-cover group-hover:scale-105 transition-transform duration-700"
                 />
               )
             ) : (

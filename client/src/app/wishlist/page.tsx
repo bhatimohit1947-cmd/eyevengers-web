@@ -6,6 +6,7 @@ import { HeartCrack, ShoppingBag, Trash2 } from 'lucide-react';
 import { useWishlistStore } from '@/store/useWishlistStore';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
 // MOCK_PRODUCTS_DB removed, we will fetch real data from backend
 
@@ -110,7 +111,7 @@ export default function WishlistPage() {
                 item.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
                   <video src={item.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" autoPlay loop muted playsInline />
                 ) : (
-                  <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  <OptimizedImage src={item.imageUrl} alt={item.title} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-cover transition-transform duration-700 group-hover:scale-110" />
                 )
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400">No Image</div>
