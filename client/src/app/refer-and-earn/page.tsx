@@ -18,7 +18,8 @@ import {
   ShieldCheck,
   ChevronRight,
   Sparkles,
-  Crown
+  Crown,
+  Home as HomeIcon
 } from 'lucide-react';
 
 export default function ReferAndEarnPage() {
@@ -614,14 +615,14 @@ export default function ReferAndEarnPage() {
                       </div>
 
                       {!isClaimed ? (
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                          <button
-                            onClick={() => setSelectedVoucherForQR(v)}
-                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 bg-brand-navy text-white px-3.5 py-2 rounded-xl text-xs font-bold hover:bg-blue-900 transition"
+                        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                          <Link
+                            href={`/eye-test?mode=home&coupon=${encodeURIComponent(v.code)}`}
+                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-xs whitespace-nowrap"
                           >
-                            <QrCode size={15} />
-                            Show QR at Shop
-                          </button>
+                            <HomeIcon size={13} />
+                            Book Free Home Eye Test
+                          </Link>
                           <Link
                             href={`/cart?coupon=${encodeURIComponent(v.code)}&prefer=referral`}
                             onClick={() => {
@@ -630,10 +631,17 @@ export default function ReferAndEarnPage() {
                                 sessionStorage.setItem('eyevengers_chosen_benefit', 'referral');
                               }
                             }}
-                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1 bg-gray-900 text-white px-3.5 py-2 rounded-xl text-xs font-bold hover:bg-black transition"
+                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1 bg-brand-navy hover:bg-blue-900 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-xs whitespace-nowrap"
                           >
-                            Use in Cart
+                            Use for Free Frame
                           </Link>
+                          <button
+                            onClick={() => setSelectedVoucherForQR(v)}
+                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap"
+                          >
+                            <QrCode size={13} />
+                            Store QR
+                          </button>
                         </div>
                       ) : (
                         <div className="inline-flex items-center gap-1 text-gray-500 text-xs font-semibold">

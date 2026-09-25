@@ -188,23 +188,27 @@ export default function AdminReferralsPage() {
                 if (newType === 'FREE_FRAME') {
                   setRewardTitle('FREE Eyevengers Frame');
                   setRewardValue(100);
+                } else if (newType === 'FREE_HOME_EYE_TEST') {
+                  setRewardTitle('100% FREE Home Eye Test (At Your Doorstep)');
+                  setRewardValue(199);
+                } else if (newType === 'COMBO_BENEFIT') {
+                  setRewardTitle('FREE Frame + FREE Home Eye Test');
+                  setRewardValue(100);
                 } else if (newType === 'PERCENT_DISCOUNT') {
                   setRewardTitle('30% OFF on Next Order');
                   setRewardValue(30);
                 } else if (newType === 'FLAT_DISCOUNT') {
                   setRewardTitle('Flat ₹500 OFF');
                   setRewardValue(500);
-                } else if (newType === 'COMBO_BENEFIT') {
-                  setRewardTitle('FREE Frame + 30% OFF on Lenses');
-                  setRewardValue(30);
                 }
               }}
               className="w-full text-sm font-semibold p-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy"
             >
               <option value="FREE_FRAME">Free Frame (100% OFF on Frame)</option>
+              <option value="FREE_HOME_EYE_TEST">Free Home Eye Test (100% Free Doorstep Test)</option>
+              <option value="COMBO_BENEFIT">Multi / Combo (Free Frame + Free Home Eye Test)</option>
               <option value="PERCENT_DISCOUNT">Percentage Discount (e.g. 30% OFF)</option>
               <option value="FLAT_DISCOUNT">Flat Amount Discount (₹ OFF)</option>
-              <option value="COMBO_BENEFIT">Multi / Combo (Free Frame + 30% OFF)</option>
             </select>
           </div>
 

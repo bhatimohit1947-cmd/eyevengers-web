@@ -204,6 +204,11 @@ export default function AdminEyeTestsPage() {
                       <td className="p-4">
                         <div className="font-bold text-gray-900">{booking.name}</div>
                         <div className="text-gray-500 text-xs">{booking.phone}</div>
+                        {booking.voucherCode && (
+                          <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                            🎁 100% Free ({booking.voucherCode})
+                          </div>
+                        )}
                       </td>
                       <td className="p-4">
                         <div className="font-semibold text-gray-700">{booking.date}</div>

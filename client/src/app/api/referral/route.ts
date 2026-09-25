@@ -647,18 +647,18 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'claim-online') {
-      const { code, orderId } = body;
+      const { code, orderId, channel } = body;
       const voucher = store.vouchers.find((v: any) => v.code.toUpperCase() === (code || '').trim().toUpperCase());
       if (voucher && voucher.status === 'ACTIVE') {
         voucher.status = 'CLAIMED';
         voucher.claimedAt = new Date().toISOString();
-        voucher.claimedChannel = 'ONLINE';
+        voucher.claimedChannel = channel || 'ONLINE';
         voucher.claimedInvoiceNo = orderId || 'ONLINE-ORDER';
         persistStore(store);
         updateVoucherInSupabase(voucher.code, {
           status: 'CLAIMED',
           claimed_at: voucher.claimedAt,
-          claimed_channel: 'ONLINE',
+          claimed_channel: voucher.claimedChannel,
           invoice_no: voucher.claimedInvoiceNo
         });
       }
