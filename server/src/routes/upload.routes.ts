@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import { uploadImage, deleteImage } from '../controllers/upload.controller';
+import { authenticateAdmin } from '../middlewares/auth.middleware';
 
 const router = express.Router();
 
@@ -13,7 +14,7 @@ const upload = multer({
   }
 });
 
-router.post('/image', upload.single('image'), uploadImage as any);
-router.delete('/image/:filename', deleteImage as any);
+router.post('/image', authenticateAdmin, upload.single('image'), uploadImage as any);
+router.delete('/image/:filename', authenticateAdmin, deleteImage as any);
 
 export default router;

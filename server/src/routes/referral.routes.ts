@@ -10,6 +10,7 @@ import {
   adminGetAllVouchers,
   adminUpdateConfig
 } from '../controllers/referral.controller';
+import { authenticateAdmin } from '../middlewares/auth.middleware';
 
 const router = express.Router();
 
@@ -23,11 +24,11 @@ router.post('/validate-voucher', validateVoucher);
 router.post('/claim-online', claimVoucherOnline);
 
 // ==========================================
-// STORE STAFF & ADMIN ROUTES
+// STORE STAFF & ADMIN ROUTES (Protected)
 // ==========================================
-router.get('/admin/lookup', adminLookupVoucher);
-router.post('/admin/redeem-store', adminRedeemStoreVoucher);
-router.get('/admin/all', adminGetAllVouchers);
-router.post('/admin/config', adminUpdateConfig);
+router.get('/admin/lookup', authenticateAdmin, adminLookupVoucher);
+router.post('/admin/redeem-store', authenticateAdmin, adminRedeemStoreVoucher);
+router.get('/admin/all', authenticateAdmin, adminGetAllVouchers);
+router.post('/admin/config', authenticateAdmin, adminUpdateConfig);
 
 export default router;
