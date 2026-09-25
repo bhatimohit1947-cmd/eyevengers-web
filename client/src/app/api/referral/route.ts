@@ -228,17 +228,21 @@ export async function GET(req: NextRequest) {
     const phoneParam = (searchParams.get('phone') || '').replace(/[^0-9]/g, '').slice(-10);
     const nameParam = (searchParams.get('name') || '').trim();
 
+    // Guard: Never query all customers or leak another customer's data!
+    if (!phoneParam || phoneParam.length < 10) {
+      return NextResponse.json({
+        success: false,
+        error: 'Valid 10-digit phone number is required to retrieve referral data',
+        config: store.config
+      }, { status: 400 });
+    }
+
     let customerRecord: any = null;
     let referralCode = '';
 
-    // 1. First look up directly in Supabase customers table
+    // 1. First look up directly in Supabase customers table strictly by this user's phone
     try {
-      let sbUrl = `${SUPABASE_URL}/rest/v1/customers?select=*`;
-      if (phoneParam) {
-        sbUrl += `&phone=eq.${phoneParam}`;
-      } else if (nameParam) {
-        sbUrl += `&name=ilike.%25${encodeURIComponent(nameParam)}%25`;
-      }
+      const sbUrl = `${SUPABASE_URL}/rest/v1/customers?select=*&phone=eq.${phoneParam}`;
       const sbRes = await fetch(sbUrl, { headers: supabaseHeaders, cache: 'no-store' });
       if (sbRes.ok) {
         const custs = await sbRes.json();
@@ -249,17 +253,17 @@ export async function GET(req: NextRequest) {
       }
     } catch(e) {}
 
-    const resolvedPhone = phoneParam || customerRecord?.phone || '';
+    const resolvedPhone = phoneParam;
     const resolvedName = (customerRecord?.name || nameParam || 'Customer').trim();
 
     // 2. If customer has no referralCode yet, generate one from their real name & phone
-    if (!referralCode && (resolvedPhone || resolvedName)) {
+    if (!referralCode && resolvedPhone) {
       const cleanName = resolvedName.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 5) || 'EYE';
-      const last4 = (resolvedPhone || '1234').slice(-4);
+      const last4 = resolvedPhone.slice(-4);
       referralCode = `EYE-${cleanName}${last4}`;
 
-      // Persist to Supabase customers table
-      if (resolvedPhone) {
+      // Persist to Supabase customers table if record exists
+      if (customerRecord) {
         fetch(`${SUPABASE_URL}/rest/v1/customers?phone=eq.${resolvedPhone}`, {
           method: 'PATCH',
           headers: supabaseHeaders,

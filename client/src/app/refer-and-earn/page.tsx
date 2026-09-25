@@ -37,68 +37,60 @@ export default function ReferAndEarnPage() {
   const [simulating, setSimulating] = useState(false);
   const [simSuccessMsg, setSimSuccessMsg] = useState('');
 
-  // Resolve customer details from auth store or active session
+  // Resolve customer details strictly from the active authenticated session
   const [resolvedPhone, setResolvedPhone] = useState<string>('');
   const [resolvedName, setResolvedName] = useState<string>('');
 
+  // Clear legacy contaminated keys from storage on mount
   useEffect(() => {
-    let p = (user?.phone || '').replace(/[^0-9]/g, '').slice(-10);
-    let n = (user?.name || '').trim();
+    try {
+      localStorage.removeItem('eyevengers_last_phone');
+      localStorage.removeItem('eyevengers_last_name');
+    } catch(e) {}
+  }, []);
 
-    if (!p || !n) {
+  useEffect(() => {
+    // If not logged in, immediately reset user phone/name and clear customer data
+    if (!isLoggedIn || !user) {
+      setResolvedPhone('');
+      setResolvedName('');
+      setData(null);
+      return;
+    }
+
+    let p = (user.phone || '').replace(/[^0-9]/g, '').slice(-10);
+    let n = (user.name || '').trim();
+
+    // Fallback to active auth store record only if user.phone is not directly hydrated yet
+    if (!p) {
       try {
-        const storedAuth = JSON.parse(
-          localStorage.getItem('eyevengers-auth-storage') || 
-          localStorage.getItem('auth-storage') || 
-          '{}'
-        );
-        if (storedAuth?.state?.user) {
+        const storedAuth = JSON.parse(localStorage.getItem('eyevengers-auth-storage') || '{}');
+        if (storedAuth?.state?.user?.phone) {
           const rawP = (storedAuth.state.user.phone || '').replace(/[^0-9]/g, '').slice(-10);
-          if (!p && rawP) p = rawP;
+          if (rawP.length === 10) p = rawP;
           if (!n && storedAuth.state.user.name) n = storedAuth.state.user.name.trim();
         }
       } catch(e) {}
     }
 
-    if (!p) {
-      try {
-        const savedPhone = (localStorage.getItem('eyevengers_last_phone') || '').replace(/[^0-9]/g, '').slice(-10);
-        if (savedPhone) p = savedPhone;
-        const savedName = localStorage.getItem('eyevengers_last_name') || '';
-        if (!n && savedName) n = savedName.trim();
-      } catch(e) {}
-    }
-
-    if ((!p || p.length < 10) && n) {
-      try {
-        const mockCusts = JSON.parse(localStorage.getItem('eyevengers_mock_customers') || '[]');
-        const found = mockCusts.find((c: any) => c.name?.toLowerCase() === n.toLowerCase());
-        if (found?.phone) p = found.phone.replace(/[^0-9]/g, '').slice(-10);
-      } catch(e) {}
-    }
-
-    if (p) {
-      try {
-        localStorage.setItem('eyevengers_last_phone', p);
-        if (n) localStorage.setItem('eyevengers_last_name', n);
-      } catch(e) {}
-    }
-
     setResolvedPhone(p);
     setResolvedName(n);
-  }, [user]);
+  }, [user, isLoggedIn]);
 
   const fetchReferralInfo = async () => {
     try {
-      let queryUrl = '/api/referral?action=user-info';
-      if (resolvedPhone) queryUrl += `&phone=${encodeURIComponent(resolvedPhone)}`;
-      if (resolvedName) queryUrl += `&name=${encodeURIComponent(resolvedName)}`;
-      
-      // If neither is known yet and not logged in, fetch campaign config only
-      if (!resolvedPhone && !resolvedName && !isLoggedIn) {
-        queryUrl = '/api/referral?action=config';
+      // If not logged in or phone is not yet resolved, ONLY fetch campaign config (never other users' data)
+      if (!isLoggedIn || !resolvedPhone || resolvedPhone.length < 10) {
+        const res = await fetch('/api/referral?action=config');
+        const json = await res.json();
+        if (json.success) {
+          setData(json);
+        }
+        return;
       }
 
+      // Query personal referral info for this exact logged in customer's phone
+      const queryUrl = `/api/referral?action=user-info&phone=${encodeURIComponent(resolvedPhone)}&name=${encodeURIComponent(resolvedName || user?.name || '')}`;
       const res = await fetch(queryUrl);
       const json = await res.json();
       if (json.success) {
@@ -109,6 +101,11 @@ export default function ReferAndEarnPage() {
             store.setMembershipTier(json.customer.membershipTier, json.customer.membershipBenefits);
           }
         }
+      } else {
+        // Fallback to campaign config if user not found
+        const confRes = await fetch('/api/referral?action=config');
+        const confJson = await confRes.json();
+        if (confJson.success) setData(confJson);
       }
     } catch (err) {
       console.error("Failed to load referral data", err);
