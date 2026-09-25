@@ -97,24 +97,33 @@ export function LoginModal() {
 
   if (!isLoginModalOpen) return null;
 
-  const getCustomers = async (): Promise<CustomerRecord[]> => {
+  const getCustomerByPhone = async (targetPhone: string): Promise<CustomerRecord | null> => {
+    const clean = targetPhone.replace(/[^0-9]/g, '').slice(-10);
+    if (!clean || clean.length !== 10) return null;
+
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 6000);
       
-      const res = await fetch('/api/customers', { signal: controller.signal });
+      const res = await fetch(`/api/customers?phone=${clean}`, { signal: controller.signal });
       clearTimeout(timeoutId);
       
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) return data;
+      if (res.ok) {
+        const data = await res.json();
+        if (data.exists && data.customer) {
+          return {
+            ...data.customer,
+            pin: data.customer.pin || '0000'
+          };
+        }
+      }
     } catch (err) {
-      console.warn("API customers fetch slow or failed, trying Supabase direct...", err);
+      console.warn("API customer query slow or failed, trying Supabase direct...", err);
     }
 
-    // Direct Supabase fallback
+    // Direct Supabase targeted query (ONLY queries for this specific phone)
     try {
-      // First try dedicated customers table
-      const custRes = await fetch('https://bhjfsthxmzqumajquyvn.supabase.co/rest/v1/customers?select=*', {
+      const custRes = await fetch(`https://bhjfsthxmzqumajquyvn.supabase.co/rest/v1/customers?phone=eq.${clean}&select=*`, {
         headers: {
           'apikey': 'sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy',
           'Authorization': 'Bearer sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy'
@@ -123,7 +132,8 @@ export function LoginModal() {
       if (custRes.ok) {
         const custData = await custRes.json();
         if (Array.isArray(custData) && custData.length > 0) {
-          return custData.map((c: any) => ({
+          const c = custData[0];
+          return {
             id: c.id || `CUST-${c.phone}`,
             name: c.name || 'Valued Customer',
             phone: c.phone,
@@ -135,12 +145,12 @@ export function LoginModal() {
             referralCode: c.referral_code,
             referredBy: c.referred_by,
             createdAt: c.created_at || new Date().toISOString()
-          }));
+          };
         }
       }
 
-      // Secondary fallback to global_settings
-      const sbRes = await fetch('https://bhjfsthxmzqumajquyvn.supabase.co/rest/v1/global_settings?select=*&key=like.user_%25', {
+      // Secondary targeted fallback to global_settings
+      const sbRes = await fetch(`https://bhjfsthxmzqumajquyvn.supabase.co/rest/v1/global_settings?key=eq.user_${clean}&select=*`, {
         headers: {
           'apikey': 'sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy',
           'Authorization': 'Bearer sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy'
@@ -148,10 +158,8 @@ export function LoginModal() {
       });
       if (sbRes.ok) {
         const rows = await sbRes.json();
-        if (Array.isArray(rows)) {
-          return rows.map((r: any) => {
-            try { return JSON.parse(r.value); } catch { return null; }
-          }).filter(Boolean);
+        if (Array.isArray(rows) && rows.length > 0) {
+          try { return JSON.parse(rows[0].value); } catch {}
         }
       }
     } catch (e) {}
@@ -159,10 +167,13 @@ export function LoginModal() {
     // Fallback to local storage
     try {
       const localData = JSON.parse(localStorage.getItem('eyevengers_mock_customers') || '[]');
-      return Array.isArray(localData) ? localData : [];
+      if (Array.isArray(localData)) {
+        return localData.find((c: any) => (c.phone || '').slice(-10) === clean) || null;
+      }
     } catch {
-      return [];
+      return null;
     }
+    return null;
   };
 
   const saveCustomer = async (customer: Partial<CustomerRecord>) => {
@@ -291,8 +302,7 @@ export function LoginModal() {
 
     setIsLoading(true);
     try {
-      const customers = await getCustomers();
-      const existingCustomer = customers.find(c => c.phone === phone);
+      const existingCustomer = await getCustomerByPhone(phone);
       
       if (!existingCustomer) {
         setError('Account not found with this number. Please switch to Sign Up to create an account.');
@@ -328,8 +338,7 @@ export function LoginModal() {
 
     setIsLoading(true);
     try {
-      const customers = await getCustomers();
-      const existingCustomer = customers.find(c => c.phone === phone);
+      const existingCustomer = await getCustomerByPhone(phone);
       
       if (existingCustomer) {
         setError('An account already exists with this mobile number. Please switch to Login.');
@@ -421,11 +430,10 @@ export function LoginModal() {
     
     setIsLoading(true);
     try {
-      const customers = await getCustomers();
-      const customerIndex = customers.findIndex(c => c.phone === phone);
+      const existingCustomer = await getCustomerByPhone(phone);
       
-      if (customerIndex >= 0) {
-        const updatedCustomer = { ...customers[customerIndex], pin };
+      if (existingCustomer) {
+        const updatedCustomer = { ...existingCustomer, pin };
         const result = await saveCustomer(updatedCustomer);
         
         if (result?.success) {

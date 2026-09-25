@@ -26,11 +26,6 @@ router.get('/eye-test/settings', getEyeTestSettings);
 router.post('/eye-test/bookings', createEyeTestBooking);
 router.get('/stores', getStores);
 router.get('/lenses/settings', getLensSettings);
-router.get('/customers', getCustomers);
-router.post('/customers', createOrUpdateCustomer);
-router.post('/customers/stats', syncCustomerStats);
-router.get('/referral-data', getReferralData);
-router.post('/referral-data', saveReferralData);
 
 // ==========================================
 // PROTECTED ROUTES (Used by Admin Panel)
@@ -51,6 +46,8 @@ router.get('/orders', getOrders);
 router.get('/customers', getCustomers);
 router.post('/customers', createOrUpdateCustomer);
 router.post('/customers/stats', syncCustomerStats);
+router.get('/referral-data', getReferralData);
+router.post('/referral-data', saveReferralData);
 
 router.put('/settings', updateSettings);
 router.put('/eye-test/settings', updateEyeTestSettings);

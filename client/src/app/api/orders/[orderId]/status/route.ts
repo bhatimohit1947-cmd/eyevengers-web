@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { isValidAdminToken } from '@/utils/adminAuthServer';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +31,11 @@ const updateFallbackStatus = (orderId: string, status: string) => {
 
 export async function PUT(request: Request, { params }: { params: Promise<{ orderId: string }> }) {
   try {
+    const authHeader = request.headers.get('authorization');
+    if (!isValidAdminToken(authHeader)) {
+      return NextResponse.json({ error: 'Unauthorized: Admin authentication required to update order status' }, { status: 401 });
+    }
+
     const { status } = await request.json();
     const resolvedParams = await params;
     const orderId = resolvedParams.orderId;

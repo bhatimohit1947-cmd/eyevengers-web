@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { isValidAdminToken } from '@/utils/adminAuthServer';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,15 +47,24 @@ const saveFallbackOrder = (order: any) => {
   } catch (e) {}
 };
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const phoneParam = searchParams.get('phone');
+  const authHeader = request.headers.get('authorization');
+
   let backendOrders = [];
   
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 3000);
   
   try {
-    const res = await fetch('https://eyevengers-web.onrender.com/api/orders', {
+    const fetchUrl = phoneParam 
+      ? `https://eyevengers-web.onrender.com/api/orders?phone=${encodeURIComponent(phoneParam)}`
+      : 'https://eyevengers-web.onrender.com/api/orders';
+
+    const res = await fetch(fetchUrl, {
       cache: 'no-store',
+      headers: authHeader ? { 'Authorization': authHeader } : undefined,
       signal: controller.signal
     });
     if (res.ok) backendOrders = await res.json();
@@ -71,7 +81,26 @@ export async function GET() {
   fallbackOrders.forEach((o: any) => map.set(o.id, o));
   backendOrders.forEach((o: any) => map.set(o.id, o));
   
-  return NextResponse.json(Array.from(map.values()));
+  let allOrders = Array.from(map.values());
+
+  // If customer is querying their orders by phone, filter and return only their orders
+  if (phoneParam) {
+    const cleanPhone = phoneParam.replace(/[^0-9]/g, '').slice(-10);
+    const userOrders = allOrders.filter((o: any) => {
+      const orderPhone = (o.details?.userPhone || o.details?.phone || o.customerPhone || '').replace(/[^0-9]/g, '').slice(-10);
+      return orderPhone && orderPhone === cleanPhone;
+    });
+    return NextResponse.json(userOrders);
+  }
+
+  // BULK ORDERS LIST: Require Admin Authorization!
+  if (!isValidAdminToken(authHeader)) {
+    return NextResponse.json({ 
+      error: 'Unauthorized: Admin authentication is required to access full orders database' 
+    }, { status: 401 });
+  }
+
+  return NextResponse.json(allOrders);
 }
 
 export async function POST(request: Request) {

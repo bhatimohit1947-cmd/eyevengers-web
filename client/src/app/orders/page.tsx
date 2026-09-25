@@ -29,10 +29,12 @@ export default function OrdersPage() {
     const fetchOrders = async () => {
       try {
         let apiOrders: any[] = [];
+        const cleanUserPhone = (user?.phone || '').replace(/[^0-9]/g, '').slice(-10);
+        const queryParam = cleanUserPhone ? `?phone=${cleanUserPhone}&t=${Date.now()}` : `?t=${Date.now()}`;
+
         try {
-          // Fetch from Render directly (can take up to 2 minutes if asleep)
-          // Added cache-busting timestamp to prevent browser heuristic caching
-          const renderRes = await fetch(`https://eyevengers-web.onrender.com/api/orders?t=${Date.now()}`);
+          // Fetch from Render directly with targeted phone parameter
+          const renderRes = await fetch(`https://eyevengers-web.onrender.com/api/orders${queryParam}`);
           if (renderRes.ok) {
             const renderData = await renderRes.json();
             apiOrders = [...apiOrders, ...renderData];
@@ -42,8 +44,8 @@ export default function OrdersPage() {
         }
 
         try {
-          // Fetch from Vercel mock fallback (fast)
-          const vercelRes = await fetch(`/api/orders?t=${Date.now()}`);
+          // Fetch from Vercel mock fallback with targeted phone parameter
+          const vercelRes = await fetch(`/api/orders${queryParam}`);
           if (vercelRes.ok) {
             const vercelData = await vercelRes.json();
             apiOrders = [...apiOrders, ...vercelData];

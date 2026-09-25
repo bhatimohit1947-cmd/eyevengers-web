@@ -47,21 +47,22 @@ export function Header() {
   // Background sync user state & cloud data (Cart, Wishlist, Address)
   useEffect(() => {
     if (isHydrated && isLoggedIn && user?.phone) {
-      // Sync membership
-      fetch('/api/customers', { cache: 'no-store' })
-        .then(res => res.json())
-        .then(customers => {
-          if (Array.isArray(customers)) {
-            const currentUser = customers.find(c => c.phone === user.phone);
+      // Sync membership for the current logged-in user only
+      const cleanPhone = (user.phone || '').replace(/[^0-9]/g, '').slice(-10);
+      if (cleanPhone) {
+        fetch(`/api/customers?phone=${cleanPhone}`, { cache: 'no-store' })
+          .then(res => res.json())
+          .then(data => {
+            const currentUser = data?.customer;
             if (currentUser && currentUser.membershipTier) {
               const store = useAuthStore.getState();
               if (store.membershipTier !== currentUser.membershipTier) {
                 store.setMembershipTier(currentUser.membershipTier, currentUser.membershipBenefits);
               }
             }
-          }
-        })
-        .catch(console.error);
+          })
+          .catch(console.error);
+      }
 
       // Sync Cart, Wishlist, and Addresses from cloud
       useCartStore.getState().syncWithServer(user.phone);

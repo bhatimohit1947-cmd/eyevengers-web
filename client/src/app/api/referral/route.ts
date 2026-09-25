@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isValidAdminToken } from '@/utils/adminAuthServer';
 
 export const dynamic = 'force-dynamic';
 
@@ -490,6 +491,10 @@ export async function GET(req: NextRequest) {
   }
 
   if (action === 'admin-all') {
+    const authHeader = req.headers.get('authorization');
+    if (!isValidAdminToken(authHeader)) {
+      return NextResponse.json({ error: 'Unauthorized: Admin authentication required' }, { status: 401 });
+    }
     let allCustomers: any[] = [];
     try {
       const cRes = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*`, { headers: supabaseHeaders, cache: 'no-store' });

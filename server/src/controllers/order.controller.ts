@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { supabase } from '../supabaseClient';
@@ -36,6 +37,23 @@ const razorpay = new Razorpay({
 // Get all orders (for Admin Panel)
 export const getOrders = async (req: Request, res: Response) => {
   try {
+    const phone = req.query.phone as string;
+    const authHeader = req.headers.authorization;
+
+    // Bulk query for all orders: require admin authentication
+    if (!phone) {
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized: Admin authentication required to view all orders' });
+      }
+      const token = authHeader.split(' ')[1];
+      const secret = process.env.JWT_SECRET || 'fallback_secret_eyevengers_2026';
+      try {
+        jwt.verify(token, secret);
+      } catch (err) {
+        return res.status(403).json({ error: 'Forbidden: Invalid or expired token' });
+      }
+    }
+
     const { data, error } = await supabase
       .from('orders')
       .select('*')
@@ -44,7 +62,7 @@ export const getOrders = async (req: Request, res: Response) => {
     if (error) throw error;
     
     // Map snake_case to camelCase
-    const formattedOrders = (data || []).map(order => ({
+    let formattedOrders = (data || []).map(order => ({
       ...order,
       createdAt: order.created_at,
       paymentMethod: order.payment_method,
@@ -52,6 +70,14 @@ export const getOrders = async (req: Request, res: Response) => {
       razorpayOrderId: order.razorpay_order_id,
       razorpayPaymentId: order.razorpay_payment_id
     }));
+
+    if (phone) {
+      const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
+      formattedOrders = formattedOrders.filter(o => {
+        const orderPhone = (o.details?.userPhone || o.details?.phone || o.customerPhone || '').replace(/[^0-9]/g, '').slice(-10);
+        return orderPhone && orderPhone === cleanPhone;
+      });
+    }
     
     res.json(formattedOrders);
   } catch (error) {

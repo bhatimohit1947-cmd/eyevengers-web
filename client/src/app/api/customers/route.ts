@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { isValidAdminToken } from '@/utils/adminAuthServer';
 
 export const dynamic = 'force-dynamic';
 
@@ -295,7 +296,52 @@ async function saveCustomerToSupabase(customer: any) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const phoneParam = searchParams.get('phone');
+  const authHeader = request.headers.get('authorization');
+
+  // If querying by phone, return ONLY that single customer's data
+  if (phoneParam) {
+    const cleanPhone = phoneParam.replace(/[^0-9]/g, '').slice(-10);
+    if (!cleanPhone || cleanPhone.length !== 10) {
+      return NextResponse.json({ error: 'Valid 10-digit phone number is required' }, { status: 400 });
+    }
+
+    const supabaseCustomers = await fetchSupabaseCustomers();
+    const fallbackCustomers = getFallbackCustomers();
+
+    const customer = supabaseCustomers.find((c: any) => (c.phone || '').slice(-10) === cleanPhone) ||
+                     fallbackCustomers.find((c: any) => (c.phone || '').slice(-10) === cleanPhone);
+
+    if (!customer) {
+      return NextResponse.json({ exists: false }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      exists: true,
+      customer: {
+        id: customer.id,
+        name: customer.name,
+        phone: customer.phone,
+        email: customer.email,
+        membershipTier: customer.membershipTier,
+        membershipBenefits: customer.membershipBenefits,
+        cartCount: customer.cartCount || 0,
+        wishlistCount: customer.wishlistCount || 0,
+        createdAt: customer.createdAt,
+        pin: customer.pin
+      }
+    });
+  }
+
+  // BULK QUERY: Protect customer database. ONLY authenticated admins can fetch full list
+  if (!isValidAdminToken(authHeader)) {
+    return NextResponse.json({ 
+      error: 'Unauthorized: Admin authentication is required to access customer database' 
+    }, { status: 401 });
+  }
+
   // 1. First fetch directly from Supabase (Source of Truth)
   const supabaseCustomers = await fetchSupabaseCustomers();
 
