@@ -80,10 +80,10 @@ export default function CartPage() {
         if (res.ok && data.valid) {
           let discountVal = 0;
           if (data.voucher.benefitType === 'FREE_FRAME') {
-            // Free frame discount: deduct frame price up to ₹1500 (or totalAmount)
-            const frameItem = cartItems.find(i => !i.lensConfig || i.lensConfig.type === 'Standard' || i.price > 0) || cartItems[0];
-            const framePrice = frameItem ? frameItem.price : 1500;
-            discountVal = Math.min(totalAmount, Math.max(framePrice, 1500));
+            // Free frame discount: deduct actual frame selling price that customer pays (e.g. ₹999)
+            const frameItem = cartItems.find(i => !i.lensConfig || i.lensConfig.type === 'Standard' || Number(i.price) > 0) || cartItems[0];
+            const framePrice = frameItem ? Number(frameItem.price) : 0;
+            discountVal = Math.min(totalAmount, framePrice);
           } else if (data.voucher.benefitType === 'PERCENT_DISCOUNT') {
             discountVal = totalAmount * ((data.voucher.benefitValue || 30) / 100);
           } else {
@@ -206,7 +206,7 @@ export default function CartPage() {
         } catch (e) {}
       }
     }
-  }, [totalAmount]);
+  }, [totalAmount, cartItems]);
 
   const rawReferralDiscount = couponState.type === 'success' ? couponState.discount : 0;
   const hasBothBenefits = hasMembership && rawReferralDiscount > 0;
