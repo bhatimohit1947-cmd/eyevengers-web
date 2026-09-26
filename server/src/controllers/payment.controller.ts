@@ -114,12 +114,12 @@ export const verifyMembershipPayment = async (req: Request, res: Response) => {
       value: JSON.stringify(membershipUpdate)
     });
 
-    // Send email notification for membership
-    await sendEmail(
+    // Send email notification for membership in background
+    sendEmail(
       'support@eyevengers.com', // To admin or user if we had their email
       `New Membership Activated!`,
       `<h2>Membership Alert</h2><p>User ${userId} has successfully activated the ${planId} membership.</p>`
-    );
+    ).catch(err => console.warn('Background membership email skipped:', err));
 
     res.json({ 
       success: true, 

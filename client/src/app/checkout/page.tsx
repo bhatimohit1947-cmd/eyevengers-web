@@ -220,6 +220,8 @@ export default function CheckoutPage() {
     }
   }, [isLoggedIn, router, openLoginModal, hydrated]);
 
+  const [placedOrderId, setPlacedOrderId] = useState<string>('');
+
   const handlePlaceOrder = () => {
     if (!selectedAddressId) {
       alert("Please select a delivery address");
@@ -227,15 +229,16 @@ export default function CheckoutPage() {
     }
     
     setIsPlacingOrder(true);
-    
-    // Simulate order placement
-    setTimeout(() => {
+
+    try {
       const addresses = getUserAddresses();
-      const selectedAddress = addresses.find(a => a.id === selectedAddressId);
-      const orderId = `ORD-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      const selectedAddress = addresses.find(a => a.id === selectedAddressId) || null;
+      const orderId = `ORD-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+      setPlacedOrderId(orderId);
+
       const orderPayload = {
         id: orderId,
-        userId: user?.id,
+        userId: user?.id || user?.phone || 'customer',
         createdAt: new Date().toISOString(),
         amount: finalTotalPrice,
         discountApplied: couponDiscount,
@@ -260,7 +263,7 @@ export default function CheckoutPage() {
         }
       };
 
-      // If any voucher was used, lock it online as claimed (works for Refer & Earn, Games, and Welcome vouchers)
+      // 1. Lock voucher online if applied (Referral, Spin & Win, Mystery Box)
       if (chosenBenefit !== 'membership' && appliedCoupon?.code) {
         fetch('/api/referral', {
           method: 'POST',
@@ -274,58 +277,78 @@ export default function CheckoutPage() {
         }).catch(console.error);
       }
 
-      // Clear applied coupon
+      // 2. Clear applied coupon in storage
       try {
         sessionStorage.removeItem('eyevengers_applied_coupon');
         localStorage.removeItem('eyevengers_applied_coupon');
       } catch (e) {}
 
+      // 3. Save to localStorage for instant Orders retrieval
       try {
         const storedOrders = JSON.parse(localStorage.getItem('eyevengers_mock_orders') || '[]');
-        storedOrders.push(orderPayload);
+        storedOrders.unshift(orderPayload);
         localStorage.setItem('eyevengers_mock_orders', JSON.stringify(storedOrders));
-      } catch (e) {
-        console.error("Failed to save mock order", e);
-      }
+      } catch (e) {}
 
-      // POST to the API so it goes to the Vercel memory cache for instant UI updates
+      // 4. POST to Next.js API for local/Vercel persistence
       fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderPayload)
       }).catch(console.error);
 
-      // POST directly to Render from the browser so it doesn't get killed by Vercel's 10s timeout
+      // 5. POST to Render backend
       fetch('https://eyevengers-web.onrender.com/api/orders/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderPayload)
       }).catch(console.error);
 
+      // Instant UI transition after brief feedback
+      setTimeout(() => {
+        setIsPlacingOrder(false);
+        setOrderSuccess(true);
+        clearCart();
+      }, 500);
+    } catch (err) {
+      console.error('Order placement error:', err);
       setIsPlacingOrder(false);
-      setOrderSuccess(true);
-      clearCart();
-    }, 1500);
-
+      alert('An unexpected error occurred. Please try again.');
+    }
   };
-
-  if (!hydrated || !isLoggedIn) return null;
 
   if (orderSuccess) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center p-4">
-        <CheckCircle2 size={80} className="text-green-500 mb-6" />
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Order Placed Successfully!</h1>
-        <p className="text-gray-500 mb-8 text-center max-w-md">Thank you for shopping with EYEVENGERS. Your eyewear is getting ready.</p>
-        <button 
-          onClick={() => router.push('/')}
-          className="bg-brand-navy text-white px-8 py-3 rounded-full font-bold hover:bg-[#002b4d] transition-colors"
-        >
-          Continue Shopping
-        </button>
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-5 text-green-600 shadow-sm">
+          <CheckCircle2 size={52} />
+        </div>
+        <span className="text-xs font-mono font-bold text-gray-500 uppercase tracking-widest mb-1.5 bg-gray-100 px-3 py-1 rounded-full">
+          {placedOrderId ? `Order ID: ${placedOrderId}` : 'Order Confirmed'}
+        </span>
+        <h1 className="text-3xl font-extrabold text-gray-900 mb-2 text-center">Order Placed Successfully!</h1>
+        <p className="text-gray-500 mb-8 text-center max-w-md">
+          Thank you for shopping with EYEVENGERS. Your eyewear order has been confirmed and is being prepared.
+        </p>
+        <div className="flex flex-wrap gap-4 justify-center">
+          <button 
+            onClick={() => router.push('/orders')}
+            className="bg-brand-navy text-white px-8 py-3 rounded-full font-bold hover:bg-[#002b4d] transition-colors shadow-md"
+          >
+            View My Orders
+          </button>
+          <button 
+            onClick={() => router.push('/')}
+            className="bg-gray-100 text-gray-800 px-8 py-3 rounded-full font-bold hover:bg-gray-200 transition-colors"
+          >
+            Continue Shopping
+          </button>
+        </div>
       </div>
     );
   }
+
+  if (!hydrated || !isLoggedIn) return null;
 
   if (!hydrated) {
     return <div className="bg-gray-50 min-h-screen pb-24 md:pb-12"></div>;

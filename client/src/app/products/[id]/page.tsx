@@ -217,6 +217,59 @@ export default function ProductDetailPage() {
     };
 
     try {
+      const orderId = `ORD-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+      const orderPayload = {
+        id: orderId,
+        amount,
+        paymentMethod,
+        orderDetails,
+        status: 'Order Placed',
+        createdAt: new Date().toISOString(),
+        items: [{
+          title: product.name,
+          price: amount,
+          qty: 1,
+          imageUrl: orderDetails.imageUrl
+        }]
+      };
+
+      // 1. Save to localStorage for instant Orders retrieval
+      try {
+        const storedOrders = JSON.parse(localStorage.getItem('eyevengers_mock_orders') || '[]');
+        storedOrders.unshift(orderPayload);
+        localStorage.setItem('eyevengers_mock_orders', JSON.stringify(storedOrders));
+      } catch (e) {}
+
+      // 2. Post to Next.js API for local persistence
+      fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderPayload)
+      }).catch(console.error);
+
+      if (paymentMethod === 'cod') {
+        // Send to Render in background with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        try {
+          await fetch(`https://eyevengers-web.onrender.com/api/orders/create`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount, paymentMethod, orderDetails }),
+            signal: controller.signal
+          });
+        } catch (e) {
+          console.warn('Backend call warning:', e);
+        } finally {
+          clearTimeout(timeoutId);
+        }
+
+        setIsPlacingOrder(false);
+        setFlowStep('success');
+        return;
+      }
+
+      // Prepaid payment flow
       const res = await fetch(`https://eyevengers-web.onrender.com/api/orders/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -225,14 +278,12 @@ export default function ProductDetailPage() {
       const data = await res.json();
 
       if (!data.success) {
-        alert('Failed to place order.');
+        alert('Failed to initialize payment.');
         setIsPlacingOrder(false);
         return;
       }
 
-      if (paymentMethod === 'cod') {
-        setFlowStep('success');
-      } else if (paymentMethod === 'prepaid') {
+      if (paymentMethod === 'prepaid') {
         // Initialize Razorpay
         const options = {
           key: 'rzp_test_T34XmzvqjTeeXs', // Public Key

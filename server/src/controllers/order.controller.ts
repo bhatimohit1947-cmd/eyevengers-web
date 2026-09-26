@@ -147,12 +147,12 @@ export const createOrder = async (req: Request, res: Response) => {
     // Decrement Stock
     await processStock();
 
-    // Send Email Notification (if email is available, otherwise this will fail silently or skip if not configured)
-    await sendEmail(
+    // Send Email Notification in background (non-blocking so customer gets instant order confirmation)
+    sendEmail(
       orderDetails?.email || 'support@eyevengers.com',
       `Order Confirmed - ${newOrder.id}`,
       `<h2>Thank you for your order!</h2><p>Your COD order for ₹${amount} has been successfully placed.</p>`
-    );
+    ).catch(err => console.warn('Background email notification skipped:', err));
 
     // format for frontend
     const formattedOrder = {
