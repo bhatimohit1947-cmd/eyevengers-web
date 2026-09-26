@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Star, Heart, Share2, Ruler, ShieldCheck, ChevronRight, Camera, Glasses, ArrowLeft, CheckCircle2, Info, Loader2, AlertCircle } from 'lucide-react';
+import { Star, Heart, Share2, Ruler, ShieldCheck, ChevronRight, Camera, Glasses, ArrowLeft, CheckCircle2, Info, Loader2, AlertCircle, Tag, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import Script from 'next/script';
 import { ARTryOn } from '@/components/ui/ARTryOn';
@@ -43,6 +43,19 @@ export default function ProductDetailPage() {
   const [highPowerSurchargeApplied, setHighPowerSurchargeApplied] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'cod'|'prepaid'>('cod');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+
+  // Voucher & Rewards State
+  const [appliedVoucher, setAppliedVoucher] = useState<{
+    code: string;
+    discount: number;
+    title: string;
+    benefitType?: string;
+  } | null>(null);
+  const [userVouchers, setUserVouchers] = useState<any[]>([]);
+  const [showVouchersList, setShowVouchersList] = useState(false);
+  const [voucherInput, setVoucherInput] = useState('');
+  const [voucherLoading, setVoucherLoading] = useState(false);
+  const [voucherMessage, setVoucherMessage] = useState<{ type: 'none' | 'success' | 'error'; text: string }>({ type: 'none', text: '' });
 
   const [globalSettings, setGlobalSettings] = useState<any>({});
 
@@ -178,6 +191,115 @@ export default function ProductDetailPage() {
     return total;
   };
 
+  // Fetch active vouchers for logged in customer (Refer & Earn, Spin & Win, Mystery Box)
+  useEffect(() => {
+    if (user?.phone) {
+      const cleanPhone = user.phone.replace(/[^0-9]/g, '').slice(-10);
+      fetch(`/api/referral?action=user-info&phone=${cleanPhone}&name=${encodeURIComponent(user.name || '')}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.success && Array.isArray(d.vouchers)) {
+            const activeVouchers = d.vouchers.filter((v: any) => v.status === 'ACTIVE');
+            setUserVouchers(activeVouchers);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user?.phone, user?.name]);
+
+  const handleApplyVoucher = async (codeToApply: string) => {
+    if (!codeToApply.trim()) return;
+    const cleanCode = codeToApply.trim().toUpperCase();
+    setVoucherLoading(true);
+    setVoucherMessage({ type: 'none', text: '' });
+
+    const baseAmount = getBaseTotal() - getLensDiscountAmount();
+
+    try {
+      // 1. Validate with /api/referral (Referral rewards, Games rewards, Welcome gift)
+      const res = await fetch('/api/referral', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'validate-voucher', code: cleanCode })
+      });
+      const data = await res.json();
+      if (res.ok && data.valid && data.voucher) {
+        let discountVal = 0;
+        const bType = data.voucher.benefitType;
+        const bVal = Number(data.voucher.benefitValue || 0);
+
+        if (bType === 'FREE_FRAME') {
+          const framePrice = dynamicPrice ? dynamicPrice.discountedPrice : (product?.sellingPrice || 0);
+          discountVal = Math.min(baseAmount, framePrice);
+        } else if (bType === 'PERCENT_DISCOUNT') {
+          discountVal = Math.round(baseAmount * ((bVal || 30) / 100));
+        } else {
+          // FLAT_DISCOUNT
+          discountVal = Math.min(baseAmount, bVal || 150);
+        }
+
+        const voucherObj = {
+          code: cleanCode,
+          discount: discountVal,
+          title: data.voucher.benefitTitle || `${cleanCode} Applied`,
+          benefitType: bType
+        };
+        setAppliedVoucher(voucherObj);
+        setVoucherMessage({ type: 'success', text: `🎉 ${voucherObj.title} applied! Saved ₹${discountVal}` });
+        setVoucherInput('');
+        setVoucherLoading(false);
+        return;
+      } else if (data.error && (data.error.includes('Already used') || data.error.includes('expired'))) {
+        setVoucherMessage({ type: 'error', text: data.error });
+        setVoucherLoading(false);
+        return;
+      }
+    } catch(e) {}
+
+    // 2. Fallback to sitewide promotional offers
+    try {
+      const offerRes = await fetch('https://eyevengers-web.onrender.com/api/offers/validate-coupon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          code: cleanCode, 
+          cartItems: [{ price: product?.sellingPrice || 0, qty: 1 }], 
+          user: { id: user?.id || 'guest', orderCount: 0 } 
+        })
+      });
+      const offerData = await offerRes.json();
+      if (offerData.valid) {
+        let discountVal = 0;
+        if (offerData.offer.discountType === 'percentage') {
+          discountVal = Math.round(baseAmount * (offerData.offer.discountValue / 100));
+        } else {
+          discountVal = Math.min(baseAmount, offerData.offer.discountValue);
+        }
+        const voucherObj = {
+          code: cleanCode,
+          discount: discountVal,
+          title: `${cleanCode} Applied`,
+          benefitType: 'OFFER_COUPON'
+        };
+        setAppliedVoucher(voucherObj);
+        setVoucherMessage({ type: 'success', text: `🎉 ${cleanCode} applied! Saved ₹${discountVal}` });
+        setVoucherInput('');
+      } else {
+        setVoucherMessage({ type: 'error', text: offerData.error || 'Invalid or expired voucher code' });
+      }
+    } catch(e) {
+      setVoucherMessage({ type: 'error', text: 'Failed to apply voucher code' });
+    } finally {
+      setVoucherLoading(false);
+    }
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherInput('');
+    setVoucherMessage({ type: 'none', text: '' });
+  };
+
   const calculateTotal = () => {
     let frameTotal = dynamicPrice ? dynamicPrice.discountedPrice : (product?.sellingPrice || 0);
     let lensTotal = getLensTotal();
@@ -186,7 +308,8 @@ export default function ProductDetailPage() {
     let total = frameTotal + lensTotal - lensDiscount;
     const hasFreeShipping = membershipBenefits?.freeShipping === true;
     const shippingCharge = hasFreeShipping ? 0 : 50;
-    return total + shippingCharge;
+    const voucherDiscount = appliedVoucher?.discount || 0;
+    return Math.max(0, total + shippingCharge - voucherDiscount);
   };
 
   const handlePlaceOrder = async () => {
@@ -213,11 +336,28 @@ export default function ProductDetailPage() {
       productId: product.id,
       mrp: product.mrp,
       categoryId: product.shape,
-      brandId: product.brand
+      brandId: product.brand,
+      couponApplied: appliedVoucher?.code,
+      couponDiscount: appliedVoucher?.discount || 0,
+      benefitTitle: appliedVoucher?.title
     };
 
     try {
       const orderId = `ORD-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+
+      // Claim voucher online if applied
+      if (appliedVoucher?.code) {
+        fetch('/api/referral', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'claim-online',
+            code: appliedVoucher.code,
+            orderId: orderId,
+            channel: 'ONLINE'
+          })
+        }).catch(console.error);
+      }
       const orderPayload = {
         id: orderId,
         amount,
@@ -700,11 +840,151 @@ export default function ProductDetailPage() {
                       <span>₹50</span>
                     )}
                   </div>
+
+                  {appliedVoucher && appliedVoucher.discount > 0 && (
+                    <div className="flex justify-between text-sm mb-3 text-emerald-600 font-bold">
+                      <span>Voucher Discount ({appliedVoucher.title || appliedVoucher.code})</span>
+                      <span>-₹{appliedVoucher.discount.toFixed(0)}</span>
+                    </div>
+                  )}
                   
                   <div className="flex justify-between text-base font-black text-gray-900 mt-4 pt-4 border-t border-gray-200">
                     <span>Total Amount</span>
                     <span>₹{calculateTotal().toFixed(0)}</span>
                   </div>
+                </div>
+
+                {/* Discounts, Referrals & Games Vouchers Section */}
+                <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-xs">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="p-1 rounded-md bg-blue-50 text-brand-navy">
+                        <Tag size={14} />
+                      </span>
+                      <h4 className="font-bold text-gray-900 text-xs uppercase tracking-wider">Coupons & Rewards</h4>
+                    </div>
+                    {userVouchers.length > 0 && (
+                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full">
+                        {userVouchers.length} Rewards Unlocked
+                      </span>
+                    )}
+                  </div>
+
+                  {/* If voucher is applied: Show sleek applied badge */}
+                  {appliedVoucher && appliedVoucher.discount > 0 ? (
+                    <div className="bg-emerald-50/90 border border-emerald-200 rounded-xl p-3 flex items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                          <CheckCircle2 size={15} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-black text-xs text-gray-900 truncate">
+                              {appliedVoucher.code}
+                            </span>
+                            <span className="text-[9px] font-black uppercase text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded-full shrink-0">
+                              Applied ✓
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-emerald-800 font-semibold truncate mt-0.5">
+                            {appliedVoucher.title} (-₹{appliedVoucher.discount.toFixed(0)})
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleRemoveVoucher}
+                        className="text-xs font-bold text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-lg transition shrink-0"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={13} />
+                          <input
+                            type="text"
+                            value={voucherInput}
+                            onChange={(e) => setVoucherInput(e.target.value.toUpperCase())}
+                            placeholder="Enter coupon or reward code"
+                            className="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl uppercase font-mono text-xs font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy transition"
+                          />
+                        </div>
+                        <button
+                          onClick={() => handleApplyVoucher(voucherInput)}
+                          disabled={voucherLoading || !voucherInput.trim()}
+                          className="bg-brand-navy hover:bg-[#002b4d] text-white px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition shrink-0 disabled:opacity-50"
+                        >
+                          {voucherLoading ? '...' : 'Apply'}
+                        </button>
+                      </div>
+                      {voucherMessage.type === 'error' && (
+                        <p className="text-red-600 text-xs font-semibold mt-1.5">{voucherMessage.text}</p>
+                      )}
+                      {voucherMessage.type === 'success' && (
+                        <p className="text-emerald-700 text-xs font-semibold mt-1.5">{voucherMessage.text}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Available customer rewards (Refer & Earn, Spin & Win, Mystery Box) */}
+                  {userVouchers.length > 0 && (
+                    <div className="mt-2.5 pt-2.5 border-t border-gray-100">
+                      <button
+                        onClick={() => setShowVouchersList(!showVouchersList)}
+                        className="w-full flex items-center justify-between text-xs font-bold text-brand-navy hover:text-blue-900 transition py-0.5"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <Sparkles size={13} className="text-amber-500" />
+                          <span>Your available rewards & game vouchers ({userVouchers.length})</span>
+                        </span>
+                        {showVouchersList ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                      </button>
+
+                      {(showVouchersList || !appliedVoucher) && (
+                        <div className="space-y-2 mt-2 max-h-44 overflow-y-auto pr-1">
+                          {userVouchers.map((v) => {
+                            const isCurrent = appliedVoucher?.code?.toUpperCase() === v.code?.toUpperCase();
+                            const isGame = v.source === 'game' || (v.referrerName && (v.referrerName.includes('Wheel') || v.referrerName.includes('Mystery Box')));
+                            const isWelcome = v.source === 'welcome' || v.code?.startsWith('REF-WELCOME');
+                            const originLabel = isGame ? '🎡 Spin & Win' : isWelcome ? '🎉 Welcome' : '👥 Refer';
+
+                            return (
+                              <div
+                                key={v.code}
+                                className={`p-2 rounded-xl border flex items-center justify-between gap-2 transition text-xs ${
+                                  isCurrent ? 'bg-emerald-50/70 border-emerald-300' : 'bg-gray-50/80 border-gray-200 hover:bg-white hover:border-gray-300'
+                                }`}
+                              >
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-mono font-black text-gray-900 text-[11px]">{v.code}</span>
+                                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-100/80 text-blue-900">
+                                      {originLabel}
+                                    </span>
+                                  </div>
+                                  <div className="text-[11px] text-gray-600 truncate mt-0.5 font-medium">{v.benefitTitle}</div>
+                                </div>
+                                {isCurrent ? (
+                                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full shrink-0">
+                                    Applied ✓
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() => handleApplyVoucher(v.code)}
+                                    className="bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg transition shrink-0 shadow-xs"
+                                  >
+                                    Apply
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div>
