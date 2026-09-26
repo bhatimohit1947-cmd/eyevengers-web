@@ -17,7 +17,8 @@ import {
   Stethoscope,
   MapPin,
   Glasses,
-  Bell
+  Bell,
+  Sparkles
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -65,6 +66,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Redeem Store Voucher', href: '/admin/redeem-voucher', icon: MapPin },
     { name: 'Refer & Earn Program', href: '/admin/referrals', icon: Tag },
     { name: 'Offers & Campaigns', href: '/admin/offers', icon: Tag },
+    { name: 'Lucky Games (Spin & Win)', href: '/admin/gamification', icon: Sparkles },
     { name: 'Products', href: '/admin/products', icon: Package },
     { name: 'Lens Pricing', href: '/admin/lenses', icon: Glasses },
     { name: 'Membership Plans', href: '/admin/memberships', icon: Crown },

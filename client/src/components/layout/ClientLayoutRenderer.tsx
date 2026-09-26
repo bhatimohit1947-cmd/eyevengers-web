@@ -10,6 +10,7 @@ import { LoginModal } from "@/components/layout/LoginModal";
 import { SyncActivity } from "@/components/layout/SyncActivity";
 import { GoogleTranslator } from "@/components/layout/GoogleTranslator";
 import { ReferralUrlTracker } from "@/components/referral/ReferralUrlTracker";
+import { LuckyGamesWidget } from "@/components/gamification/LuckyGamesWidget";
 
 export function ClientLayoutRenderer({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -32,6 +33,7 @@ export function ClientLayoutRenderer({ children }: { children: React.ReactNode }
       <SideDrawer />
       <LoginModal />
       <SyncActivity />
+      <LuckyGamesWidget />
     </>
   );
 }

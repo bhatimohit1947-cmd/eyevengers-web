@@ -6,7 +6,7 @@ import { useUIStore } from '@/store/useUIStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { 
   X, UserCircle2, Glasses, Heart, ShoppingBag, 
-  MapPin, HelpCircle, LogOut, ChevronRight, Crown 
+  MapPin, HelpCircle, LogOut, ChevronRight, Crown, Sparkles 
 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { LanguageToggle } from '@/components/layout/LanguageToggle';
@@ -105,8 +105,28 @@ export function SideDrawer() {
             <LanguageToggle variant="drawer" />
           </div>
 
-          {/* TOP PRIORITY: Refer & Earn & Membership */}
+          {/* TOP PRIORITY: Refer & Earn, Rewards & Membership */}
           <div className="px-4 mb-3 space-y-2">
+            <Link 
+              href="/rewards" 
+              onClick={closeMenu} 
+              className="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-transparent border border-amber-400/40 hover:border-amber-500 transition group shadow-xs"
+            >
+              <div className="flex items-center gap-3">
+                <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-500 text-slate-950 flex items-center justify-center font-black shadow-sm">
+                  <Sparkles size={18} />
+                </span>
+                <div>
+                  <div className="font-black text-sm text-gray-900 leading-tight flex items-center gap-1.5">
+                    Spin & Win Rewards
+                    <span className="text-[9px] bg-rose-600 text-white font-black px-1.5 py-0.2 rounded-full uppercase">Free</span>
+                  </div>
+                  <div className="text-[11px] font-semibold text-amber-700">Daily Mystery Boxes & Vouchers</div>
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-amber-600 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+
             <Link 
               href="/refer-and-earn" 
               onClick={closeMenu} 

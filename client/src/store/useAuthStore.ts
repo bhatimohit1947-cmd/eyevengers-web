@@ -10,6 +10,7 @@ interface User {
   name: string;
   email: string;
   phone?: string;
+  gender?: 'male' | 'female' | 'other';
 }
 
 interface AuthState {
@@ -32,6 +33,7 @@ interface AuthState {
   openLoginModal: (pendingAction?: () => void) => void;
   closeLoginModal: () => void;
   executePendingAction: () => void;
+  updateUserGender: (gender: 'male' | 'female' | 'other') => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -86,6 +88,13 @@ export const useAuthStore = create<AuthState>()(
         if (pendingAction) {
           pendingAction();
           set({ pendingAction: null });
+        }
+      },
+
+      updateUserGender: (gender) => {
+        const currentUser = get().user;
+        if (currentUser) {
+          set({ user: { ...currentUser, gender } });
         }
       }
     }),

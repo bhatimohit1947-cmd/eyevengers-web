@@ -22,6 +22,7 @@ interface CustomerRecord {
   name: string;
   email?: string;
   phone: string;
+  gender?: 'male' | 'female' | 'other';
   pin: string;
   createdAt: string;
   cart?: any[];
@@ -79,6 +80,7 @@ export function LoginModal() {
   const [profileName, setProfileName] = useState('');
   const [profileEmail, setProfileEmail] = useState('');
   const [referralCode, setReferralCode] = useState('');
+  const [gender, setGender] = useState<'male' | 'female' | 'other'>('male');
   
   // Errors
   const [error, setError] = useState('');
@@ -266,6 +268,7 @@ export function LoginModal() {
       name: customer.name,
       email: customer.email || '',
       phone: customer.phone,
+      gender: customer.gender || 'other',
     }, customer.membershipTier || 'none', customer.membershipBenefits);
     
     // Switch and immediately sync Cart, Wishlist, and Addresses from cloud database
@@ -351,6 +354,7 @@ export function LoginModal() {
         name: profileName,
         email: profileEmail,
         phone: phone,
+        gender: gender,
         pin: pin,
         createdAt: new Date().toISOString()
       };
@@ -630,6 +634,30 @@ export function LoginModal() {
                     className="block w-full px-4 py-2.5 border border-gray-300 rounded-xl bg-white placeholder-gray-400 focus:ring-1 focus:ring-brand-navy focus:border-brand-navy text-sm outline-none transition-colors"
                     placeholder="e.g. Rahul Kumar"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Gender *</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { val: 'male', label: 'Male' },
+                      { val: 'female', label: 'Female' },
+                      { val: 'other', label: 'Other' },
+                    ].map(g => (
+                      <button
+                        key={g.val}
+                        type="button"
+                        onClick={() => setGender(g.val as any)}
+                        className={`py-2 px-3 text-xs font-bold rounded-xl border transition-all text-center ${
+                          gender === g.val 
+                            ? 'bg-brand-navy text-white border-brand-navy shadow-sm' 
+                            : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        {g.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div>
