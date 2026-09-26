@@ -305,23 +305,25 @@ export async function GET(req: NextRequest) {
       const v = formatVoucher(rawV);
       const vRefPhone = (v.referrerPhone || '').replace(/[^0-9]/g, '').slice(-10);
       const vFrdPhone = (v.referredPhone || '').replace(/[^0-9]/g, '').slice(-10);
-      const isWelcome = v.benefitType === 'FLAT_DISCOUNT' || (v.code && v.code.startsWith('REF-WELCOME'));
+      const isWelcome = (v.code && v.code.startsWith('REF-WELCOME')) || (v.code && v.code.startsWith('WELCOME'));
 
       if (isWelcome) {
-        if ((vFrdPhone && vFrdPhone === cleanDigits) || (vRefPhone && vRefPhone === cleanDigits && vFrdPhone === cleanDigits)) {
+        if ((vFrdPhone && vFrdPhone === cleanDigits) || (vRefPhone && vRefPhone === cleanDigits)) {
           if (!userWelcomeVoucher || v.status === 'ACTIVE') {
-            userWelcomeVoucher = v;
+            userWelcomeVoucher = { ...v, source: 'welcome' };
           }
         }
       } else {
-        // Earned referral reward (Free Frame / % discount)
-        const phoneMatch = cleanDigits && vRefPhone === cleanDigits;
+        // Earned referral reward or Game reward
+        const phoneMatch = cleanDigits && (vRefPhone === cleanDigits || vFrdPhone === cleanDigits);
         const nameMatch = resolvedName && resolvedName !== 'Customer' && v.referrerName && (
           v.referrerName.toLowerCase() === resolvedName.toLowerCase() ||
           v.referrerName.toLowerCase().includes(resolvedName.toLowerCase())
         );
         if (phoneMatch || nameMatch) {
-          earnedVoucherMap.set(v.code, v);
+          const isGame = (v.referrerName && (v.referrerName.includes('Wheel') || v.referrerName.includes('Mystery Box'))) ||
+                         (v.benefitTitle && v.benefitTitle.includes('Spin'));
+          earnedVoucherMap.set(v.code, { ...v, source: isGame ? 'game' : 'referral' });
         }
       }
     });
@@ -340,18 +342,20 @@ export async function GET(req: NextRequest) {
               const v = formatVoucher(r);
               const rRefPhone = (v.referrerPhone || '').replace(/[^0-9]/g, '').slice(-10);
               const rFrdPhone = (v.referredPhone || '').replace(/[^0-9]/g, '').slice(-10);
-              const isWelcome = v.benefitType === 'FLAT_DISCOUNT' || (v.code && v.code.startsWith('REF-WELCOME'));
+              const isWelcome = (v.code && v.code.startsWith('REF-WELCOME')) || (v.code && v.code.startsWith('WELCOME'));
 
               if (isWelcome) {
-                if ((rFrdPhone && rFrdPhone === cleanDigits) || (rRefPhone && rRefPhone === cleanDigits && rFrdPhone === cleanDigits)) {
+                if ((rFrdPhone && rFrdPhone === cleanDigits) || (rRefPhone && rRefPhone === cleanDigits)) {
                   if (!userWelcomeVoucher || v.status === 'ACTIVE') {
-                    userWelcomeVoucher = v;
+                    userWelcomeVoucher = { ...v, source: 'welcome' };
                   }
                 }
               } else {
-                // Free Frame or Percent Discount reward earned by this referrer
-                if (rRefPhone === cleanDigits) {
-                  earnedVoucherMap.set(v.code, v);
+                // Free Frame, Percent Discount, or Games Reward
+                if (rRefPhone === cleanDigits || rFrdPhone === cleanDigits) {
+                  const isGame = (v.referrerName && (v.referrerName.includes('Wheel') || v.referrerName.includes('Mystery Box'))) ||
+                                 (v.benefitTitle && v.benefitTitle.includes('Spin'));
+                  earnedVoucherMap.set(v.code, { ...v, source: isGame ? 'game' : 'referral' });
                 }
               }
             });
@@ -360,7 +364,51 @@ export async function GET(req: NextRequest) {
       }
     } catch(e) {}
 
-    // Sort earned referral rewards so ACTIVE ones always appear first
+    // Also directly query gamification_plays_registry from Supabase global_settings for any game coupons won by this phone
+    try {
+      if (cleanDigits) {
+        const gsRes = await fetch(`${SUPABASE_URL}/rest/v1/global_settings?key=eq.gamification_plays_registry&select=*`, {
+          headers: supabaseHeaders,
+          cache: 'no-store'
+        });
+        if (gsRes.ok) {
+          const gsData = await gsRes.json();
+          if (Array.isArray(gsData) && gsData.length > 0 && gsData[0].value) {
+            const plays = typeof gsData[0].value === 'string' ? JSON.parse(gsData[0].value) : gsData[0].value;
+            if (Array.isArray(plays)) {
+              plays.forEach((p: any) => {
+                const pPhone = (p.playerPhone || '').replace(/[^0-9]/g, '').slice(-10);
+                if (pPhone === cleanDigits && p.couponCode) {
+                  const code = p.couponCode.toUpperCase();
+                  if (!earnedVoucherMap.has(code)) {
+                    earnedVoucherMap.set(code, {
+                      id: p.id || `GAME-${code}`,
+                      code: code,
+                      referrerPhone: cleanDigits,
+                      referrerName: `${p.playerName || 'Customer'} (${p.gameType === 'mystery_box' ? 'Mystery Box' : 'Spin & Win'})`,
+                      benefitType: p.reward?.type || 'FLAT_DISCOUNT',
+                      benefitValue: Number(p.reward?.value || 150),
+                      benefitTitle: p.reward?.label || `${code} Reward`,
+                      source: p.gameType === 'mystery_box' ? 'mystery_box' : 'wheel',
+                      status: p.status || 'ACTIVE',
+                      issuedAt: p.playedAt || new Date().toISOString(),
+                      expiresAt: new Date(Date.now() + 30 * 86400000).toISOString()
+                    });
+                  }
+                }
+              });
+            }
+          }
+        }
+      }
+    } catch(e) {}
+
+    // Include active welcome voucher in the user's usable vouchers list
+    if (userWelcomeVoucher && userWelcomeVoucher.status === 'ACTIVE' && !earnedVoucherMap.has(userWelcomeVoucher.code)) {
+      earnedVoucherMap.set(userWelcomeVoucher.code, userWelcomeVoucher);
+    }
+
+    // Sort all customer vouchers so ACTIVE ones always appear first
     const userVouchers = Array.from(earnedVoucherMap.values()).sort((a: any, b: any) => {
       if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1;
       if (a.status !== 'ACTIVE' && b.status === 'ACTIVE') return 1;
@@ -583,20 +631,115 @@ export async function POST(req: NextRequest) {
 
     if (action === 'validate-voucher') {
       const code = (body.code || '').trim().toUpperCase();
-      const voucher = store.vouchers.find((v: any) => v.code.toUpperCase() === code);
+      let voucher = store.vouchers.find((v: any) => v.code.toUpperCase() === code);
+
+      // 1. Fallback to Supabase referral_vouchers table if not found in memory
+      if (!voucher) {
+        try {
+          const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/referral_vouchers?code=eq.${encodeURIComponent(code)}&select=*`, {
+            headers: supabaseHeaders,
+            cache: 'no-store'
+          });
+          if (sbRes.ok) {
+            const rows = await sbRes.json();
+            if (Array.isArray(rows) && rows.length > 0) {
+              const r = rows[0];
+              voucher = {
+                id: r.id,
+                code: r.code,
+                referrerPhone: r.referrer_phone,
+                referrerName: r.referrer_name,
+                referredPhone: r.referred_phone,
+                referredName: r.referred_name,
+                benefitType: r.benefit_type,
+                benefitValue: Number(r.benefit_value || 0),
+                benefitTitle: r.benefit_title,
+                status: r.status,
+                issuedAt: r.issued_at,
+                expiresAt: r.expires_at,
+                claimedAt: r.claimed_at,
+                claimedChannel: r.claimed_channel
+              };
+              store.vouchers.push(voucher);
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 2. Fallback to gamification plays registry if it is a lucky game coupon
+      if (!voucher) {
+        try {
+          const gsRes = await fetch(`${SUPABASE_URL}/rest/v1/global_settings?key=eq.gamification_plays_registry&select=*`, {
+            headers: supabaseHeaders,
+            cache: 'no-store'
+          });
+          if (gsRes.ok) {
+            const gsRows = await gsRes.json();
+            if (Array.isArray(gsRows) && gsRows.length > 0 && gsRows[0].value) {
+              const plays = typeof gsRows[0].value === 'string' ? JSON.parse(gsRows[0].value) : gsRows[0].value;
+              if (Array.isArray(plays)) {
+                const matchPlay = plays.find((p: any) => p.couponCode?.toUpperCase() === code);
+                if (matchPlay) {
+                  voucher = {
+                    id: matchPlay.id || `GAME-${code}`,
+                    code: code,
+                    referrerName: `${matchPlay.gameType === 'mystery_box' ? 'Mystery Box' : 'Spin & Win'} Reward`,
+                    benefitType: matchPlay.reward?.type || 'FLAT_DISCOUNT',
+                    benefitValue: Number(matchPlay.reward?.value || 150),
+                    benefitTitle: matchPlay.reward?.label || `${code} Reward`,
+                    status: matchPlay.status || 'ACTIVE',
+                    expiresAt: new Date(Date.now() + 30 * 86400000).toISOString()
+                  };
+                  store.vouchers.push(voucher);
+                }
+              }
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 3. Fallback to gamification config rewards
+      if (!voucher) {
+        try {
+          const cfgRes = await fetch(`${SUPABASE_URL}/rest/v1/global_settings?key=eq.gamification_config&select=*`, {
+            headers: supabaseHeaders,
+            cache: 'no-store'
+          });
+          if (cfgRes.ok) {
+            const cfgRows = await cfgRes.json();
+            if (Array.isArray(cfgRows) && cfgRows.length > 0 && cfgRows[0].value) {
+              const cfg = typeof cfgRows[0].value === 'string' ? JSON.parse(cfgRows[0].value) : cfgRows[0].value;
+              const matchingReward = cfg.rewards?.find((r: any) => r.couponCode?.toUpperCase() === code);
+              if (matchingReward) {
+                voucher = {
+                  id: matchingReward.id,
+                  code: code,
+                  referrerName: 'Spin & Win Daily Reward',
+                  benefitType: matchingReward.type || 'FLAT_DISCOUNT',
+                  benefitValue: Number(matchingReward.value || 150),
+                  benefitTitle: matchingReward.label || `${code} Reward`,
+                  status: 'ACTIVE',
+                  expiresAt: new Date(Date.now() + 30 * 86400000).toISOString()
+                };
+                store.vouchers.push(voucher);
+              }
+            }
+          }
+        } catch (e) {}
+      }
 
       if (!voucher) {
-        return NextResponse.json({ valid: false, error: 'Invalid referral voucher code' }, { status: 404 });
+        return NextResponse.json({ valid: false, error: 'Invalid or unrecognized voucher code' }, { status: 404 });
       }
 
       if (voucher.status === 'CLAIMED') {
         return NextResponse.json({
           valid: false,
-          error: `Already used! Claimed on ${new Date(voucher.claimedAt || '').toLocaleDateString('en-IN')} (${voucher.claimedChannel === 'STORE' ? 'At Store' : 'Online'})`
+          error: `Already used! Claimed on ${voucher.claimedAt ? new Date(voucher.claimedAt).toLocaleDateString('en-IN') : 'previous order'} (${voucher.claimedChannel === 'STORE' ? 'At Store' : 'Online'})`
         }, { status: 400 });
       }
 
-      if (new Date(voucher.expiresAt).getTime() < Date.now()) {
+      if (voucher.expiresAt && new Date(voucher.expiresAt).getTime() < Date.now()) {
         voucher.status = 'EXPIRED';
         return NextResponse.json({ valid: false, error: 'This voucher has expired' }, { status: 400 });
       }
@@ -694,21 +837,69 @@ export async function POST(req: NextRequest) {
 
     if (action === 'claim-online') {
       const { code, orderId, channel } = body;
-      const voucher = store.vouchers.find((v: any) => v.code.toUpperCase() === (code || '').trim().toUpperCase());
-      if (voucher && voucher.status === 'ACTIVE') {
+      const cleanCode = (code || '').trim().toUpperCase();
+      const claimedAt = new Date().toISOString();
+      const claimedChannel = channel || 'ONLINE';
+      const claimedInvoiceNo = orderId || 'ONLINE-ORDER';
+
+      // 1. Mark in memory store if present
+      const voucher = store.vouchers.find((v: any) => v.code.toUpperCase() === cleanCode);
+      if (voucher) {
         voucher.status = 'CLAIMED';
-        voucher.claimedAt = new Date().toISOString();
-        voucher.claimedChannel = channel || 'ONLINE';
-        voucher.claimedInvoiceNo = orderId || 'ONLINE-ORDER';
+        voucher.claimedAt = claimedAt;
+        voucher.claimedChannel = claimedChannel;
+        voucher.claimedInvoiceNo = claimedInvoiceNo;
         persistStore(store);
-        updateVoucherInSupabase(voucher.code, {
-          status: 'CLAIMED',
-          claimed_at: voucher.claimedAt,
-          claimed_channel: voucher.claimedChannel,
-          invoice_no: voucher.claimedInvoiceNo
-        });
       }
-      return NextResponse.json({ success: true, voucher });
+
+      // 2. Mark in Supabase referral_vouchers table
+      updateVoucherInSupabase(cleanCode, {
+        status: 'CLAIMED',
+        claimed_at: claimedAt,
+        claimed_channel: claimedChannel,
+        invoice_no: claimedInvoiceNo
+      });
+
+      // 3. Mark in Supabase gamification_plays_registry if game coupon
+      try {
+        const gsRes = await fetch(`${SUPABASE_URL}/rest/v1/global_settings?key=eq.gamification_plays_registry&select=*`, {
+          headers: supabaseHeaders,
+          cache: 'no-store'
+        });
+        if (gsRes.ok) {
+          const gsData = await gsRes.json();
+          if (Array.isArray(gsData) && gsData.length > 0 && gsData[0].value) {
+            const plays = typeof gsData[0].value === 'string' ? JSON.parse(gsData[0].value) : gsData[0].value;
+            if (Array.isArray(plays)) {
+              let updated = false;
+              const newPlays = plays.map((p: any) => {
+                if (p.couponCode?.toUpperCase() === cleanCode) {
+                  updated = true;
+                  return {
+                    ...p,
+                    status: 'CLAIMED',
+                    claimedAt: claimedAt,
+                    claimedOrder: claimedInvoiceNo
+                  };
+                }
+                return p;
+              });
+              if (updated) {
+                await fetch(`${SUPABASE_URL}/rest/v1/global_settings`, {
+                  method: 'POST',
+                  headers: supabaseHeaders,
+                  body: JSON.stringify({
+                    key: 'gamification_plays_registry',
+                    value: JSON.stringify(newPlays)
+                  })
+                });
+              }
+            }
+          }
+        }
+      } catch (e) {}
+
+      return NextResponse.json({ success: true, message: 'Voucher claimed online successfully' });
     }
 
     if (action === 'register-ref') {

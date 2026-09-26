@@ -69,54 +69,54 @@ export default function CartPage() {
     const cleanCode = codeToApply.trim().toUpperCase();
     setCouponState({ type: 'none', message: 'Validating...', discount: 0 });
     
-    // Check if referral voucher
-    if (cleanCode.startsWith('REF-')) {
-      try {
-        const res = await fetch('/api/referral', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'validate-voucher', code: cleanCode })
-        });
-        const data = await res.json();
-        if (res.ok && data.valid) {
-          let discountVal = 0;
-          if (data.voucher.benefitType === 'FREE_FRAME') {
-            // Free frame discount: deduct actual frame selling price that customer pays (e.g. ₹999)
-            const frameItem = cartItems.find(i => !i.lensConfig || i.lensConfig.type === 'Standard' || Number(i.price) > 0) || cartItems[0];
-            const framePrice = frameItem ? Number(frameItem.price) : 0;
-            discountVal = Math.min(totalAmount, framePrice);
-          } else if (data.voucher.benefitType === 'PERCENT_DISCOUNT') {
-            discountVal = totalAmount * ((data.voucher.benefitValue || 30) / 100);
-          } else {
-            discountVal = Math.min(totalAmount, data.voucher.benefitValue || 200);
-          }
+    // 1. First check /api/referral (Validates Refer & Earn, Lucky Games, and Welcome vouchers)
+    try {
+      const res = await fetch('/api/referral', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'validate-voucher', code: cleanCode })
+      });
+      const data = await res.json();
+      if (res.ok && data.valid && data.voucher) {
+        let discountVal = 0;
+        const bType = data.voucher.benefitType;
+        const bVal = Number(data.voucher.benefitValue || 0);
 
-          setCouponState({ 
-            type: 'success', 
-            message: `🎉 ${data.voucher.benefitTitle} Applied!`, 
-            discount: discountVal 
-          });
-
-          // Persist to session & local storage for Checkout carryover
-          const appliedObj = {
-            code: cleanCode,
-            discount: discountVal,
-            benefitType: data.voucher.benefitType,
-            title: data.voucher.benefitTitle
-          };
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('eyevengers_applied_coupon', JSON.stringify(appliedObj));
-            localStorage.setItem('eyevengers_applied_coupon', JSON.stringify(appliedObj));
-          }
-          return;
+        if (bType === 'FREE_FRAME') {
+          const frameItem = cartItems.find(i => !i.lensConfig || i.lensConfig.type === 'Standard' || Number(i.price) > 0) || cartItems[0];
+          const framePrice = frameItem ? Number(frameItem.price) : 0;
+          discountVal = Math.min(totalAmount, framePrice || totalAmount);
+        } else if (bType === 'PERCENT_DISCOUNT') {
+          discountVal = Math.round(totalAmount * ((bVal || 30) / 100));
         } else {
-          setCouponState({ type: 'error', message: data.error || 'Invalid or already claimed referral voucher', discount: 0 });
-          return;
+          // FLAT_DISCOUNT
+          discountVal = Math.min(totalAmount, bVal || 150);
         }
-      } catch (e) {
-        setCouponState({ type: 'error', message: 'Error checking referral voucher', discount: 0 });
+
+        setCouponState({ 
+          type: 'success', 
+          message: `🎉 ${data.voucher.benefitTitle} Applied!`, 
+          discount: discountVal 
+        });
+
+        // Persist to session & local storage for Checkout carryover
+        const appliedObj = {
+          code: cleanCode,
+          discount: discountVal,
+          benefitType: bType,
+          title: data.voucher.benefitTitle
+        };
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('eyevengers_applied_coupon', JSON.stringify(appliedObj));
+          localStorage.setItem('eyevengers_applied_coupon', JSON.stringify(appliedObj));
+        }
+        return;
+      } else if (data.error && (data.error.includes('Already used') || data.error.includes('expired'))) {
+        setCouponState({ type: 'error', message: data.error, discount: 0 });
         return;
       }
+    } catch (e) {
+      // Fall through to check promo offers
     }
 
     try {
@@ -459,7 +459,7 @@ export default function CartPage() {
                   >
                     <span className="flex items-center gap-1.5">
                       <Sparkles size={14} className="text-emerald-600" />
-                      <span>{couponState.type === 'success' ? 'Switch to another unlocked voucher' : 'Your unlocked referral vouchers'} ({userVouchers.length})</span>
+                      <span>{couponState.type === 'success' ? 'Switch to another reward' : 'Your unlocked rewards & vouchers'} ({userVouchers.length})</span>
                     </span>
                     {showOtherVouchers ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                   </button>
@@ -468,6 +468,10 @@ export default function CartPage() {
                     <div className="space-y-2 mt-2.5">
                       {userVouchers.map((v) => {
                         const isCurrentApplied = couponState.type === 'success' && couponCode.toUpperCase() === v.code.toUpperCase();
+                        const isGame = v.source === 'game' || (v.referrerName && (v.referrerName.includes('Wheel') || v.referrerName.includes('Mystery Box')));
+                        const isWelcome = v.source === 'welcome' || v.code.startsWith('REF-WELCOME');
+                        const originLabel = isGame ? '🎡 Spin & Win' : isWelcome ? '🎉 Welcome Gift' : '👥 Refer & Earn';
+
                         return (
                           <div 
                             key={v.code} 
@@ -476,8 +480,13 @@ export default function CartPage() {
                             }`}
                           >
                             <div className="min-w-0">
-                              <div className="font-mono font-black text-xs text-gray-900">{v.code}</div>
-                              <div className="text-xs text-gray-600 truncate mt-0.5">{v.benefitTitle}</div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-black text-xs text-gray-900">{v.code}</span>
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100/70 text-blue-900">
+                                  {originLabel}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-600 truncate mt-0.5 font-medium">{v.benefitTitle}</div>
                             </div>
                             {isCurrentApplied ? (
                               <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-full shrink-0">
