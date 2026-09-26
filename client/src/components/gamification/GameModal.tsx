@@ -165,6 +165,11 @@ export function GameModal({ isOpen, onClose, defaultGame = 'wheel' }: GameModalP
 
     setErrorMessage('');
     
+    // 🚀 Start spinning immediately on click (0ms delay)
+    if (chosenGame === 'wheel') {
+      setGameState('spinning');
+    }
+
     try {
       const res = await fetch('/api/gamification', {
         method: 'POST',
@@ -181,6 +186,9 @@ export function GameModal({ isOpen, onClose, defaultGame = 'wheel' }: GameModalP
       const data = await res.json();
 
       if (!data.success) {
+        setGameState('idle');
+        setTargetIndex(null);
+
         if (data.eligible === false) {
           setGameState('ineligible');
           setErrorMessage(data.ineligibilityMessage || config?.ineligibilityMessage);
@@ -200,10 +208,10 @@ export function GameModal({ isOpen, onClose, defaultGame = 'wheel' }: GameModalP
 
       // Success
       setWonReward(data.wonReward);
+      const target = data.targetIndex !== undefined ? data.targetIndex : (data.sliceIndex !== undefined ? data.sliceIndex : 0);
       
       if (chosenGame === 'wheel') {
-        setTargetIndex(data.targetIndex);
-        setGameState('spinning');
+        setTargetIndex(target);
       } else {
         // Mystery Box
         setTimeout(() => {
@@ -214,6 +222,8 @@ export function GameModal({ isOpen, onClose, defaultGame = 'wheel' }: GameModalP
       }
 
     } catch (e: any) {
+      setGameState('idle');
+      setTargetIndex(null);
       setErrorMessage(e.message || 'Network error, please try again.');
     }
   };
@@ -221,7 +231,6 @@ export function GameModal({ isOpen, onClose, defaultGame = 'wheel' }: GameModalP
   // Wheel Spin Completed
   const handleWheelEnd = () => {
     setGameState('won');
-    gameAudio.playVictory();
     triggerConfetti();
   };
 

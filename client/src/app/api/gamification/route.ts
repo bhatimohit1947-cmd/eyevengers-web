@@ -573,6 +573,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         eligible: true,
+        targetIndex: sliceIndex >= 0 ? sliceIndex : 0,
         sliceIndex: sliceIndex >= 0 ? sliceIndex : 0,
         wonReward: {
           id: playRecord?.id || wonReward.id,

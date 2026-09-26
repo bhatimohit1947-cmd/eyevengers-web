@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { GameReward } from '@/types/gamification';
 import { gameAudio } from '@/utils/gameAudio';
-import { Sparkles, Trophy } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 interface SpinningWheelProps {
   rewards: GameReward[];
@@ -24,10 +24,11 @@ export function SpinningWheel({
 }: SpinningWheelProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [rotation, setRotation] = useState(0);
+  const [pointerActive, setPointerActive] = useState(false);
   const numSlices = rewards.length || 6;
   const sliceAngle = (2 * Math.PI) / numSlices;
 
-  // Draw the Wheel Canvas
+  // Draw the Wheel Canvas (High-DPI Razor Sharp)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -45,12 +46,12 @@ export function SpinningWheel({
     ctx.beginPath();
     ctx.arc(center, center, radius + 10, 0, 2 * Math.PI);
     ctx.fillStyle = '#0a1128';
-    ctx.shadowColor = 'rgba(212, 175, 55, 0.5)';
-    ctx.shadowBlur = 18;
+    ctx.shadowColor = 'rgba(212, 175, 55, 0.6)';
+    ctx.shadowBlur = 20;
     ctx.fill();
     ctx.restore();
 
-    // Outer Golden Border
+    // Outer Golden Metallic Rim
     ctx.beginPath();
     ctx.arc(center, center, radius + 8, 0, 2 * Math.PI);
     ctx.fillStyle = '#D4AF37';
@@ -94,14 +95,14 @@ export function SpinningWheel({
       const studY = center + (radius + 4) * Math.sin(studAngle);
 
       ctx.beginPath();
-      ctx.arc(studX, studY, 3, 0, 2 * Math.PI);
+      ctx.arc(studX, studY, 3.5, 0, 2 * Math.PI);
       ctx.fillStyle = s % 2 === 0 ? '#ffffff' : '#fef08a';
       ctx.shadowColor = '#ffffff';
-      ctx.shadowBlur = 4;
+      ctx.shadowBlur = 5;
       ctx.fill();
     }
 
-    // Center Golden Hub Cap
+    // Center Hub Cap Background Ring
     ctx.beginPath();
     ctx.arc(center, center, 32, 0, 2 * Math.PI);
     ctx.fillStyle = '#0a1128';
@@ -117,60 +118,90 @@ export function SpinningWheel({
 
   }, [rewards, numSlices, sliceAngle]);
 
-  // Handle Spin Animation
+  // Fast, Responsive Spin Physics
   useEffect(() => {
     if (isSpinning && targetIndex !== null && targetIndex >= 0) {
-      const fullSpins = 6; // 6 full rotations for excitement
       const sliceDeg = 360 / numSlices;
-      
-      // Canvas 0 radians starts at 3 o'clock (90 deg from 12 o'clock top indicator).
-      // Top pointer is at 270 degrees (or -90 deg).
-      // Calculate exact angle to land slice under the top pointer
       const targetMiddleDeg = (targetIndex * sliceDeg) + (sliceDeg / 2);
-      const stopAngle = 270 - targetMiddleDeg;
-      const finalRotation = (fullSpins * 360) + stopAngle;
 
-      setRotation(finalRotation);
+      // Top pointer is at 270 deg
+      // Always spin forward by at least 6 full rounds (2160 deg)
+      const currentNorm = rotation % 360;
+      let extra = (270 - targetMiddleDeg) - currentNorm;
+      while (extra < 0) extra += 360;
+      
+      const fullRotations = 6 * 360; // 6 fast rotations
+      const targetRotation = rotation + fullRotations + extra;
 
-      // Play audio ticks during the spin
-      let ticks = 0;
-      const tickInterval = setInterval(() => {
-        ticks++;
+      setRotation(targetRotation);
+      setPointerActive(true);
+
+      // Audio ticks simulation (fast then slowing down)
+      let elapsed = 0;
+      let tickDelay = 70;
+      let tickTimer: NodeJS.Timeout;
+
+      const scheduleTick = () => {
         gameAudio.playTick();
-        if (ticks > 28) clearInterval(tickInterval);
-      }, 140);
+        elapsed += tickDelay;
+        if (elapsed < 1800) {
+          tickDelay = 70;
+        } else if (elapsed < 2600) {
+          tickDelay += 18;
+        } else if (elapsed < 3100) {
+          tickDelay += 35;
+        } else {
+          return;
+        }
+        tickTimer = setTimeout(scheduleTick, tickDelay);
+      };
 
-      const timer = setTimeout(() => {
-        clearInterval(tickInterval);
-        gameAudio.playWin();
+      scheduleTick();
+
+      // Spin completes in exactly 3.2 seconds
+      const finishTimer = setTimeout(() => {
+        clearTimeout(tickTimer);
+        setPointerActive(false);
+        gameAudio.playVictory();
         onSpinEnd();
-      }, 5000); // 5s spin duration
+      }, 3200);
 
       return () => {
-        clearTimeout(timer);
-        clearInterval(tickInterval);
+        clearTimeout(tickTimer);
+        clearTimeout(finishTimer);
       };
     }
-  }, [isSpinning, targetIndex, numSlices, onSpinEnd]);
+  }, [isSpinning, targetIndex, numSlices]);
 
   return (
     <div className="flex flex-col items-center justify-center p-2 relative select-none">
       
-      {/* Top Pointer Indicator */}
-      <div className="absolute top-[-2px] z-30 transform -translate-y-1 drop-shadow-xl flex flex-col items-center">
-        <div className="w-8 h-10 bg-gradient-to-b from-red-500 to-red-700 rounded-t-sm shadow-md clip-pointer flex items-center justify-center">
-          <div className="w-2.5 h-2.5 rounded-full bg-white shadow-inner"></div>
+      {/* Top Pointer Indicator with dynamic tick bounce */}
+      <div 
+        className={`absolute top-[-4px] z-30 transform -translate-y-1 drop-shadow-2xl flex flex-col items-center transition-transform ${
+          pointerActive ? 'animate-pulse scale-105' : ''
+        }`}
+      >
+        <div className="w-8 h-10 bg-gradient-to-b from-red-500 via-rose-600 to-red-700 rounded-t-sm shadow-md clip-pointer flex items-center justify-center border-t border-red-300">
+          <div className="w-2.5 h-2.5 rounded-full bg-white shadow-inner" />
         </div>
-        <div className="w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[14px] border-t-red-700 -mt-1"></div>
+        <div className="w-0 h-0 border-l-[11px] border-l-transparent border-r-[11px] border-r-transparent border-t-[15px] border-t-red-700 -mt-1 drop-shadow-sm" />
       </div>
 
-      {/* Wheel Canvas Container */}
-      <div className="relative w-[340px] h-[340px] sm:w-[400px] sm:h-[400px] rounded-full flex items-center justify-center">
+      {/* Wheel Canvas Container (Clickable) */}
+      <div 
+        onClick={!disabled && !isSpinning ? onSpinStart : undefined}
+        className={`relative w-[340px] h-[340px] sm:w-[400px] sm:h-[400px] rounded-full flex items-center justify-center ${
+          !disabled && !isSpinning ? 'cursor-pointer hover:scale-[1.01]' : 'cursor-default'
+        } transition-transform`}
+      >
         <div
-          className="w-full h-full transition-transform ease-[cubic-bezier(0.15,0.9,0.2,1)]"
+          className="w-full h-full"
           style={{
             transform: `rotate(${rotation}deg)`,
-            transitionDuration: isSpinning ? '5000ms' : '0ms'
+            transitionProperty: 'transform',
+            transitionDuration: isSpinning ? '3200ms' : '0ms',
+            transitionTimingFunction: 'cubic-bezier(0.12, 0.8, 0.15, 1)'
           }}
         >
           <canvas
@@ -183,14 +214,25 @@ export function SpinningWheel({
 
         {/* Center Spin Action Button */}
         <button
-          onClick={onSpinStart}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!disabled && !isSpinning) onSpinStart();
+          }}
           disabled={disabled || isSpinning}
-          className="absolute z-20 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#D4AF37] via-[#f7e7a9] to-[#b38f26] text-brand-navy font-black text-xs sm:text-sm tracking-wider uppercase shadow-2xl flex flex-col items-center justify-center border-2 border-white hover:scale-105 active:scale-95 transition-all disabled:opacity-80 disabled:cursor-not-allowed cursor-pointer"
+          className="absolute z-20 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#fef08a] via-[#D4AF37] to-[#996515] text-slate-950 font-black text-xs sm:text-sm tracking-wider uppercase shadow-[0_0_25px_rgba(212,175,55,0.7)] flex flex-col items-center justify-center border-2 border-white hover:scale-105 active:scale-95 transition-all disabled:opacity-90 disabled:cursor-not-allowed cursor-pointer"
         >
-          <Sparkles size={16} className="text-brand-navy mb-0.5" />
-          <span>{isSpinning ? '...' : 'SPIN'}</span>
+          <Sparkles size={16} className={`text-slate-950 mb-0.5 ${isSpinning ? 'animate-spin' : 'animate-bounce'}`} />
+          <span className="font-black text-slate-950">{isSpinning ? '...' : 'SPIN'}</span>
         </button>
       </div>
+
+      {/* Helper Click Hint */}
+      {!isSpinning && (
+        <p className="text-[11px] text-amber-400/80 font-semibold mt-3 animate-pulse">
+          👉 Tap wheel or press SPIN to play
+        </p>
+      )}
 
     </div>
   );

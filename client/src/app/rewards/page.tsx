@@ -86,6 +86,11 @@ export default function RewardsPage() {
 
     setErrorMessage('');
 
+    // 🚀 Start spinning immediately on click (0ms delay)
+    if (chosenGame === 'wheel') {
+      setGameState('spinning');
+    }
+
     try {
       const res = await fetch('/api/gamification', {
         method: 'POST',
@@ -102,6 +107,9 @@ export default function RewardsPage() {
       const data = await res.json();
 
       if (!data.success) {
+        setGameState('idle');
+        setTargetIndex(null);
+
         if (data.eligible === false) {
           setGameState('ineligible');
           setErrorMessage(data.ineligibilityMessage || config?.ineligibilityMessage);
@@ -120,10 +128,10 @@ export default function RewardsPage() {
       }
 
       setWonReward(data.wonReward);
+      const target = data.targetIndex !== undefined ? data.targetIndex : (data.sliceIndex !== undefined ? data.sliceIndex : 0);
 
       if (chosenGame === 'wheel') {
-        setTargetIndex(data.targetIndex);
-        setGameState('spinning');
+        setTargetIndex(target);
       } else {
         setTimeout(() => {
           setGameState('won');
@@ -131,13 +139,14 @@ export default function RewardsPage() {
         }, 1200);
       }
     } catch (e: any) {
+      setGameState('idle');
+      setTargetIndex(null);
       setErrorMessage(e.message || 'Network error');
     }
   };
 
   const handleWheelEnd = () => {
     setGameState('won');
-    gameAudio.playVictory();
   };
 
   const handleCopyCode = (code: string) => {
