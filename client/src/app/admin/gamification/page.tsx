@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 import { 
   GamificationConfig, 
   GameReward, 
@@ -22,7 +23,14 @@ import {
   Users,
   Target,
   Percent,
-  Clock
+  Clock,
+  Search,
+  CheckCircle2,
+  XCircle,
+  Copy,
+  Check,
+  RefreshCw,
+  Store
 } from 'lucide-react';
 
 export default function AdminGamificationPage() {
@@ -36,17 +44,27 @@ export default function AdminGamificationPage() {
   const [editingReward, setEditingReward] = useState<GameReward | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
 
+  // Customer Game Plays & Won Coupons State
+  const [players, setPlayers] = useState<any[]>([]);
+  const [playersStats, setPlayersStats] = useState({
+    totalPlays: 0,
+    totalCoupons: 0,
+    activeCoupons: 0,
+    redeemedCoupons: 0
+  });
+  const [loadingPlayers, setLoadingPlayers] = useState(false);
+  const [playerSearchQuery, setPlayerSearchQuery] = useState('');
+  const [playerStatusFilter, setPlayerStatusFilter] = useState<'ALL' | 'ACTIVE' | 'CLAIMED'>('ALL');
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [redeemingPlayId, setRedeemingPlayId] = useState<string | null>(null);
+
   // Fetch Config
   const loadConfig = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('eyevengers_admin_token') || 'local_admin_dev_token';
-      const res = await fetch('/api/gamification', {
+      const res = await fetchWithAuth('/api/gamification', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'admin-get' })
       });
       const data = await res.json();
@@ -60,8 +78,32 @@ export default function AdminGamificationPage() {
     }
   };
 
+  // Fetch Customer Game Plays & Won Coupons
+  const loadPlayersData = async () => {
+    try {
+      setLoadingPlayers(true);
+      const res = await fetchWithAuth('/api/gamification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'admin-get-players' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPlayers(data.players || []);
+        if (data.stats) {
+          setPlayersStats(data.stats);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load player history:', e);
+    } finally {
+      setLoadingPlayers(false);
+    }
+  };
+
   useEffect(() => {
     loadConfig();
+    loadPlayersData();
   }, []);
 
   // Save Config
@@ -69,13 +111,9 @@ export default function AdminGamificationPage() {
     try {
       setIsSaving(true);
       setErrorMessage('');
-      const token = localStorage.getItem('eyevengers_admin_token') || 'local_admin_dev_token';
-      const res = await fetch('/api/gamification', {
+      const res = await fetchWithAuth('/api/gamification', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'admin-save',
           config
@@ -123,6 +161,62 @@ export default function AdminGamificationPage() {
     setConfig({ ...config, rewards: updated, forcedWinnerId: updatedForced });
   };
 
+  // Mark coupon as redeemed directly from Admin
+  const handleMarkRedeemed = async (play: any) => {
+    const confirmAction = confirm(`Mark coupon "${play.couponCode}" as redeemed for ${play.userName} (${play.phone})?`);
+    if (!confirmAction) return;
+
+    try {
+      setRedeemingPlayId(play.id);
+      const res = await fetchWithAuth('/api/gamification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'admin-redeem-coupon',
+          playId: play.id,
+          couponCode: play.couponCode,
+          storeLocation: 'Admin Dashboard Redemption',
+          staffName: 'Admin',
+          invoiceNo: `ADMIN-${Date.now().toString().slice(-6)}`
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadPlayersData();
+      }
+    } catch (e) {
+      alert('Failed to mark as redeemed');
+    } finally {
+      setRedeemingPlayId(null);
+    }
+  };
+
+  // Copy code helper
+  const handleCopy = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  // Filtered Players
+  const filteredPlayers = useMemo(() => {
+    return players.filter((p) => {
+      // Status filter
+      if (playerStatusFilter === 'ACTIVE' && p.status !== 'ACTIVE') return false;
+      if (playerStatusFilter === 'CLAIMED' && p.status !== 'CLAIMED') return false;
+
+      // Search query
+      if (!playerSearchQuery.trim()) return true;
+      const q = playerSearchQuery.toLowerCase().trim();
+      const phone = (p.phone || '').toLowerCase();
+      const name = (p.userName || '').toLowerCase();
+      const code = (p.couponCode || '').toLowerCase();
+      const reward = (p.rewardLabel || '').toLowerCase();
+
+      return phone.includes(q) || name.includes(q) || code.includes(q) || reward.includes(q);
+    });
+  }, [players, playerStatusFilter, playerSearchQuery]);
+
   if (isLoading) {
     return (
       <div className="p-8 text-center text-gray-500 flex flex-col items-center justify-center min-h-[400px]">
@@ -133,7 +227,7 @@ export default function AdminGamificationPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-8 space-y-8 pb-20">
+    <div className="max-w-6xl mx-auto p-4 sm:p-8 space-y-8 pb-24">
       
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-5">
@@ -147,17 +241,17 @@ export default function AdminGamificationPage() {
             </h1>
           </div>
           <p className="text-sm text-gray-500 mt-1">
-            Manage Spinning Wheel, Mystery Boxes, Gender Targeting & Probabilities
+            Manage Spinning Wheel, Mystery Boxes, Gender Targeting & Coupon Tracking
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
-            onClick={loadConfig}
+            onClick={() => { loadConfig(); loadPlayersData(); }}
             className="px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-semibold text-sm hover:bg-gray-50 flex items-center gap-2 transition-colors"
           >
             <RotateCcw size={16} />
-            Reset
+            Refresh
           </button>
           <button
             onClick={handleSave}
@@ -185,7 +279,279 @@ export default function AdminGamificationPage() {
         </div>
       )}
 
-      {/* Master Toggle Banner */}
+      {/* ======================================================== */}
+      {/* SECTION 1: CUSTOMER GAME PLAYS & WON COUPONS (NEW FEATURE) */}
+      {/* ======================================================== */}
+      <div className="bg-white rounded-3xl border border-amber-200 shadow-sm p-6 sm:p-8 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-amber-500 text-slate-950">
+                <Gift size={20} />
+              </span>
+              <h2 className="text-lg font-black text-gray-900">
+                Customer Game Plays & Won Coupons
+              </h2>
+            </div>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Live tracking of which customers won coupons, who has active vouchers, and who redeemed them.
+            </p>
+          </div>
+
+          <button
+            onClick={loadPlayersData}
+            disabled={loadingPlayers}
+            className="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto transition-colors"
+          >
+            <RefreshCw size={14} className={loadingPlayers ? "animate-spin" : ""} />
+            Sync Activity
+          </button>
+        </div>
+
+        {/* 4 KPI Summary Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+            <div className="flex items-center justify-between text-xs font-bold text-gray-500 uppercase">
+              <span>Total Plays</span>
+              <Users size={16} className="text-slate-600" />
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-gray-900 mt-2">
+              {playersStats.totalPlays}
+            </div>
+            <div className="text-[11px] text-gray-400 mt-0.5">Times games were played</div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200">
+            <div className="flex items-center justify-between text-xs font-bold text-amber-700 uppercase">
+              <span>Coupons Won</span>
+              <Gift size={16} className="text-amber-600" />
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-amber-900 mt-2">
+              {playersStats.totalCoupons}
+            </div>
+            <div className="text-[11px] text-amber-600 mt-0.5">Discount vouchers issued</div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200">
+            <div className="flex items-center justify-between text-xs font-bold text-emerald-700 uppercase">
+              <span>🟢 Active Coupons</span>
+              <CheckCircle2 size={16} className="text-emerald-600" />
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-emerald-900 mt-2">
+              {playersStats.activeCoupons}
+            </div>
+            <div className="text-[11px] text-emerald-700 font-semibold mt-0.5">Logo ke paas abhi active hai</div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200">
+            <div className="flex items-center justify-between text-xs font-bold text-blue-700 uppercase">
+              <span>🔴 Redeemed / Used</span>
+              <Store size={16} className="text-blue-600" />
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-blue-900 mt-2">
+              {playersStats.redeemedCoupons}
+            </div>
+            <div className="text-[11px] text-blue-700 font-semibold mt-0.5">Logo ne khatam kar diya hai</div>
+          </div>
+        </div>
+
+        {/* Search & Status Filter Bar */}
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between pt-2">
+          
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input
+              type="text"
+              value={playerSearchQuery}
+              onChange={(e) => setPlayerSearchQuery(e.target.value)}
+              placeholder="Search by customer phone, name, or coupon code..."
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition"
+            />
+            {playerSearchQuery && (
+              <button 
+                onClick={() => setPlayerSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl shrink-0">
+            <button
+              onClick={() => setPlayerStatusFilter('ALL')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                playerStatusFilter === 'ALL'
+                  ? 'bg-white text-gray-900 shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              All Plays ({players.length})
+            </button>
+            <button
+              onClick={() => setPlayerStatusFilter('ACTIVE')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                playerStatusFilter === 'ACTIVE'
+                  ? 'bg-white text-emerald-800 shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              🟢 Active ({playersStats.activeCoupons})
+            </button>
+            <button
+              onClick={() => setPlayerStatusFilter('CLAIMED')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                playerStatusFilter === 'CLAIMED'
+                  ? 'bg-white text-blue-800 shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              🔴 Redeemed ({playersStats.redeemedCoupons})
+            </button>
+          </div>
+
+        </div>
+
+        {/* Players & Coupons Table */}
+        <div className="overflow-x-auto border border-gray-200 rounded-2xl">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-gray-50 text-gray-600 font-bold border-b border-gray-200 uppercase tracking-wider">
+              <tr>
+                <th className="py-3 px-4">Customer</th>
+                <th className="py-3 px-4">Gender</th>
+                <th className="py-3 px-4">Game</th>
+                <th className="py-3 px-4">Prize Won</th>
+                <th className="py-3 px-4">Coupon Code</th>
+                <th className="py-3 px-4">Played At</th>
+                <th className="py-3 px-4 text-center">Status</th>
+                <th className="py-3 px-4 text-right">Store Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 text-gray-800">
+              {filteredPlayers.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-8 text-center text-gray-400 italic">
+                    {loadingPlayers ? "Loading game records..." : "No customer plays found matching the search/filter."}
+                  </td>
+                </tr>
+              ) : (
+                filteredPlayers.map((p) => {
+                  const isClaimed = p.status === 'CLAIMED';
+                  const isTryAgain = p.status === 'TRY_AGAIN' || !p.couponCode;
+
+                  return (
+                    <tr key={p.id} className="hover:bg-amber-50/40 transition-colors">
+                      {/* Customer */}
+                      <td className="py-3.5 px-4 font-semibold">
+                        <div className="font-bold text-gray-900">{p.userName || 'Member'}</div>
+                        <div className="text-[11px] text-gray-500 font-mono">{p.phone}</div>
+                      </td>
+
+                      {/* Gender */}
+                      <td className="py-3.5 px-4">
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
+                          p.gender === 'female' ? 'bg-pink-100 text-pink-700' :
+                          p.gender === 'male' ? 'bg-blue-100 text-blue-700' :
+                          'bg-purple-100 text-purple-700'
+                        }`}>
+                          {p.gender === 'female' ? '👩 Female' : p.gender === 'male' ? '👨 Male' : '🌈 Other'}
+                        </span>
+                      </td>
+
+                      {/* Game */}
+                      <td className="py-3.5 px-4 font-semibold">
+                        <span className="inline-flex items-center gap-1 text-[11px]">
+                          {p.gameType === 'mystery_box' ? '🎁 Mystery Box' : '🎡 Wheel'}
+                        </span>
+                      </td>
+
+                      {/* Prize Won */}
+                      <td className="py-3.5 px-4">
+                        <div className="font-black text-amber-800">{p.rewardLabel}</div>
+                        {p.minOrder > 0 && (
+                          <div className="text-[10px] text-gray-400">Min Order: ₹{p.minOrder}</div>
+                        )}
+                      </td>
+
+                      {/* Coupon Code */}
+                      <td className="py-3.5 px-4">
+                        {p.couponCode ? (
+                          <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-amber-100/60 rounded-md border border-amber-300 font-mono font-bold text-amber-900">
+                            <span>{p.couponCode}</span>
+                            <button
+                              onClick={() => handleCopy(p.couponCode)}
+                              className="text-amber-700 hover:text-amber-900"
+                              title="Copy Code"
+                            >
+                              {copiedCode === p.couponCode ? <Check size={12} /> : <Copy size={12} />}
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 italic text-[11px]">No coupon</span>
+                        )}
+                      </td>
+
+                      {/* Played At */}
+                      <td className="py-3.5 px-4 text-gray-500 text-[11px]">
+                        {p.playedAt ? new Date(p.playedAt).toLocaleString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : '—'}
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3.5 px-4 text-center">
+                        {isClaimed ? (
+                          <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 font-black text-[10px] tracking-wide inline-flex items-center gap-1">
+                            <CheckCircle2 size={12} />
+                            REDEEMED
+                          </span>
+                        ) : isTryAgain ? (
+                          <span className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 font-semibold text-[10px]">
+                            TRY AGAIN
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-black text-[10px] tracking-wide inline-flex items-center gap-1">
+                            🟢 ACTIVE
+                          </span>
+                        )}
+                        {isClaimed && p.claimedStore && (
+                          <div className="text-[9px] text-gray-400 mt-0.5 truncate max-w-[120px] mx-auto">
+                            {p.claimedStore}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Action */}
+                      <td className="py-3.5 px-4 text-right">
+                        {!isClaimed && p.couponCode ? (
+                          <button
+                            onClick={() => handleMarkRedeemed(p)}
+                            disabled={redeemingPlayId === p.id}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] tracking-wide transition shadow-xs disabled:opacity-50"
+                          >
+                            {redeemingPlayId === p.id ? 'Redeeming...' : 'Mark Redeemed'}
+                          </button>
+                        ) : isClaimed ? (
+                          <span className="text-[10px] text-gray-400 italic">Locked (Used)</span>
+                        ) : (
+                          <span className="text-[10px] text-gray-300">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ======================================================== */}
+      {/* SECTION 2: MASTER GAME SWITCH & TARGET AUDIENCE CONFIG    */}
+      {/* ======================================================== */}
       <div className="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">

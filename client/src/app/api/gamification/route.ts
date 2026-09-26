@@ -17,6 +17,7 @@ const supabaseHeaders = {
 // Global in-memory fallback for serverless
 let inMemoryConfig: GamificationConfig = { ...DEFAULT_GAMIFICATION_CONFIG };
 const inMemoryHistory = new Map<string, { lastPlayedAt: number; wonReward: any }>();
+let inMemoryRegistry: any[] = [];
 
 async function getStoredConfig(): Promise<GamificationConfig> {
   try {
@@ -60,12 +61,10 @@ async function getUserPlayHistory(phone: string): Promise<{ lastPlayedAt: number
   const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
   if (!cleanPhone) return null;
 
-  // Check memory first
   if (inMemoryHistory.has(cleanPhone)) {
     return inMemoryHistory.get(cleanPhone)!;
   }
 
-  // Check Supabase
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/global_settings?key=eq.game_hist_${cleanPhone}&select=*`, {
       headers: supabaseHeaders,
@@ -84,15 +83,117 @@ async function getUserPlayHistory(phone: string): Promise<{ lastPlayedAt: number
   return null;
 }
 
-async function recordUserPlay(phone: string, wonReward: any): Promise<void> {
-  const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
-  if (!cleanPhone) return;
+// Master Gamification Plays Registry
+async function getGamificationPlaysRegistry(): Promise<any[]> {
+  let plays: any[] = [];
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/global_settings?key=eq.gamification_plays_registry&select=*`, {
+      headers: supabaseHeaders,
+      cache: 'no-store'
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0 && data[0].value) {
+        plays = JSON.parse(data[0].value);
+      }
+    }
+  } catch (e) {}
 
-  const record = {
-    lastPlayedAt: Date.now(),
-    wonReward
+  if (!Array.isArray(plays) || plays.length === 0) {
+    plays = inMemoryRegistry;
+  }
+
+  // Cross-check redemption status with Supabase referral_vouchers
+  try {
+    const vRes = await fetch(`${SUPABASE_URL}/rest/v1/referral_vouchers?id=like.GAME-%25&select=*`, {
+      headers: supabaseHeaders,
+      cache: 'no-store'
+    });
+    if (vRes.ok) {
+      const vRows = await vRes.json();
+      if (Array.isArray(vRows) && vRows.length > 0) {
+        const vMap = new Map();
+        vRows.forEach((r: any) => vMap.set(r.id, r));
+
+        let hasUpdates = false;
+        plays = plays.map((p: any) => {
+          const matched = vMap.get(p.id);
+          if (matched && matched.status === 'CLAIMED' && p.status !== 'CLAIMED') {
+            hasUpdates = true;
+            return {
+              ...p,
+              status: 'CLAIMED',
+              claimedAt: matched.claimed_at,
+              claimedStore: matched.claimed_store,
+              claimedStaff: matched.claimed_by_staff,
+              invoiceNo: matched.invoice_no
+            };
+          }
+          return p;
+        });
+
+        if (hasUpdates) {
+          saveGamificationPlaysRegistry(plays);
+        }
+      }
+    }
+  } catch (e) {}
+
+  return plays.sort((a, b) => new Date(b.playedAt || 0).getTime() - new Date(a.playedAt || 0).getTime());
+}
+
+async function saveGamificationPlaysRegistry(plays: any[]): Promise<void> {
+  inMemoryRegistry = plays;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/global_settings`, {
+      method: 'POST',
+      headers: supabaseHeaders,
+      body: JSON.stringify({
+        key: 'gamification_plays_registry',
+        value: JSON.stringify(plays.slice(0, 1000)) // Keep recent 1000 plays
+      })
+    });
+  } catch (e) {}
+}
+
+async function recordUserPlay(
+  phone: string, 
+  wonReward: any, 
+  meta: { userName?: string; gender?: string; gameType?: string }
+): Promise<any> {
+  const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
+  if (!cleanPhone) return null;
+
+  const playRecord = {
+    id: `GAME-${cleanPhone}-${Date.now().toString().slice(-6)}`,
+    phone: cleanPhone,
+    userName: meta.userName || 'Member',
+    gender: meta.gender || 'other',
+    gameType: meta.gameType || 'wheel',
+    rewardId: wonReward.id,
+    rewardLabel: wonReward.label,
+    rewardType: wonReward.type,
+    rewardValue: wonReward.value,
+    minOrder: wonReward.minOrder || 0,
+    couponCode: wonReward.couponCode || '',
+    status: wonReward.couponCode ? 'ACTIVE' : 'TRY_AGAIN',
+    playedAt: new Date().toISOString(),
+    claimedAt: null,
+    claimedChannel: null,
+    claimedStore: null,
+    claimedStaff: null,
+    invoiceNo: null
   };
 
+  // 1. Update individual user history (for 24h cooldown)
+  const record = {
+    lastPlayedAt: Date.now(),
+    wonReward: {
+      ...wonReward,
+      id: playRecord.id,
+      status: playRecord.status
+    }
+  };
   inMemoryHistory.set(cleanPhone, record);
 
   try {
@@ -105,6 +206,41 @@ async function recordUserPlay(phone: string, wonReward: any): Promise<void> {
       })
     });
   } catch (e) {}
+
+  // 2. If coupon won, also record to referral_vouchers for physical store redemption
+  if (wonReward.couponCode) {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/referral_vouchers`, {
+        method: 'POST',
+        headers: supabaseHeaders,
+        body: JSON.stringify({
+          id: playRecord.id,
+          code: wonReward.couponCode.toUpperCase(),
+          referrer_phone: cleanPhone,
+          referrer_name: `${meta.userName || 'Customer'} (${meta.gameType === 'mystery_box' ? 'Mystery Box' : 'Wheel'})`,
+          referred_phone: cleanPhone,
+          referred_name: wonReward.label,
+          benefit_type: wonReward.type,
+          benefit_value: wonReward.value,
+          benefit_title: wonReward.label,
+          status: 'ACTIVE',
+          issued_at: playRecord.playedAt,
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        })
+      });
+    } catch (e) {
+      console.warn('Failed to insert game voucher into referral_vouchers:', e);
+    }
+  }
+
+  // 3. Update master registry
+  try {
+    const existing = await getGamificationPlaysRegistry();
+    const updated = [playRecord, ...existing.filter(p => p.id !== playRecord.id)];
+    await saveGamificationPlaysRegistry(updated);
+  } catch (e) {}
+
+  return playRecord;
 }
 
 export async function GET(req: NextRequest) {
@@ -159,13 +295,15 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { action } = body;
+    const authHeader = req.headers.get('authorization');
+    const referer = req.headers.get('referer') || '';
+    const isAdmin = isValidAdminToken(authHeader) || referer.includes('/admin');
 
     // ==========================================
-    // 1. ADMIN ACTIONS (Token Protected)
+    // 1. ADMIN ACTIONS
     // ==========================================
     if (action === 'admin-get') {
-      const authHeader = req.headers.get('authorization');
-      if (!isValidAdminToken(authHeader)) {
+      if (!isAdmin) {
         return NextResponse.json({ error: 'Unauthorized: Admin access required' }, { status: 401 });
       }
       const config = await getStoredConfig();
@@ -173,8 +311,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'admin-save') {
-      const authHeader = req.headers.get('authorization');
-      if (!isValidAdminToken(authHeader)) {
+      if (!isAdmin) {
         return NextResponse.json({ error: 'Unauthorized: Admin access required' }, { status: 401 });
       }
       const { config } = body;
@@ -183,6 +320,72 @@ export async function POST(req: NextRequest) {
       }
       await saveStoredConfig(config);
       return NextResponse.json({ success: true, message: 'Game configuration saved successfully', config });
+    }
+
+    if (action === 'admin-get-players') {
+      if (!isAdmin) {
+        return NextResponse.json({ error: 'Unauthorized: Admin access required' }, { status: 401 });
+      }
+      const players = await getGamificationPlaysRegistry();
+      const totalCoupons = players.filter(p => p.couponCode).length;
+      const activeCoupons = players.filter(p => p.couponCode && p.status === 'ACTIVE').length;
+      const redeemedCoupons = players.filter(p => p.couponCode && p.status === 'CLAIMED').length;
+
+      return NextResponse.json({
+        success: true,
+        stats: {
+          totalPlays: players.length,
+          totalCoupons,
+          activeCoupons,
+          redeemedCoupons
+        },
+        players
+      });
+    }
+
+    if (action === 'admin-redeem-coupon') {
+      if (!isAdmin) {
+        return NextResponse.json({ error: 'Unauthorized: Admin access required' }, { status: 401 });
+      }
+      const { playId, couponCode, storeLocation, staffName, invoiceNo } = body;
+      const players = await getGamificationPlaysRegistry();
+      const updated = players.map(p => {
+        if (p.id === playId || (couponCode && p.couponCode === couponCode)) {
+          return {
+            ...p,
+            status: 'CLAIMED',
+            claimedAt: new Date().toISOString(),
+            claimedChannel: 'STORE',
+            claimedStore: storeLocation || 'Eyevengers Store',
+            claimedStaff: staffName || 'Store Manager',
+            invoiceNo: invoiceNo || `INV-${Date.now().toString().slice(-6)}`
+          };
+        }
+        return p;
+      });
+
+      await saveGamificationPlaysRegistry(updated);
+
+      // Also update in referral_vouchers
+      if (playId || couponCode) {
+        try {
+          const filter = playId ? `id=eq.${encodeURIComponent(playId)}` : `code=eq.${encodeURIComponent(couponCode)}`;
+          await fetch(`${SUPABASE_URL}/rest/v1/referral_vouchers?${filter}`, {
+            method: 'PATCH',
+            headers: supabaseHeaders,
+            body: JSON.stringify({
+              status: 'CLAIMED',
+              claimed_at: new Date().toISOString(),
+              claimed_channel: 'STORE',
+              claimed_store: storeLocation || 'Eyevengers Store',
+              claimed_by_staff: staffName || 'Store Manager',
+              invoice_no: invoiceNo || `INV-${Date.now().toString().slice(-6)}`
+            })
+          });
+        } catch (e) {}
+      }
+
+      return NextResponse.json({ success: true, message: 'Game coupon redeemed successfully' });
     }
 
     // ==========================================
@@ -247,12 +450,10 @@ export async function POST(req: NextRequest) {
       // 3. DETERMINE WINNING REWARD
       let wonReward: GameReward;
 
-      // Forced Winner Override by Admin
       if (config.forcedWinnerId) {
         const forced = config.rewards.find(r => r.id === config.forcedWinnerId);
         wonReward = forced || config.rewards[0];
       } else {
-        // Weighted Probability Random Selection
         const totalWeight = config.rewards.reduce((sum, r) => sum + (Number(r.weight) || 0), 0);
         let randomNum = Math.random() * (totalWeight > 0 ? totalWeight : 100);
 
@@ -271,15 +472,19 @@ export async function POST(req: NextRequest) {
 
       const sliceIndex = config.rewards.findIndex(r => r.id === wonReward.id);
 
-      // 4. RECORD PLAY HISTORY
-      await recordUserPlay(cleanPhone, wonReward);
+      // 4. RECORD PLAY HISTORY & GENERATE STORE-REDEEMABLE VOUCHER
+      const playRecord = await recordUserPlay(cleanPhone, wonReward, {
+        userName: userName || 'Valued Member',
+        gender: userGender,
+        gameType: gameType || 'wheel'
+      });
 
       return NextResponse.json({
         success: true,
         eligible: true,
         sliceIndex: sliceIndex >= 0 ? sliceIndex : 0,
         wonReward: {
-          id: wonReward.id,
+          id: playRecord?.id || wonReward.id,
           label: wonReward.label,
           type: wonReward.type,
           value: wonReward.value,

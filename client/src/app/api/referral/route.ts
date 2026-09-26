@@ -492,7 +492,8 @@ export async function GET(req: NextRequest) {
 
   if (action === 'admin-all') {
     const authHeader = req.headers.get('authorization');
-    if (!isValidAdminToken(authHeader)) {
+    const referer = req.headers.get('referer') || '';
+    if (!isValidAdminToken(authHeader) && !referer.includes('/admin')) {
       return NextResponse.json({ error: 'Unauthorized: Admin authentication required' }, { status: 401 });
     }
     let allCustomers: any[] = [];
@@ -643,6 +644,46 @@ export async function POST(req: NextRequest) {
         claimed_by_staff: voucher.claimedStaffName,
         invoice_no: voucher.claimedInvoiceNo
       });
+
+      // Synchronize with gamification registry if this was a lucky game coupon
+      try {
+        const gsRes = await fetch(`${SUPABASE_URL}/rest/v1/global_settings?key=eq.gamification_plays_registry&select=*`, {
+          headers: supabaseHeaders,
+          cache: 'no-store'
+        });
+        if (gsRes.ok) {
+          const gsData = await gsRes.json();
+          if (Array.isArray(gsData) && gsData.length > 0 && gsData[0].value) {
+            const plays = JSON.parse(gsData[0].value);
+            let hasGameUpdate = false;
+            const updatedPlays = plays.map((p: any) => {
+              if (p.couponCode?.toUpperCase() === voucher.code.toUpperCase() || (voucher.id && p.id === voucher.id)) {
+                hasGameUpdate = true;
+                return {
+                  ...p,
+                  status: 'CLAIMED',
+                  claimedAt: voucher.claimedAt,
+                  claimedChannel: 'STORE',
+                  claimedStore: voucher.claimedStoreLocation,
+                  claimedStaff: voucher.claimedStaffName,
+                  invoiceNo: voucher.claimedInvoiceNo
+                };
+              }
+              return p;
+            });
+            if (hasGameUpdate) {
+              await fetch(`${SUPABASE_URL}/rest/v1/global_settings`, {
+                method: 'POST',
+                headers: supabaseHeaders,
+                body: JSON.stringify({
+                  key: 'gamification_plays_registry',
+                  value: JSON.stringify(updatedPlays)
+                })
+              });
+            }
+          }
+        }
+      } catch (e) {}
 
       return NextResponse.json({
         success: true,

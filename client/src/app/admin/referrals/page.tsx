@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 import { 
   Gift, 
   Users, 
@@ -35,7 +36,7 @@ export default function AdminReferralsPage() {
   const fetchAdminData = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/referral?action=admin-all');
+      const res = await fetchWithAuth('/api/referral?action=admin-all');
       const json = await res.json();
       if (json.success) {
         setData(json);
@@ -65,7 +66,7 @@ export default function AdminReferralsPage() {
     setSaveSuccess(false);
 
     try {
-      const res = await fetch('/api/referral', {
+      const res = await fetchWithAuth('/api/referral', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
