@@ -80,7 +80,7 @@ export function LoginModal() {
   const [profileName, setProfileName] = useState('');
   const [profileEmail, setProfileEmail] = useState('');
   const [referralCode, setReferralCode] = useState('');
-  const [gender, setGender] = useState<'male' | 'female' | 'other'>('male');
+  const [gender, setGender] = useState<'male' | 'female' | 'other' | ''>('');
   
   // Errors
   const [error, setError] = useState('');
@@ -328,6 +328,10 @@ export function LoginModal() {
 
     if (!profileName.trim()) {
       setError('Name is required.');
+      return;
+    }
+    if (!gender) {
+      setError('Please select your gender (Male, Female, or Other). It is compulsory.');
       return;
     }
     if (phone.length !== 10) {
@@ -637,21 +641,24 @@ export function LoginModal() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Gender *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center justify-between">
+                    <span>Gender *</span>
+                    {!gender && <span className="text-[11px] text-rose-500 font-bold">Compulsory</span>}
+                  </label>
                   <div className="grid grid-cols-3 gap-2">
                     {[
-                      { val: 'male', label: 'Male' },
-                      { val: 'female', label: 'Female' },
-                      { val: 'other', label: 'Other' },
+                      { val: 'male', label: '👨 Male' },
+                      { val: 'female', label: '👩 Female' },
+                      { val: 'other', label: '🌈 Other' },
                     ].map(g => (
                       <button
                         key={g.val}
                         type="button"
-                        onClick={() => setGender(g.val as any)}
-                        className={`py-2 px-3 text-xs font-bold rounded-xl border transition-all text-center ${
+                        onClick={() => { setGender(g.val as any); setError(''); }}
+                        className={`py-2.5 px-3 text-xs font-bold rounded-xl border transition-all text-center cursor-pointer ${
                           gender === g.val 
-                            ? 'bg-brand-navy text-white border-brand-navy shadow-sm' 
-                            : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300'
+                            ? 'bg-brand-navy text-white border-brand-navy shadow-md ring-2 ring-brand-navy/30' 
+                            : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-100'
                         }`}
                       >
                         {g.label}

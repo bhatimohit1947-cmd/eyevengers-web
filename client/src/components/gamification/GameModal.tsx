@@ -157,12 +157,6 @@ export function GameModal({ isOpen, onClose, defaultGame = 'wheel' }: GameModalP
       return;
     }
 
-    if (!user.gender) {
-      // Prompt user to select gender
-      setErrorMessage("Please select your gender profile below to spin!");
-      return;
-    }
-
     setErrorMessage('');
     
     // 🚀 Start spinning immediately on click (0ms delay)
@@ -177,7 +171,7 @@ export function GameModal({ isOpen, onClose, defaultGame = 'wheel' }: GameModalP
         body: JSON.stringify({
           action: 'play',
           phone: user.phone || '9999999999',
-          gender: user.gender,
+          gender: user.gender || 'other',
           userName: user.name,
           gameType: chosenGame
         })
@@ -347,28 +341,6 @@ export function GameModal({ isOpen, onClose, defaultGame = 'wheel' }: GameModalP
               >
                 Login to Play Free
               </button>
-            </div>
-          ) : !user?.gender ? (
-            /* 2. GENDER SELECTION PROMPT (If existing user has no gender saved) */
-            <div className="text-center py-6 px-4 flex flex-col items-center">
-              <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-3">
-                <Sparkles size={28} />
-              </div>
-              <h3 className="text-lg font-bold text-white mb-1">One Quick Step!</h3>
-              <p className="text-xs text-gray-300 mb-5 max-w-xs">
-                Please select your gender profile so we can tailor exclusive rewards and discounts for you:
-              </p>
-              <div className="flex gap-2.5 w-full max-w-xs justify-center mb-4">
-                {(['male', 'female', 'other'] as const).map((g) => (
-                  <button
-                    key={g}
-                    onClick={() => handleSelectGender(g)}
-                    className="flex-1 py-3 px-2 rounded-xl bg-white/10 hover:bg-amber-500 hover:text-slate-950 border border-white/15 text-xs font-bold capitalize transition-all"
-                  >
-                    {g === 'male' ? '👨 Male' : g === 'female' ? '👩 Female' : '🌈 Other'}
-                  </button>
-                ))}
-              </div>
             </div>
           ) : gameState === 'ineligible' ? (
             /* 3. INELIGIBLE TARGET AUDIENCE STATE */

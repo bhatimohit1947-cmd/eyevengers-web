@@ -79,11 +79,6 @@ export default function RewardsPage() {
       return;
     }
 
-    if (!user.gender) {
-      setErrorMessage("Please select your gender profile below to spin!");
-      return;
-    }
-
     setErrorMessage('');
 
     // 🚀 Start spinning immediately on click (0ms delay)
@@ -98,7 +93,7 @@ export default function RewardsPage() {
         body: JSON.stringify({
           action: 'play',
           phone: user.phone || '9999999999',
-          gender: user.gender,
+          gender: user.gender || 'other',
           userName: user.name,
           gameType: chosenGame
         })
@@ -245,25 +240,6 @@ export default function RewardsPage() {
               >
                 Login to Play Now
               </button>
-            </div>
-          ) : !user?.gender ? (
-            /* Gender Selection Gate */
-            <div className="text-center py-10 flex flex-col items-center">
-              <h2 className="text-xl font-bold mb-2">Select Your Gender</h2>
-              <p className="text-xs text-gray-300 mb-6 max-w-xs">
-                To activate your custom member rewards, please pick your profile:
-              </p>
-              <div className="flex gap-3 w-full max-w-xs justify-center">
-                {(['male', 'female', 'other'] as const).map((g) => (
-                  <button
-                    key={g}
-                    onClick={() => handleSelectGender(g)}
-                    className="flex-1 py-3 px-2 rounded-xl bg-white/10 hover:bg-amber-500 hover:text-slate-950 border border-white/20 text-sm font-bold capitalize transition-all"
-                  >
-                    {g === 'male' ? '👨 Male' : g === 'female' ? '👩 Female' : '🌈 Other'}
-                  </button>
-                ))}
-              </div>
             </div>
           ) : gameState === 'ineligible' ? (
             /* Ineligible Audience */
