@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Star, Heart, Share2, Ruler, ShieldCheck, ChevronRight, Camera, Glasses, ArrowLeft, CheckCircle2, Info, Loader2, AlertCircle, Tag, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { Star, Heart, Share2, Ruler, ShieldCheck, ChevronRight, Camera, Glasses, ArrowLeft, CheckCircle2, Info, Loader2, AlertCircle, Tag, Sparkles, ChevronDown, ChevronUp, Crown, Gift, Check } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import Script from 'next/script';
 import { ARTryOn } from '@/components/ui/ARTryOn';
@@ -56,6 +56,7 @@ export default function ProductDetailPage() {
   const [voucherInput, setVoucherInput] = useState('');
   const [voucherLoading, setVoucherLoading] = useState(false);
   const [voucherMessage, setVoucherMessage] = useState<{ type: 'none' | 'success' | 'error'; text: string }>({ type: 'none', text: '' });
+  const [chosenBenefit, setChosenBenefit] = useState<'voucher' | 'membership'>('voucher');
 
   const [globalSettings, setGlobalSettings] = useState<any>({});
 
@@ -229,7 +230,7 @@ export default function ProductDetailPage() {
         const bVal = Number(data.voucher.benefitValue || 0);
 
         if (bType === 'FREE_FRAME') {
-          const framePrice = dynamicPrice ? dynamicPrice.discountedPrice : (product?.sellingPrice || 0);
+          const framePrice = dynamicPrice ? dynamicPrice.originalPrice : (product?.sellingPrice || 0);
           discountVal = Math.min(baseAmount, framePrice);
         } else if (bType === 'PERCENT_DISCOUNT') {
           discountVal = Math.round(baseAmount * ((bVal || 30) / 100));
@@ -245,6 +246,7 @@ export default function ProductDetailPage() {
           benefitType: bType
         };
         setAppliedVoucher(voucherObj);
+        setChosenBenefit('voucher');
         setVoucherMessage({ type: 'success', text: `🎉 ${voucherObj.title} applied! Saved ₹${discountVal}` });
         setVoucherInput('');
         setVoucherLoading(false);
@@ -282,6 +284,7 @@ export default function ProductDetailPage() {
           benefitType: 'OFFER_COUPON'
         };
         setAppliedVoucher(voucherObj);
+        setChosenBenefit('voucher');
         setVoucherMessage({ type: 'success', text: `🎉 ${cleanCode} applied! Saved ₹${discountVal}` });
         setVoucherInput('');
       } else {
@@ -298,18 +301,38 @@ export default function ProductDetailPage() {
     setAppliedVoucher(null);
     setVoucherInput('');
     setVoucherMessage({ type: 'none', text: '' });
+    setChosenBenefit('membership');
   };
 
+  // Membership & Voucher Benefit Selection
+  const rawMembershipFrameDiscount = dynamicPrice ? Math.max(0, dynamicPrice.originalPrice - dynamicPrice.discountedPrice) : 0;
+  const rawMembershipLensDiscount = getLensDiscountAmount();
+  const rawMembershipDiscount = rawMembershipFrameDiscount + rawMembershipLensDiscount;
+  const rawVoucherDiscount = appliedVoucher ? appliedVoucher.discount : 0;
+
+  const hasMembership = Boolean(membershipTier && membershipTier !== 'none' && (rawMembershipDiscount > 0 || membershipBenefits?.freeShipping));
+  const hasBothBenefits = Boolean(hasMembership && rawVoucherDiscount > 0);
+
+  const effectiveMembershipDiscount = hasBothBenefits
+    ? (chosenBenefit === 'membership' ? rawMembershipDiscount : 0)
+    : rawMembershipDiscount;
+
+  const effectiveVoucherDiscount = hasBothBenefits
+    ? (chosenBenefit === 'voucher' ? rawVoucherDiscount : 0)
+    : rawVoucherDiscount;
+
+  const effectiveFreeShipping = hasBothBenefits
+    ? (chosenBenefit === 'membership' ? Boolean(membershipBenefits?.freeShipping) : false)
+    : Boolean(membershipBenefits?.freeShipping);
+
+  const shippingCharge = effectiveFreeShipping ? 0 : 50;
+
   const calculateTotal = () => {
-    let frameTotal = dynamicPrice ? dynamicPrice.discountedPrice : (product?.sellingPrice || 0);
-    let lensTotal = getLensTotal();
-    let lensDiscount = getLensDiscountAmount();
+    const frameBasePrice = dynamicPrice ? dynamicPrice.originalPrice : (product?.sellingPrice || 0);
+    const lensTotal = getLensTotal();
+    const subtotal = frameBasePrice + lensTotal;
     
-    let total = frameTotal + lensTotal - lensDiscount;
-    const hasFreeShipping = membershipBenefits?.freeShipping === true;
-    const shippingCharge = hasFreeShipping ? 0 : 50;
-    const voucherDiscount = appliedVoucher?.discount || 0;
-    return Math.max(0, total + shippingCharge - voucherDiscount);
+    return Math.max(0, subtotal + shippingCharge - effectiveMembershipDiscount - effectiveVoucherDiscount);
   };
 
   const handlePlaceOrder = async () => {
@@ -337,16 +360,18 @@ export default function ProductDetailPage() {
       mrp: product.mrp,
       categoryId: product.shape,
       brandId: product.brand,
-      couponApplied: appliedVoucher?.code,
-      couponDiscount: appliedVoucher?.discount || 0,
-      benefitTitle: appliedVoucher?.title
+      couponApplied: effectiveVoucherDiscount > 0 ? appliedVoucher?.code : undefined,
+      couponDiscount: effectiveVoucherDiscount,
+      membershipDiscount: effectiveMembershipDiscount,
+      chosenBenefit: hasBothBenefits ? chosenBenefit : (appliedVoucher ? 'voucher' : (hasMembership ? 'membership' : 'none')),
+      benefitTitle: effectiveVoucherDiscount > 0 ? appliedVoucher?.title : (effectiveMembershipDiscount > 0 ? `${membershipTier} Membership Perk` : undefined)
     };
 
     try {
       const orderId = `ORD-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
 
-      // Claim voucher online if applied
-      if (appliedVoucher?.code) {
+      // Claim voucher online only if voucher benefit was chosen and applied
+      if (effectiveVoucherDiscount > 0 && appliedVoucher?.code) {
         fetch('/api/referral', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -796,17 +821,246 @@ export default function ProductDetailPage() {
             {/* STEP 5: CHECKOUT */}
             {flowStep === 'checkout' && (
               <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+
+                {/* 1. Discounts, Referrals & Games Vouchers Section (ON TOP) */}
+                <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 shadow-xs">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="p-1.5 rounded-lg bg-blue-50 text-brand-navy">
+                        <Tag size={16} />
+                      </span>
+                      <h4 className="font-bold text-gray-900 text-sm">Coupons & Rewards</h4>
+                    </div>
+                    {userVouchers.length > 0 && (
+                      <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                        {userVouchers.length} Rewards Available
+                      </span>
+                    )}
+                  </div>
+
+                  {/* If voucher is applied: Show sleek applied badge */}
+                  {appliedVoucher && appliedVoucher.discount > 0 ? (
+                    <div className="bg-emerald-50/90 border border-emerald-200 rounded-xl p-3.5 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <CheckCircle2 size={16} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-black text-xs text-gray-900 tracking-wider truncate">
+                              {appliedVoucher.code}
+                            </span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full shrink-0">
+                              Applied ✓
+                            </span>
+                          </div>
+                          <p className="text-xs text-emerald-800 font-semibold truncate mt-0.5">
+                            {appliedVoucher.title} (-₹{appliedVoucher.discount.toFixed(0)})
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleRemoveVoucher}
+                        className="text-xs font-bold text-red-600 hover:text-red-700 hover:bg-red-50 px-2.5 py-1 rounded-lg transition shrink-0"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                          <input
+                            type="text"
+                            value={voucherInput}
+                            onChange={(e) => setVoucherInput(e.target.value.toUpperCase())}
+                            placeholder="Enter coupon or reward code"
+                            className="w-full pl-8 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl uppercase font-mono text-xs font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy transition"
+                          />
+                        </div>
+                        <button
+                          onClick={() => handleApplyVoucher(voucherInput)}
+                          disabled={voucherLoading || !voucherInput.trim()}
+                          className="bg-brand-navy hover:bg-[#002b4d] text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition shrink-0 disabled:opacity-50 shadow-xs"
+                        >
+                          {voucherLoading ? '...' : 'Apply'}
+                        </button>
+                      </div>
+                      {voucherMessage.type === 'error' && (
+                        <p className="text-red-600 text-xs font-semibold mt-2">{voucherMessage.text}</p>
+                      )}
+                      {voucherMessage.type === 'success' && (
+                        <p className="text-emerald-700 text-xs font-semibold mt-2">{voucherMessage.text}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Available customer rewards (Refer & Earn, Spin & Win, Mystery Box) */}
+                  {userVouchers.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <button
+                        onClick={() => setShowVouchersList(!showVouchersList)}
+                        className="w-full flex items-center justify-between text-xs font-bold text-brand-navy hover:text-blue-900 transition py-1"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <Sparkles size={14} className="text-emerald-600" />
+                          <span>{appliedVoucher ? 'Switch to another reward' : 'Your unlocked rewards & vouchers'} ({userVouchers.length})</span>
+                        </span>
+                        {showVouchersList ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      </button>
+
+                      {(showVouchersList || !appliedVoucher) && (
+                        <div className="space-y-2 mt-2.5 max-h-48 overflow-y-auto pr-1">
+                          {userVouchers.map((v) => {
+                            const isCurrent = appliedVoucher?.code?.toUpperCase() === v.code?.toUpperCase();
+                            const isGame = v.source === 'game' || (v.referrerName && (v.referrerName.includes('Wheel') || v.referrerName.includes('Mystery Box')));
+                            const isWelcome = v.source === 'welcome' || v.code?.startsWith('REF-WELCOME');
+                            const originLabel = isGame ? '🎡 Spin & Win' : isWelcome ? '🎉 Welcome Gift' : '👥 Refer & Earn';
+
+                            return (
+                              <div
+                                key={v.code}
+                                className={`p-2.5 rounded-xl border flex items-center justify-between gap-2.5 transition text-xs ${
+                                  isCurrent ? 'bg-emerald-50/70 border-emerald-300' : 'bg-gray-50/80 border-gray-200 hover:bg-white hover:border-gray-300'
+                                }`}
+                              >
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-mono font-black text-gray-900 text-xs">{v.code}</span>
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100/80 text-blue-900">
+                                      {originLabel}
+                                    </span>
+                                  </div>
+                                  <div className="text-xs text-gray-600 truncate mt-0.5 font-medium">{v.benefitTitle}</div>
+                                </div>
+                                {isCurrent ? (
+                                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-full shrink-0">
+                                    Applied ✓
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() => handleApplyVoucher(v.code)}
+                                    className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-3 py-1 rounded-lg transition shrink-0 shadow-xs"
+                                  >
+                                    Apply
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. BENEFIT SELECTION: Only shown when Member + Voucher both exist */}
+                {hasBothBenefits && (
+                  <div className="bg-white border-2 border-amber-300/80 rounded-2xl p-4 sm:p-5 shadow-xs">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900 uppercase tracking-wider">
+                        <Crown size={14} className="text-amber-500" />
+                        Benefit Selection
+                      </div>
+                      <span className="text-[11px] font-bold bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-full capitalize">
+                        ⭐ {membershipTier} Member
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Choose which offer you prefer for this order:
+                    </p>
+
+                    <div className="space-y-2.5">
+                      {/* Option 1: Voucher Reward */}
+                      <div
+                        onClick={() => setChosenBenefit('voucher')}
+                        className={`cursor-pointer p-3.5 rounded-xl border-2 transition flex items-center justify-between gap-3 ${
+                          chosenBenefit === 'voucher'
+                            ? 'border-emerald-600 bg-emerald-50/60 shadow-xs'
+                            : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                            chosenBenefit === 'voucher' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-300'
+                          }`}>
+                            {chosenBenefit === 'voucher' && <Check size={12} strokeWidth={3} />}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-gray-950 flex items-center gap-1.5">
+                              <Gift size={13} className="text-emerald-600 shrink-0" />
+                              <span className="truncate">Voucher Reward ({appliedVoucher?.code})</span>
+                            </div>
+                            <div className="text-[11px] text-gray-500 truncate mt-0.5">
+                              {appliedVoucher?.title || 'Reward Discount applied'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-sm font-black text-emerald-700">
+                            -₹{rawVoucherDiscount.toFixed(0)}
+                          </div>
+                          <div className="text-[10px] font-bold text-emerald-800">
+                            {chosenBenefit === 'voucher' ? 'Selected ✓' : 'Select'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Option 2: Membership Perk */}
+                      <div
+                        onClick={() => setChosenBenefit('membership')}
+                        className={`cursor-pointer p-3.5 rounded-xl border-2 transition flex items-center justify-between gap-3 ${
+                          chosenBenefit === 'membership'
+                            ? 'border-brand-navy bg-blue-50/60 shadow-xs'
+                            : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                            chosenBenefit === 'membership' ? 'border-brand-navy bg-brand-navy text-white' : 'border-gray-300'
+                          }`}>
+                            {chosenBenefit === 'membership' && <Check size={12} strokeWidth={3} />}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-gray-950 flex items-center gap-1.5">
+                              <Crown size={13} className="text-amber-500 shrink-0" />
+                              <span className="capitalize">{membershipTier} Membership</span>
+                            </div>
+                            <div className="text-[11px] text-gray-500 truncate mt-0.5">
+                              {membershipBenefits?.discountPercent || 0}% Off Frame/Lens {membershipBenefits?.freeShipping ? '+ Free Shipping' : ''}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-sm font-black text-brand-navy">
+                            -₹{rawMembershipDiscount.toFixed(0)}
+                          </div>
+                          <div className="text-[10px] font-bold text-brand-navy">
+                            {chosenBenefit === 'membership' ? 'Selected ✓' : 'Select'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-[11px] text-gray-500 mt-2.5 text-center">
+                      💡 Your unused benefit will stay safely active for your next purchase.
+                    </p>
+                  </div>
+                )}
+
+                {/* 3. ORDER SUMMARY CARD */}
+                <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-xs">
                   <h3 className="font-bold text-gray-900 mb-4 border-b border-gray-200 pb-2">Order Summary</h3>
                   <div className="flex justify-between text-sm mb-3">
                     <span className="text-gray-600">Frame: {product.name}</span>
                     <span className="font-bold">₹{dynamicPrice?.originalPrice || product.mrp}</span>
                   </div>
                   
-                  {dynamicPrice && (dynamicPrice.originalPrice - dynamicPrice.discountedPrice > 0) && (
+                  {effectiveMembershipDiscount > 0 && rawMembershipFrameDiscount > 0 && (
                     <div className="flex justify-between text-sm mb-3 text-brand-gold font-medium">
-                      <span>Frame Discount ({dynamicPrice.appliedOfferName || 'Membership'})</span>
-                      <span>-₹{(dynamicPrice.originalPrice - dynamicPrice.discountedPrice).toFixed(0)}</span>
+                      <span>Frame Discount ({dynamicPrice?.appliedOfferName || `${membershipTier} Member`})</span>
+                      <span>-₹{rawMembershipFrameDiscount.toFixed(0)}</span>
                     </div>
                   )}
                   {!isFrameOnly && selectedLensProduct && (
@@ -822,16 +1076,16 @@ export default function ProductDetailPage() {
                     </div>
                   )}
                   
-                  {getLensDiscountAmount() > 0 && (
+                  {effectiveMembershipDiscount > 0 && rawMembershipLensDiscount > 0 && (
                     <div className="flex justify-between text-sm mb-3 text-brand-gold font-medium">
                       <span>Lens Member Discount ({membershipBenefits?.discountPercent}%)</span>
-                      <span>-₹{getLensDiscountAmount().toFixed(0)}</span>
+                      <span>-₹{rawMembershipLensDiscount.toFixed(0)}</span>
                     </div>
                   )}
 
                   <div className="flex justify-between text-sm mb-3 text-gray-600">
                     <span>Shipping Charges</span>
-                    {membershipBenefits?.freeShipping ? (
+                    {effectiveFreeShipping ? (
                       <div className="flex items-center gap-2">
                         <span className="line-through text-xs text-gray-400">₹50</span>
                         <span className="text-green-600 font-bold">FREE</span>
@@ -841,10 +1095,10 @@ export default function ProductDetailPage() {
                     )}
                   </div>
 
-                  {appliedVoucher && appliedVoucher.discount > 0 && (
+                  {effectiveVoucherDiscount > 0 && appliedVoucher && (
                     <div className="flex justify-between text-sm mb-3 text-emerald-600 font-bold">
                       <span>Voucher Discount ({appliedVoucher.title || appliedVoucher.code})</span>
-                      <span>-₹{appliedVoucher.discount.toFixed(0)}</span>
+                      <span>-₹{effectiveVoucherDiscount.toFixed(0)}</span>
                     </div>
                   )}
                   
@@ -854,139 +1108,7 @@ export default function ProductDetailPage() {
                   </div>
                 </div>
 
-                {/* Discounts, Referrals & Games Vouchers Section */}
-                <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-xs">
-                  <div className="flex items-center justify-between mb-2.5">
-                    <div className="flex items-center gap-1.5">
-                      <span className="p-1 rounded-md bg-blue-50 text-brand-navy">
-                        <Tag size={14} />
-                      </span>
-                      <h4 className="font-bold text-gray-900 text-xs uppercase tracking-wider">Coupons & Rewards</h4>
-                    </div>
-                    {userVouchers.length > 0 && (
-                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full">
-                        {userVouchers.length} Rewards Unlocked
-                      </span>
-                    )}
-                  </div>
-
-                  {/* If voucher is applied: Show sleek applied badge */}
-                  {appliedVoucher && appliedVoucher.discount > 0 ? (
-                    <div className="bg-emerald-50/90 border border-emerald-200 rounded-xl p-3 flex items-center justify-between gap-2.5">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                          <CheckCircle2 size={15} />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono font-black text-xs text-gray-900 truncate">
-                              {appliedVoucher.code}
-                            </span>
-                            <span className="text-[9px] font-black uppercase text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded-full shrink-0">
-                              Applied ✓
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-emerald-800 font-semibold truncate mt-0.5">
-                            {appliedVoucher.title} (-₹{appliedVoucher.discount.toFixed(0)})
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={handleRemoveVoucher}
-                        className="text-xs font-bold text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-lg transition shrink-0"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={13} />
-                          <input
-                            type="text"
-                            value={voucherInput}
-                            onChange={(e) => setVoucherInput(e.target.value.toUpperCase())}
-                            placeholder="Enter coupon or reward code"
-                            className="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl uppercase font-mono text-xs font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy transition"
-                          />
-                        </div>
-                        <button
-                          onClick={() => handleApplyVoucher(voucherInput)}
-                          disabled={voucherLoading || !voucherInput.trim()}
-                          className="bg-brand-navy hover:bg-[#002b4d] text-white px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition shrink-0 disabled:opacity-50"
-                        >
-                          {voucherLoading ? '...' : 'Apply'}
-                        </button>
-                      </div>
-                      {voucherMessage.type === 'error' && (
-                        <p className="text-red-600 text-xs font-semibold mt-1.5">{voucherMessage.text}</p>
-                      )}
-                      {voucherMessage.type === 'success' && (
-                        <p className="text-emerald-700 text-xs font-semibold mt-1.5">{voucherMessage.text}</p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Available customer rewards (Refer & Earn, Spin & Win, Mystery Box) */}
-                  {userVouchers.length > 0 && (
-                    <div className="mt-2.5 pt-2.5 border-t border-gray-100">
-                      <button
-                        onClick={() => setShowVouchersList(!showVouchersList)}
-                        className="w-full flex items-center justify-between text-xs font-bold text-brand-navy hover:text-blue-900 transition py-0.5"
-                      >
-                        <span className="flex items-center gap-1.5">
-                          <Sparkles size={13} className="text-amber-500" />
-                          <span>Your available rewards & game vouchers ({userVouchers.length})</span>
-                        </span>
-                        {showVouchersList ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                      </button>
-
-                      {(showVouchersList || !appliedVoucher) && (
-                        <div className="space-y-2 mt-2 max-h-44 overflow-y-auto pr-1">
-                          {userVouchers.map((v) => {
-                            const isCurrent = appliedVoucher?.code?.toUpperCase() === v.code?.toUpperCase();
-                            const isGame = v.source === 'game' || (v.referrerName && (v.referrerName.includes('Wheel') || v.referrerName.includes('Mystery Box')));
-                            const isWelcome = v.source === 'welcome' || v.code?.startsWith('REF-WELCOME');
-                            const originLabel = isGame ? '🎡 Spin & Win' : isWelcome ? '🎉 Welcome' : '👥 Refer';
-
-                            return (
-                              <div
-                                key={v.code}
-                                className={`p-2 rounded-xl border flex items-center justify-between gap-2 transition text-xs ${
-                                  isCurrent ? 'bg-emerald-50/70 border-emerald-300' : 'bg-gray-50/80 border-gray-200 hover:bg-white hover:border-gray-300'
-                                }`}
-                              >
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="font-mono font-black text-gray-900 text-[11px]">{v.code}</span>
-                                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-100/80 text-blue-900">
-                                      {originLabel}
-                                    </span>
-                                  </div>
-                                  <div className="text-[11px] text-gray-600 truncate mt-0.5 font-medium">{v.benefitTitle}</div>
-                                </div>
-                                {isCurrent ? (
-                                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full shrink-0">
-                                    Applied ✓
-                                  </span>
-                                ) : (
-                                  <button
-                                    onClick={() => handleApplyVoucher(v.code)}
-                                    className="bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg transition shrink-0 shadow-xs"
-                                  >
-                                    Apply
-                                  </button>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
+                {/* 4. Select Payment Method */}
                 <div>
                   <h3 className="font-bold text-gray-900 mb-3">Select Payment Method</h3>
                   <div className="space-y-2">
@@ -1007,6 +1129,7 @@ export default function ProductDetailPage() {
                   </div>
                 </div>
 
+                {/* 5. Place Order Button */}
                 <button 
                   onClick={handlePlaceOrder} 
                   disabled={isPlacingOrder}
