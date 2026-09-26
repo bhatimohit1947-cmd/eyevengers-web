@@ -139,6 +139,97 @@ async function getGamificationPlaysRegistry(): Promise<any[]> {
     }
   } catch (e) {}
 
+  // Auto-scan all game_hist_* records to ensure zero data loss
+  try {
+    const ghRes = await fetch(`${SUPABASE_URL}/rest/v1/global_settings?key=like.game_hist_%25&select=*`, {
+      headers: supabaseHeaders,
+      cache: 'no-store'
+    });
+    if (ghRes.ok) {
+      const ghRows = await ghRes.json();
+      if (Array.isArray(ghRows) && ghRows.length > 0) {
+        // Fetch customers to resolve names
+        let customerMap = new Map();
+        try {
+          const cRes = await fetch(`${SUPABASE_URL}/rest/v1/customers?select=*`, { headers: supabaseHeaders, cache: 'no-store' });
+          if (cRes.ok) {
+            const cList = await cRes.json();
+            if (Array.isArray(cList)) {
+              cList.forEach((c: any) => {
+                const p = (c.phone || '').replace(/[^0-9]/g, '').slice(-10);
+                if (p) customerMap.set(p, c);
+              });
+            }
+          }
+        } catch (e) {}
+
+        let hasNewPlays = false;
+        const existingPhones = new Set(plays.map(p => p.phone));
+
+        for (const row of ghRows) {
+          const phone = row.key.replace('game_hist_', '').slice(-10);
+          if (phone && !existingPhones.has(phone)) {
+            try {
+              const data = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+              const won = data?.wonReward;
+              if (won) {
+                hasNewPlays = true;
+                const cust = customerMap.get(phone);
+                const playRecord = {
+                  id: `GAME-${phone}-${String(data.lastPlayedAt || Date.now()).slice(-6)}`,
+                  phone,
+                  userName: cust?.name || 'Customer',
+                  gender: cust?.gender || 'other',
+                  gameType: 'wheel',
+                  rewardId: won.id,
+                  rewardLabel: won.label,
+                  rewardType: won.type,
+                  rewardValue: won.value,
+                  minOrder: won.minOrder || 0,
+                  couponCode: won.couponCode || '',
+                  status: won.couponCode ? 'ACTIVE' : 'TRY_AGAIN',
+                  playedAt: new Date(data.lastPlayedAt || Date.now()).toISOString(),
+                  claimedAt: null,
+                  claimedChannel: null,
+                  claimedStore: null,
+                  claimedStaff: null,
+                  invoiceNo: null
+                };
+                plays.push(playRecord);
+                existingPhones.add(phone);
+
+                if (won.couponCode) {
+                  fetch(`${SUPABASE_URL}/rest/v1/referral_vouchers`, {
+                    method: 'POST',
+                    headers: supabaseHeaders,
+                    body: JSON.stringify({
+                      id: playRecord.id,
+                      code: won.couponCode.toUpperCase(),
+                      referrer_phone: phone,
+                      referrer_name: `${cust?.name || 'Customer'} (Lucky Wheel)`,
+                      referred_phone: phone,
+                      referred_name: won.label,
+                      benefit_type: won.type,
+                      benefit_value: won.value,
+                      benefit_title: won.label,
+                      status: 'ACTIVE',
+                      issued_at: playRecord.playedAt,
+                      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+                    })
+                  }).catch(() => {});
+                }
+              }
+            } catch (e) {}
+          }
+        }
+
+        if (hasNewPlays) {
+          saveGamificationPlaysRegistry(plays);
+        }
+      }
+    }
+  } catch (e) {}
+
   return plays.sort((a, b) => new Date(b.playedAt || 0).getTime() - new Date(a.playedAt || 0).getTime());
 }
 
