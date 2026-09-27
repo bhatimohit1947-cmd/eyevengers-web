@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { isVideoUrl } from '@/utils/media';
 
 interface SecondaryBannerProps {
   data: {
@@ -59,11 +60,11 @@ export function SecondaryBanner({ data }: SecondaryBannerProps) {
           
           {/* If an image poster is provided */}
           {data.bannerImageUrl ? (
-            data.bannerImageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+            isVideoUrl(data.bannerImageUrl) ? (
               <video 
                 src={data.bannerImageUrl} 
                 className="w-full h-auto block rounded-[20px]"
-                autoPlay loop muted playsInline
+                autoPlay loop muted playsInline preload="auto"
               />
             ) : (
               <OptimizedImage 

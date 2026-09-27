@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Clock, Sparkles } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { isVideoUrl } from '@/utils/media';
 
 interface HeroBannerProps {
   data: {
@@ -87,11 +88,11 @@ export function HeroBanner({ data }: HeroBannerProps) {
           {data.bannerImageUrl ? (
             <div className="w-full relative z-0">
               <h1 className="sr-only">{data.title || "Eyevengers"}</h1>
-              {data.bannerImageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+              {isVideoUrl(data.bannerImageUrl) ? (
                 <video 
                   src={data.bannerImageUrl} 
                   className="w-full h-auto max-h-[85vh] object-contain block mx-auto"
-                  autoPlay loop muted playsInline
+                  autoPlay loop muted playsInline preload="auto"
                 />
               ) : (
                 <OptimizedImage 

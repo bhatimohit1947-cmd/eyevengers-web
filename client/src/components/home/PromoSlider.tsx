@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { isVideoUrl } from '@/utils/media';
 
 interface PromoSlide {
   imageUrl?: string;
@@ -73,11 +74,11 @@ export function PromoSlider({ data }: PromoSliderProps) {
             */}
             <div className="w-full aspect-[2/1] md:aspect-[4/1] bg-gray-100 flex items-center justify-center relative overflow-hidden group">
               {slide.imageUrl ? (
-                slide.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+                isVideoUrl(slide.imageUrl) ? (
                   <video 
                     src={slide.imageUrl} 
                     className="w-full h-full object-cover object-center" 
-                    autoPlay loop muted playsInline
+                    autoPlay loop muted playsInline preload="auto"
                   />
                 ) : (
                   <OptimizedImage 

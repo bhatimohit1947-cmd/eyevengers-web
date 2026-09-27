@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { isVideoUrl } from '@/utils/media';
 
 interface CollectionCard {
   title: string;
@@ -47,11 +48,11 @@ export function CollectionCardsGrid({ data }: CollectionGridProps) {
               onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
             >
                {card.imageUrl ? (
-                 card.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+                 isVideoUrl(card.imageUrl) ? (
                    <video 
                      src={card.imageUrl} 
                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                     autoPlay loop muted playsInline
+                     autoPlay loop muted playsInline preload="auto"
                    />
                  ) : (
                    <OptimizedImage 

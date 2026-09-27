@@ -52,8 +52,16 @@ export function GuideSlider({ data }: GuideSliderProps) {
               </div>
             </div>
 
+            {guide.videoUrl && (
+              <video 
+                src={guide.videoUrl} 
+                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                autoPlay loop muted playsInline preload="auto"
+              />
+            )}
+
             {/* Decorative overlay matching video feel */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/40 pointer-events-none"></div>
             
             {/* Background Image Placeholder */}
             <div className="absolute right-0 bottom-0 w-48 h-48 bg-black/10 rounded-full blur-3xl transform translate-x-10 translate-y-10"></div>

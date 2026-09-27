@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { isVideoUrl } from '@/utils/media';
 
 interface Slide {
   imageUrl: string;
@@ -49,11 +50,11 @@ export function SliderBanner({ data }: SliderBannerProps) {
             <div key={index} className="w-full flex-shrink-0 relative">
               {/* Background */}
               {slide.imageUrl ? (
-                slide.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+                isVideoUrl(slide.imageUrl) ? (
                   <video 
                     src={slide.imageUrl}
                     className="absolute inset-0 w-full h-full object-cover"
-                    autoPlay loop muted playsInline
+                    autoPlay loop muted playsInline preload="auto"
                   />
                 ) : (
                   <OptimizedImage 

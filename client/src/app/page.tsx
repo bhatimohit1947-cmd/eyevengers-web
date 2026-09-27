@@ -85,7 +85,7 @@ const FALLBACK_MOCK_DATA = {
   posterSlider: {
     title: "#Trending at Eyevengers",
     posters: [
-      { ctaText: "Shop Spider-Man", ctaUrl: "/collabs/spiderman", imageUrl: "" },
+      { ctaText: "Shop Eyevengers", ctaUrl: "/collabs/spiderman", targetUrl: "/collabs/eyevengers", imageUrl: "https://bhjfsthxmzqumajquyvn.supabase.co/storage/v1/object/public/media/1790502945349-7741a6b2-From_Klickpin.com-_30_Clever_Simple_Wedding_Cake_Ideas-pin-id-1119777894880062209.mp4" },
       { ctaText: "Shop Marvel", ctaUrl: "/collabs/marvel", imageUrl: "" },
       { ctaText: "Shop Harry Potter", ctaUrl: "/collabs/harry-potter", imageUrl: "" }
     ]
@@ -138,19 +138,68 @@ const FALLBACK_MOCK_DATA = {
   }
 };
 
+const SUPABASE_URL = 'https://bhjfsthxmzqumajquyvn.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy';
+
 async function getHomePageData() {
-  // Try to fetch from the CMS Backend
+  // 1. Direct Supabase Cloud REST (Instant 0-delay live data, never sleeps)
+  try {
+    const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/cms_sections?page_id=eq.page_home&select=*&order=order_index.asc`, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      },
+      next: { revalidate: 10 }
+    });
+    if (sbRes.ok) {
+      const rows = await sbRes.json();
+      if (Array.isArray(rows) && rows.length > 0) {
+        const sections: SectionInstance[] = rows.map((s: any) => {
+          let parsedConfig = s.config_json;
+          if (typeof parsedConfig === 'string') {
+            try { parsedConfig = JSON.parse(parsedConfig); } catch (e) {}
+          }
+          return {
+            id: s.id,
+            pageId: s.page_id,
+            sectionType: s.section_type,
+            order: s.order_index,
+            isVisible: s.is_visible,
+            configJson: parsedConfig || {},
+            createdAt: s.created_at || new Date().toISOString(),
+            updatedAt: s.updated_at || new Date().toISOString()
+          };
+        });
+        return {
+          page: {
+            id: 'page_home',
+            slug: 'home',
+            title: 'Homepage',
+            status: 'published',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          },
+          sections
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('Direct Supabase CMS query warning:', err);
+  }
+
+  // 2. Fallback to CMS Backend API on Render
   try {
     const res = await fetch(`https://eyevengers-web.onrender.com/api/cms/pages/home`, { 
-      next: { revalidate: 60 } 
+      next: { revalidate: 10 } 
     });
-    if (!res.ok) throw new Error('CMS Backend unavailable');
-    const data = await res.json();
-    return data as { page: Page, sections: SectionInstance[] };
-  } catch (err) {
-    // Silently fallback so the page NEVER breaks
-    return null;
-  }
+    if (res.ok) {
+      const data = await res.json();
+      return data as { page: Page, sections: SectionInstance[] };
+    }
+  } catch (err) {}
+
+  // 3. Fallback to static mock data
+  return null;
 }
 
 export default async function Home() {

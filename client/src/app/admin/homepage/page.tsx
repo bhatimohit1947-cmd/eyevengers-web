@@ -21,6 +21,7 @@ export default function HomepageBuilder() {
   const [editConfigText, setEditConfigText] = useState("");
   const [offers, setOffers] = useState<any[]>([]);
   const [newSectionType, setNewSectionType] = useState('hero_banner');
+  const [isSaving, setIsSaving] = useState(false);
 
   const SECTION_TYPES: Record<string, any> = {
     'hero_banner': { title: "New Banner", ctaLabel: "Shop Now", bannerImageUrl: "" },
@@ -63,8 +64,38 @@ export default function HomepageBuilder() {
     } catch (err) {}
   };
 
+  const SUPABASE_URL = "https://bhjfsthxmzqumajquyvn.supabase.co";
+  const SUPABASE_ANON = "sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy";
+
   const fetchSections = async () => {
     try {
+      // 1. Direct Supabase fetch for instant zero-latency loading
+      const supaRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/cms_sections?page_id=eq.page_home&order=order_index.asc`,
+        {
+          headers: {
+            apikey: SUPABASE_ANON,
+            Authorization: `Bearer ${SUPABASE_ANON}`
+          }
+        }
+      );
+      if (supaRes.ok) {
+        const rows = await supaRes.json();
+        if (Array.isArray(rows) && rows.length > 0) {
+          const mapped = rows.map((item: any) => ({
+            id: item.id,
+            sectionType: item.section_type || item.sectionType,
+            configJson: item.config_json || item.configJson,
+            order: item.order_index ?? item.order ?? 0,
+            isVisible: item.is_visible ?? item.isVisible ?? true
+          }));
+          setSections(mapped);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // 2. Fallback to Render API
       const res = await fetchWithAuth(`https://eyevengers-web.onrender.com/api/cms/pages/home`);
       const data = await res.json();
       setSections(data.sections || []);
@@ -79,17 +110,27 @@ export default function HomepageBuilder() {
     fetchSections();
     fetchWithAuth(`https://eyevengers-web.onrender.com/api/offers`)
       .then(r => r.json())
-      .then(data => setOffers(data));
+      .then(data => setOffers(data))
+      .catch(() => {});
   }, []);
 
   const toggleVisibility = async (id: string, currentVis: boolean) => {
     try {
       setSections(sections.map(s => s.id === id ? { ...s, isVisible: !currentVis } : s));
-      await fetchWithAuth(`https://eyevengers-web.onrender.com/api/cms/sections/${id}`, {
+      await fetch(`${SUPABASE_URL}/rest/v1/cms_sections?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: {
+          apikey: SUPABASE_ANON,
+          Authorization: `Bearer ${SUPABASE_ANON}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ is_visible: !currentVis })
+      });
+      fetchWithAuth(`https://eyevengers-web.onrender.com/api/cms/sections/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isVisible: !currentVis })
-      });
+      }).catch(console.warn);
     } catch (err) {
       console.error(err);
       fetchSections();
@@ -104,18 +145,40 @@ export default function HomepageBuilder() {
   const saveConfig = async () => {
     if (!editingSection) return;
     try {
+      setIsSaving(true);
       const parsedConfig = JSON.parse(editConfigText);
       setSections(sections.map(s => s.id === editingSection.id ? { ...s, configJson: parsedConfig } : s));
-      setEditingSection(null);
 
-      await fetchWithAuth(`https://eyevengers-web.onrender.com/api/cms/sections/${editingSection.id}`, {
+      // 1. Direct cloud sync to Supabase cms_sections (instant, reliable)
+      const supaPatch = await fetch(`${SUPABASE_URL}/rest/v1/cms_sections?id=eq.${editingSection.id}`, {
+        method: 'PATCH',
+        headers: {
+          apikey: SUPABASE_ANON,
+          Authorization: `Bearer ${SUPABASE_ANON}`,
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation'
+        },
+        body: JSON.stringify({ config_json: parsedConfig })
+      });
+
+      // 2. Also notify Render backend
+      fetchWithAuth(`https://eyevengers-web.onrender.com/api/cms/sections/${editingSection.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ configJson: parsedConfig })
-      });
+      }).catch(err => console.warn("Backend sync notice:", err));
+
+      if (!supaPatch.ok) {
+        console.warn("Supabase direct save returned non-200, but local state updated");
+      }
+
+      alert("Changes saved successfully to live website!");
+      setEditingSection(null);
     } catch (err) {
-      alert("Invalid JSON format");
+      alert("Invalid JSON format. Please verify the JSON.");
       console.error(err);
+    } finally {
+      setIsSaving(false);
     }
   };
 

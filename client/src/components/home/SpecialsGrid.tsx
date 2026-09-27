@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Settings, Glasses, Sun, ScanFace, Sparkles } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { isVideoUrl } from '@/utils/media';
 
 interface SpecialsItem {
   label: string;
@@ -40,11 +41,11 @@ export function SpecialsGrid({ data }: SpecialsGridProps) {
             
             {item.iconImageUrl ? (
               <div className="w-12 h-12 md:w-16 md:h-16 mb-2 group-hover:scale-110 transition-transform">
-                {item.iconImageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+                {isVideoUrl(item.iconImageUrl) ? (
                   <video 
                     src={item.iconImageUrl} 
                     className="w-full h-full object-contain"
-                    autoPlay loop muted playsInline
+                    autoPlay loop muted playsInline preload="auto"
                   />
                 ) : (
                   <div className="relative w-full h-full">

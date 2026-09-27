@@ -4,6 +4,7 @@ import React, { useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Play } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { isVideoUrl } from '@/utils/media';
 
 interface MediaCard {
   mediaType: 'image' | 'video';
@@ -31,12 +32,12 @@ export function MediaSlider({ data }: MediaSliderProps) {
             className="relative flex-shrink-0 w-[40vw] max-w-[280px] md:w-[320px] aspect-[9/16] rounded-[24px] overflow-hidden snap-center group block bg-gray-900 shadow-sm"
           >
             {card.mediaUrl ? (
-              card.mediaUrl.match(/\.(mp4|webm|ogg)$/i) || card.mediaType === 'video' ? (
+              isVideoUrl(card.mediaUrl) || card.mediaType === 'video' ? (
                 <>
                   <video 
                     src={card.mediaUrl} 
                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    autoPlay loop muted playsInline
+                    autoPlay loop muted playsInline preload="auto"
                   />
                   <div className="absolute top-4 right-4 w-10 h-10 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-white z-10 pointer-events-none">
                     <Play size={16} className="ml-1" />

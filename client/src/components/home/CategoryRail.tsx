@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { isVideoUrl } from '@/utils/media';
 
 interface CategoryTile {
   label: string;
@@ -53,11 +54,11 @@ export function CategoryRail({ data }: CategoryRailProps) {
 
               {/* Image */}
               {tile.imageUrl ? (
-                tile.imageUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+                isVideoUrl(tile.imageUrl) ? (
                   <video 
                     src={tile.imageUrl} 
                     className="absolute inset-0 w-full h-full object-cover rounded-[18px] md:rounded-[32px] group-hover:scale-105 transition-transform"
-                    autoPlay loop muted playsInline
+                    autoPlay loop muted playsInline preload="auto"
                   />
                 ) : (
                   <OptimizedImage 

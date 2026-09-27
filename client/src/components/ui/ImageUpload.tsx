@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, Loader2, Link as LinkIcon, Image as ImageIcon } from 'lucide-react';
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
+import { isVideoUrl } from '@/utils/media';
 
 interface ImageUploadProps {
   value: string; // Comma separated URLs for multiple
@@ -111,13 +112,13 @@ export function ImageUpload({ value, onChange, label, multiple = false }: ImageU
             type="file" 
             ref={fileInputRef} 
             onChange={handleFileUpload} 
-            accept="image/*,video/mp4,video/webm" 
+            accept="image/*,video/*,.mp4,.webm,.ogg,.mov,.m4v" 
             className="hidden" 
           />
           {isUploading ? (
             <div className="flex flex-col items-center gap-2 text-brand-navy">
               <Loader2 className="animate-spin" size={24} />
-              <span className="text-sm font-medium">Uploading...</span>
+              <span className="text-sm font-medium">Uploading media...</span>
             </div>
           ) : (
             <>
@@ -125,7 +126,7 @@ export function ImageUpload({ value, onChange, label, multiple = false }: ImageU
                 <Upload size={20} className="text-brand-navy" />
               </div>
               <p className="text-sm font-medium text-gray-900">Click to upload image or video</p>
-              <p className="text-xs text-gray-500 mt-1">Supported: JPG, PNG, WEBP, MP4</p>
+              <p className="text-xs text-gray-500 mt-1">Supported: JPG, PNG, WEBP, MP4, WEBM, MOV</p>
             </>
           )}
         </div>
@@ -136,15 +137,18 @@ export function ImageUpload({ value, onChange, label, multiple = false }: ImageU
         <div className="flex flex-wrap gap-3 mt-2">
           {currentUrls.map((url, idx) => (
             <div key={idx} className="relative group w-20 h-20 rounded-lg border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
-              {url.match(/\.(mp4|webm)$/i) ? (
-                <video src={url} className="w-full h-full object-cover" muted />
+              {isVideoUrl(url) ? (
+                <div className="relative w-full h-full bg-black">
+                  <video src={url} className="w-full h-full object-cover" muted autoPlay loop playsInline />
+                  <span className="absolute bottom-1 left-1 bg-black/80 text-white text-[8px] font-black px-1 rounded uppercase tracking-wider">VIDEO</span>
+                </div>
               ) : (
                 <img src={url} alt={`preview-${idx}`} className="w-full h-full object-cover" onError={(e) => { (e.target as any).src = 'https://via.placeholder.com/80?text=Error'; }} />
               )}
               <button 
                 type="button"
                 onClick={() => removeImage(idx)}
-                className="absolute top-1 right-1 bg-white/90 text-red-500 p-1 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50"
+                className="absolute top-1 right-1 bg-white/90 text-red-500 p-1 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 z-10"
               >
                 <X size={12} />
               </button>
