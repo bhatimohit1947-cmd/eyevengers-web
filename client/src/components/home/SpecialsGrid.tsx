@@ -69,7 +69,7 @@ export function SpecialsGrid({ data }: SpecialsGridProps) {
             )}
             
             <span className="text-xs md:text-sm font-bold text-gray-700 text-center leading-tight group-hover:text-brand-navy">
-              {item.label}
+              {item.label || (item as any).title || (item as any).ctaText || (item as any).headline}
             </span>
           </Link>
         ))}

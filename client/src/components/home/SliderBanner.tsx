@@ -85,7 +85,7 @@ export function SliderBanner({ data }: SliderBannerProps) {
                 )}
                 
                 <h2 className="text-2xl md:text-5xl font-black text-white mb-2 md:mb-3 uppercase tracking-wide leading-tight">
-                  {slide.headline}
+                  {slide.headline || (slide as any).title || (slide as any).label || (slide as any).ctaText}
                 </h2>
                 
                 <p className="text-sm md:text-lg text-gray-300 mb-6 md:mb-8 max-w-sm">

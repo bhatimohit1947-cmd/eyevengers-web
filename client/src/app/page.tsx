@@ -138,18 +138,21 @@ const FALLBACK_MOCK_DATA = {
   }
 };
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const SUPABASE_URL = 'https://bhjfsthxmzqumajquyvn.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy';
 
 async function getHomePageData() {
-  // 1. Direct Supabase Cloud REST (Instant 0-delay live data, never sleeps)
+  // 1. Direct Supabase Cloud REST (Instant 0-delay live data, never sleeps, always fresh)
   try {
     const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/cms_sections?page_id=eq.page_home&select=*&order=order_index.asc`, {
       headers: {
         'apikey': SUPABASE_KEY,
         'Authorization': `Bearer ${SUPABASE_KEY}`
       },
-      next: { revalidate: 10 }
+      cache: 'no-store'
     });
     if (sbRes.ok) {
       const rows = await sbRes.json();

@@ -77,7 +77,7 @@ export function CategoryRail({ data }: CategoryRailProps) {
             </div>
             
             <span className="text-[11px] md:text-lg font-medium md:font-bold text-gray-600 md:text-gray-800 text-center leading-tight">
-              {tile.label}
+              {tile.label || (tile as any).title || (tile as any).ctaText || (tile as any).headline}
             </span>
           </Link>
           );

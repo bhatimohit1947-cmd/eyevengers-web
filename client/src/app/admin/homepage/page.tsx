@@ -554,10 +554,12 @@ export default function HomepageBuilder() {
                                          const newConfig = JSON.parse(editConfigText);
                                          const target = newConfig[arrayKey][idx];
                                          
-                                         if (arrayKey === 'posters' || 'ctaText' in target) target.ctaText = e.target.value;
-                                         else if (arrayKey === 'slides' || 'headline' in target) target.headline = e.target.value;
-                                         else if (arrayKey === 'tiles' || arrayKey === 'items' || 'label' in target) target.label = e.target.value;
-                                         else target.title = e.target.value;
+                                         const val = e.target.value;
+                                          // Set all naming fields simultaneously so whichever property any component reads, it is ALWAYS in sync!
+                                          target.ctaText = val;
+                                          target.title = val;
+                                          target.label = val;
+                                          target.headline = val;
                                          
                                          setEditConfigText(JSON.stringify(newConfig, null, 2));
                                        } catch (err) {}
