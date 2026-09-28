@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { SpinningWheel } from './SpinningWheel';
 import { MysteryBoxes } from './MysteryBoxes';
-import { GameReward } from '@/types/gamification';
+import { DEFAULT_GAMIFICATION_CONFIG, GameReward } from '@/types/gamification';
 import { gameAudio } from '@/utils/gameAudio';
 import { X, Sparkles, Gift, Lock, Copy, Check, Clock, ChevronRight, AlertCircle, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
@@ -19,8 +19,9 @@ export function GameModal({ isOpen, onClose, defaultGame = 'wheel' }: GameModalP
   const { user, isLoggedIn, openLoginModal, updateUserGender } = useAuthStore();
   
   const [activeTab, setActiveTab] = useState<'wheel' | 'mystery_box'>(defaultGame);
-  const [config, setConfig] = useState<any>(null);
-  const [isLoadingConfig, setIsLoadingConfig] = useState(true);
+  // Always initialize with DEFAULT_GAMIFICATION_CONFIG so the wheel is INSTANTLY filled with prizes on 0ms!
+  const [config, setConfig] = useState<any>(DEFAULT_GAMIFICATION_CONFIG);
+  const [isLoadingConfig, setIsLoadingConfig] = useState(false);
   
   // Game Play State
   const [gameState, setGameState] = useState<'idle' | 'spinning' | 'won' | 'ineligible' | 'already_played'>('idle');
@@ -37,25 +38,33 @@ export function GameModal({ isOpen, onClose, defaultGame = 'wheel' }: GameModalP
   const fetchConfig = async () => {
     try {
       setIsLoadingConfig(true);
-      const url = user?.phone ? `/api/gamification?phone=${encodeURIComponent(user.phone)}` : '/api/gamification';
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.success) {
-        setConfig(data);
-        if (data.activeGame === 'wheel') setActiveTab('wheel');
-        else if (data.activeGame === 'mystery_box') setActiveTab('mystery_box');
+      const query = user?.phone ? `?phone=${encodeURIComponent(user.phone)}` : '';
+      let res: Response | null = null;
+      try {
+        res = await fetch(`/api/gamification${query}`);
+      } catch (err) {
+        // Fallback to canonical www if on apex domain
+        res = await fetch(`https://www.eyevengers.com/api/gamification${query}`).catch(() => null);
+      }
+      if (res && res.ok) {
+        const data = await res.json();
+        if (data.success && data.rewards && data.rewards.length > 0) {
+          setConfig(data);
+          if (data.activeGame === 'wheel') setActiveTab('wheel');
+          else if (data.activeGame === 'mystery_box') setActiveTab('mystery_box');
 
-        // Check if user already played
-        if (data.userStatus && !data.userStatus.canPlay) {
-          setGameState('already_played');
-          setWonReward(data.userStatus.lastWon);
-          calculateCountdown(data.userStatus.nextPlayAt);
-        } else {
-          setGameState('idle');
+          // Check if user already played
+          if (data.userStatus && !data.userStatus.canPlay) {
+            setGameState('already_played');
+            setWonReward(data.userStatus.lastWon);
+            calculateCountdown(data.userStatus.nextPlayAt);
+          } else {
+            setGameState('idle');
+          }
         }
       }
     } catch (e) {
-      console.error('Failed to load gamification config', e);
+      console.warn('Using default gamification config fallback', e);
     } finally {
       setIsLoadingConfig(false);
     }
@@ -165,17 +174,29 @@ export function GameModal({ isOpen, onClose, defaultGame = 'wheel' }: GameModalP
     }
 
     try {
-      const res = await fetch('/api/gamification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'play',
-          phone: user.phone || '9999999999',
-          gender: user.gender || 'other',
-          userName: user.name,
-          gameType: chosenGame
-        })
+      const payload = JSON.stringify({
+        action: 'play',
+        phone: user.phone || '9999999999',
+        gender: user.gender || 'other',
+        userName: user.name,
+        gameType: chosenGame
       });
+
+      let res: Response;
+      try {
+        res = await fetch('/api/gamification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload
+        });
+      } catch (fetchErr: any) {
+        // Fallback to canonical www if on apex domain or cross-origin redirect
+        res = await fetch('https://www.eyevengers.com/api/gamification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload
+        });
+      }
 
       const data = await res.json();
 
@@ -218,7 +239,12 @@ export function GameModal({ isOpen, onClose, defaultGame = 'wheel' }: GameModalP
     } catch (e: any) {
       setGameState('idle');
       setTargetIndex(null);
-      setErrorMessage(e.message || 'Network error, please try again.');
+      const msg = e?.message || '';
+      if (msg.includes('Failed to fetch') || e?.name === 'TypeError') {
+        setErrorMessage('Network connection slow ya interrupted tha. Kripya dobara SPIN karein.');
+      } else {
+        setErrorMessage(msg || 'Network error, please try again.');
+      }
     }
   };
 
