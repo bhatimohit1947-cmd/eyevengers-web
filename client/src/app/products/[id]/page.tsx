@@ -221,7 +221,11 @@ export default function ProductDetailPage() {
       const res = await fetch('/api/referral', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'validate-voucher', code: cleanCode })
+        body: JSON.stringify({ 
+          action: 'validate-voucher', 
+          code: cleanCode,
+          brand: product?.brand
+        })
       });
       const data = await res.json();
       if (res.ok && data.valid && data.voucher) {
@@ -251,7 +255,7 @@ export default function ProductDetailPage() {
         setVoucherInput('');
         setVoucherLoading(false);
         return;
-      } else if (data.error && (data.error.includes('Already used') || data.error.includes('expired'))) {
+      } else if (data.error && (data.error.includes('Already used') || data.error.includes('expired') || data.error.includes('ONLY valid on'))) {
         setVoucherMessage({ type: 'error', text: data.error });
         setVoucherLoading(false);
         return;
@@ -918,25 +922,50 @@ export default function ProductDetailPage() {
                             const isWelcome = v.source === 'welcome' || v.code?.startsWith('REF-WELCOME');
                             const originLabel = isGame ? '🎡 Spin & Win' : isWelcome ? '🎉 Welcome Gift' : '👥 Refer & Earn';
 
+                            const productBrand = (product?.brand || '').trim().toLowerCase();
+                            const appBrands: string[] = Array.isArray(v.applicableBrands) ? v.applicableBrands : [];
+                            const hasBrandRestriction = appBrands.length > 0 && !appBrands.some(b => b.toUpperCase() === 'ALL');
+                            const isBrandEligible = !hasBrandRestriction || (productBrand && appBrands.some(b => b.trim().toLowerCase() === productBrand));
+
                             return (
                               <div
                                 key={v.code}
                                 className={`p-2.5 rounded-xl border flex items-center justify-between gap-2.5 transition text-xs ${
-                                  isCurrent ? 'bg-emerald-50/70 border-emerald-300' : 'bg-gray-50/80 border-gray-200 hover:bg-white hover:border-gray-300'
+                                  !isBrandEligible
+                                    ? 'bg-gray-100/80 border-dashed border-gray-300 opacity-60'
+                                    : isCurrent
+                                    ? 'bg-emerald-50/70 border-emerald-300'
+                                    : 'bg-gray-50/80 border-gray-200 hover:bg-white hover:border-gray-300'
                                 }`}
                               >
                                 <div className="min-w-0">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="font-mono font-black text-gray-900 text-xs">{v.code}</span>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className={`font-mono font-black text-xs ${!isBrandEligible ? 'text-gray-500' : 'text-gray-900'}`}>{v.code}</span>
                                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100/80 text-blue-900">
                                       {originLabel}
                                     </span>
+                                    {hasBrandRestriction && (
+                                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                                        isBrandEligible ? 'bg-amber-100 text-amber-900' : 'bg-red-100 text-red-700'
+                                      }`}>
+                                        🏷️ Only on: {appBrands.join(', ')}
+                                      </span>
+                                    )}
                                   </div>
                                   <div className="text-xs text-gray-600 truncate mt-0.5 font-medium">{v.benefitTitle}</div>
+                                  {!isBrandEligible && (
+                                    <div className="text-[10px] text-red-600 font-semibold mt-0.5 flex items-center gap-1">
+                                      <span>🔒 Not valid on {product?.brand || 'this item'} (Valid on: {appBrands.join(', ')})</span>
+                                    </div>
+                                  )}
                                 </div>
                                 {isCurrent ? (
                                   <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-full shrink-0">
                                     Applied ✓
+                                  </span>
+                                ) : !isBrandEligible ? (
+                                  <span className="text-[10px] font-bold text-gray-400 bg-gray-200/80 px-2.5 py-1 rounded-lg shrink-0 cursor-not-allowed">
+                                    Disabled
                                   </span>
                                 ) : (
                                   <button

@@ -290,6 +290,7 @@ export async function GET(req: NextRequest) {
       benefitType: v.benefitType || v.benefit_type,
       benefitValue: Number(v.benefitValue || v.benefit_value || 0),
       benefitTitle: v.benefitTitle || v.benefit_title,
+      applicableBrands: v.applicableBrands || v.applicable_brands || store.config?.applicableBrands || [],
       status: v.status,
       issuedAt: v.issuedAt || v.issued_at,
       expiresAt: v.expiresAt || v.expires_at,
@@ -389,6 +390,7 @@ export async function GET(req: NextRequest) {
                       benefitType: p.reward?.type || 'FLAT_DISCOUNT',
                       benefitValue: Number(p.reward?.value || 150),
                       benefitTitle: p.reward?.label || `${code} Reward`,
+                      applicableBrands: p.applicableBrands || p.reward?.applicableBrands || [],
                       source: p.gameType === 'mystery_box' ? 'mystery_box' : 'wheel',
                       status: p.status || 'ACTIVE',
                       issuedAt: p.playedAt || new Date().toISOString(),
@@ -654,6 +656,7 @@ export async function POST(req: NextRequest) {
                 benefitType: r.benefit_type,
                 benefitValue: Number(r.benefit_value || 0),
                 benefitTitle: r.benefit_title,
+                applicableBrands: r.applicable_brands || r.applicableBrands || store.config?.applicableBrands || [],
                 status: r.status,
                 issuedAt: r.issued_at,
                 expiresAt: r.expires_at,
@@ -687,6 +690,7 @@ export async function POST(req: NextRequest) {
                     benefitType: matchPlay.reward?.type || 'FLAT_DISCOUNT',
                     benefitValue: Number(matchPlay.reward?.value || 150),
                     benefitTitle: matchPlay.reward?.label || `${code} Reward`,
+                    applicableBrands: matchPlay.reward?.applicableBrands || matchPlay.applicableBrands || [],
                     status: matchPlay.status || 'ACTIVE',
                     expiresAt: new Date(Date.now() + 30 * 86400000).toISOString()
                   };
@@ -718,6 +722,7 @@ export async function POST(req: NextRequest) {
                   benefitType: matchingReward.type || 'FLAT_DISCOUNT',
                   benefitValue: Number(matchingReward.value || 150),
                   benefitTitle: matchingReward.label || `${code} Reward`,
+                  applicableBrands: matchingReward.applicableBrands || [],
                   status: 'ACTIVE',
                   expiresAt: new Date(Date.now() + 30 * 86400000).toISOString()
                 };
@@ -744,6 +749,36 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ valid: false, error: 'This voucher has expired' }, { status: 400 });
       }
 
+      // Brand restriction check
+      const applicableBrands: string[] = voucher.applicableBrands || store.config?.applicableBrands || [];
+      const hasBrandRestriction = Array.isArray(applicableBrands) && 
+        applicableBrands.length > 0 && 
+        !applicableBrands.some((b: string) => b.toUpperCase() === 'ALL');
+
+      if (hasBrandRestriction) {
+        if (body.brand) {
+          const targetBrand = String(body.brand).trim().toLowerCase();
+          const isBrandMatch = applicableBrands.some((b: string) => b.trim().toLowerCase() === targetBrand);
+          if (!isBrandMatch) {
+            return NextResponse.json({
+              valid: false,
+              error: `This coupon is ONLY valid on brand(s): ${applicableBrands.join(', ')}. Not valid for ${body.brand}.`
+            }, { status: 400 });
+          }
+        } else if (Array.isArray(body.items) && body.items.length > 0) {
+          const hasMatchingItem = body.items.some((item: any) => {
+            const itemBrand = String(item.brand || item.product?.brand || '').trim().toLowerCase();
+            return itemBrand && applicableBrands.some((b: string) => b.trim().toLowerCase() === itemBrand);
+          });
+          if (!hasMatchingItem) {
+            return NextResponse.json({
+              valid: false,
+              error: `This coupon is ONLY valid on brand(s): ${applicableBrands.join(', ')}. Please add an eligible product to your cart.`
+            }, { status: 400 });
+          }
+        }
+      }
+
       return NextResponse.json({
         valid: true,
         voucher: {
@@ -751,7 +786,8 @@ export async function POST(req: NextRequest) {
           benefitType: voucher.benefitType,
           benefitValue: voucher.benefitValue,
           benefitTitle: voucher.benefitTitle,
-          referrerName: voucher.referrerName
+          referrerName: voucher.referrerName,
+          applicableBrands: applicableBrands
         }
       });
     }

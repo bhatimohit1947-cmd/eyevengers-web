@@ -32,6 +32,28 @@ export default function AdminReferralsPage() {
   const [minOrderValue, setMinOrderValue] = useState(999);
   const [validityDays, setValidityDays] = useState(60);
   const [requiredFriendsCount, setRequiredFriendsCount] = useState(1);
+  const [applicableBrands, setApplicableBrands] = useState<string[]>([]);
+  const [availableBrands, setAvailableBrands] = useState<string[]>([
+    'EYEVENGERS', 'Ray-Ban', 'Oakley', 'Lenskart', 'Gucci', 'Prada', 'Hustlr', 'Titan Eyeplus', 'Fastrack'
+  ]);
+  const [newBrandInput, setNewBrandInput] = useState('');
+
+  const loadBrands = async () => {
+    try {
+      const res = await fetch('https://bhjfsthxmzqumajquyvn.supabase.co/rest/v1/products?select=brand', {
+        headers: {
+          apikey: 'sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy',
+          Authorization: 'Bearer sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy'
+        }
+      });
+      if (res.ok) {
+        const brandsData = await res.json();
+        const bSet = new Set(availableBrands);
+        brandsData.forEach((p: any) => { if (p.brand && p.brand.trim()) bSet.add(p.brand.trim()); });
+        setAvailableBrands(Array.from(bSet));
+      }
+    } catch (e) {}
+  };
 
   const fetchAdminData = async () => {
     setLoading(true);
@@ -48,6 +70,7 @@ export default function AdminReferralsPage() {
         setMinOrderValue(json.config?.minOrderValue ?? 999);
         setValidityDays(json.config?.validityDays ?? 60);
         setRequiredFriendsCount(json.config?.requiredFriendsCount ?? 1);
+        setApplicableBrands(json.config?.applicableBrands || []);
       }
     } catch (err) {
       console.error("Failed to load referral admin data", err);
@@ -58,6 +81,7 @@ export default function AdminReferralsPage() {
 
   useEffect(() => {
     fetchAdminData();
+    loadBrands();
   }, []);
 
   const handleSaveConfig = async (e: React.FormEvent) => {
@@ -79,7 +103,8 @@ export default function AdminReferralsPage() {
             friendWelcomeDiscount: Number(friendWelcomeDiscount),
             minOrderValue: Number(minOrderValue),
             validityDays: Number(validityDays),
-            requiredFriendsCount: Number(requiredFriendsCount)
+            requiredFriendsCount: Number(requiredFriendsCount),
+            applicableBrands
           }
         })
       });
@@ -290,6 +315,115 @@ export default function AdminReferralsPage() {
                 <span className="text-xs font-bold text-gray-700 whitespace-nowrap">Friend(s) required</span>
               </div>
             </div>
+          </div>
+
+          {/* Applicable Brands (Multi-brand restriction) */}
+          <div className="sm:col-span-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+            <div className="flex items-center justify-between mb-2">
+              <label className="font-bold text-gray-800 text-xs flex items-center gap-1.5">
+                <span>🏷️ Applicable Brands for Referral Reward Coupons</span>
+                <span className="text-[10px] font-normal text-gray-500">(Leave empty or select All for universal coupon)</span>
+              </label>
+              {applicableBrands.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setApplicableBrands([])}
+                  className="text-[11px] font-bold text-red-500 hover:underline"
+                >
+                  Reset to All Brands
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-1.5 mb-2.5 max-h-32 overflow-y-auto p-2 bg-white rounded-xl border border-gray-100">
+              <button
+                type="button"
+                onClick={() => setApplicableBrands([])}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                  applicableBrands.length === 0
+                    ? 'bg-slate-900 text-amber-400 shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                🌍 All Brands
+              </button>
+              {availableBrands.map((brand) => {
+                const isSelected = applicableBrands.some(
+                  b => b.toLowerCase() === brand.toLowerCase()
+                );
+                return (
+                  <button
+                    key={brand}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected) {
+                        setApplicableBrands(applicableBrands.filter(b => b.toLowerCase() !== brand.toLowerCase()));
+                      } else {
+                        setApplicableBrands([...applicableBrands, brand]);
+                      }
+                    }}
+                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${
+                      isSelected
+                        ? 'bg-amber-500 text-slate-950 shadow-sm'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    <span>{brand}</span>
+                    {isSelected && <span className="text-[10px]">✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Add new brand if not in list */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Add custom brand name..."
+                value={newBrandInput}
+                onChange={(e) => setNewBrandInput(e.target.value)}
+                className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs bg-white"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (newBrandInput.trim()) {
+                      const brandToAdd = newBrandInput.trim();
+                      if (!availableBrands.includes(brandToAdd)) {
+                        setAvailableBrands([...availableBrands, brandToAdd]);
+                      }
+                      if (!applicableBrands.some(b => b.toLowerCase() === brandToAdd.toLowerCase())) {
+                        setApplicableBrands([...applicableBrands, brandToAdd]);
+                      }
+                      setNewBrandInput('');
+                    }
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (newBrandInput.trim()) {
+                    const brandToAdd = newBrandInput.trim();
+                    if (!availableBrands.includes(brandToAdd)) {
+                      setAvailableBrands([...availableBrands, brandToAdd]);
+                    }
+                    if (!applicableBrands.some(b => b.toLowerCase() === brandToAdd.toLowerCase())) {
+                      setApplicableBrands([...applicableBrands, brandToAdd]);
+                    }
+                    setNewBrandInput('');
+                  }
+                }}
+                className="px-3 py-1.5 bg-slate-900 text-amber-400 font-bold rounded-lg text-xs hover:bg-slate-800"
+              >
+                + Add
+              </button>
+            </div>
+
+            <p className="text-[11px] text-gray-500 mt-2">
+              {applicableBrands.length === 0
+                ? '✓ Referral coupons will be valid on all products across all brands.'
+                : `🔒 Valid ONLY on: ${applicableBrands.join(', ')}. On other brands, customer will see the coupon disabled with an explanation.`}
+            </p>
           </div>
 
           <div className="sm:col-span-3 pt-2">

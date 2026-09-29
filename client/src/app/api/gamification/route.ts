@@ -266,6 +266,7 @@ async function recordUserPlay(
     rewardType: wonReward.type,
     rewardValue: wonReward.value,
     minOrder: wonReward.minOrder || 0,
+    applicableBrands: wonReward.applicableBrands || [],
     couponCode: wonReward.couponCode || '',
     status: wonReward.couponCode ? 'ACTIVE' : 'TRY_AGAIN',
     playedAt: new Date().toISOString(),

@@ -12,6 +12,7 @@ export interface GameReward {
   color: string;
   textColor: string;
   description?: string;
+  applicableBrands?: string[]; // Array of brand names (e.g. ['Ray-Ban', 'EYEVENGERS']). Empty or ['ALL'] means all brands.
 }
 
 export interface GamificationConfig {

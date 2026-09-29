@@ -57,6 +57,10 @@ export default function AdminGamificationPage() {
   const [playerStatusFilter, setPlayerStatusFilter] = useState<'ALL' | 'ACTIVE' | 'CLAIMED'>('ALL');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [redeemingPlayId, setRedeemingPlayId] = useState<string | null>(null);
+  const [availableBrands, setAvailableBrands] = useState<string[]>([
+    'EYEVENGERS', 'Ray-Ban', 'Oakley', 'Lenskart', 'Gucci', 'Prada', 'Hustlr', 'Titan Eyeplus', 'Fastrack'
+  ]);
+  const [newBrandInput, setNewBrandInput] = useState('');
 
   // Fetch Config
   const loadConfig = async () => {
@@ -76,6 +80,24 @@ export default function AdminGamificationPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Fetch distinct brands from database
+  const loadBrands = async () => {
+    try {
+      const res = await fetch('https://bhjfsthxmzqumajquyvn.supabase.co/rest/v1/products?select=brand', {
+        headers: {
+          apikey: 'sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy',
+          Authorization: 'Bearer sb_publishable_fvqOImRG-8kMsfQxln9WMw_JmBmCmNy'
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const bSet = new Set(availableBrands);
+        data.forEach((p: any) => { if (p.brand && p.brand.trim()) bSet.add(p.brand.trim()); });
+        setAvailableBrands(Array.from(bSet));
+      }
+    } catch (e) {}
   };
 
   // Fetch Customer Game Plays & Won Coupons
@@ -104,6 +126,7 @@ export default function AdminGamificationPage() {
   useEffect(() => {
     loadConfig();
     loadPlayersData();
+    loadBrands();
   }, []);
 
   // Save Config
@@ -799,6 +822,7 @@ export default function AdminGamificationPage() {
                 <th className="py-3 px-4">Type</th>
                 <th className="py-3 px-4">Coupon Code</th>
                 <th className="py-3 px-4">Min Order</th>
+                <th className="py-3 px-4">Applicable Brands</th>
                 <th className="py-3 px-4 text-center">Probability %</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
@@ -828,6 +852,21 @@ export default function AdminGamificationPage() {
                   </td>
                   <td className="py-3.5 px-4 font-semibold">
                     {reward.minOrder > 0 ? `₹${reward.minOrder}` : 'No Minimum'}
+                  </td>
+                  <td className="py-3.5 px-4">
+                    {(!reward.applicableBrands || reward.applicableBrands.length === 0 || reward.applicableBrands.includes('ALL')) ? (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
+                        🌍 All Brands
+                      </span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        {reward.applicableBrands.map(b => (
+                          <span key={b} className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-black border border-amber-300">
+                            🏷️ {b}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </td>
                   <td className="py-3.5 px-4 text-center">
                     <span className="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-700 font-black">
@@ -971,6 +1010,120 @@ export default function AdminGamificationPage() {
                   className="w-full px-3 py-2 border rounded-xl"
                   placeholder="e.g. Flat ₹200 OFF on orders above ₹999"
                 />
+              </div>
+
+              {/* Applicable Brands (Multi-brand restriction) */}
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="font-bold text-gray-800 text-xs flex items-center gap-1.5">
+                    <span>🏷️ Applicable Brands</span>
+                    <span className="text-[10px] font-normal text-gray-500">(Leave empty or select All for universal coupon)</span>
+                  </label>
+                  {editingReward.applicableBrands && editingReward.applicableBrands.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingReward({ ...editingReward, applicableBrands: [] })}
+                      className="text-[11px] font-bold text-red-500 hover:underline"
+                    >
+                      Reset to All Brands
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 mb-2.5 max-h-32 overflow-y-auto p-1 bg-white rounded-lg border border-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => setEditingReward({ ...editingReward, applicableBrands: [] })}
+                    className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
+                      !editingReward.applicableBrands || editingReward.applicableBrands.length === 0
+                        ? 'bg-slate-900 text-amber-400 shadow-sm'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    🌍 All Brands
+                  </button>
+                  {availableBrands.map((brand) => {
+                    const isSelected = editingReward.applicableBrands?.some(
+                      b => b.toLowerCase() === brand.toLowerCase()
+                    );
+                    return (
+                      <button
+                        key={brand}
+                        type="button"
+                        onClick={() => {
+                          const current = editingReward.applicableBrands || [];
+                          let updated: string[];
+                          if (isSelected) {
+                            updated = current.filter(b => b.toLowerCase() !== brand.toLowerCase());
+                          } else {
+                            updated = [...current, brand];
+                          }
+                          setEditingReward({ ...editingReward, applicableBrands: updated });
+                        }}
+                        className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${
+                          isSelected
+                            ? 'bg-amber-500 text-slate-950 shadow-sm'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        <span>{brand}</span>
+                        {isSelected && <span className="text-[10px]">✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Add new brand if not in list */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Add custom brand name..."
+                    value={newBrandInput}
+                    onChange={(e) => setNewBrandInput(e.target.value)}
+                    className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs bg-white"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (newBrandInput.trim()) {
+                          const brandToAdd = newBrandInput.trim();
+                          if (!availableBrands.includes(brandToAdd)) {
+                            setAvailableBrands([...availableBrands, brandToAdd]);
+                          }
+                          const current = editingReward.applicableBrands || [];
+                          if (!current.some(b => b.toLowerCase() === brandToAdd.toLowerCase())) {
+                            setEditingReward({ ...editingReward, applicableBrands: [...current, brandToAdd] });
+                          }
+                          setNewBrandInput('');
+                        }
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newBrandInput.trim()) {
+                        const brandToAdd = newBrandInput.trim();
+                        if (!availableBrands.includes(brandToAdd)) {
+                          setAvailableBrands([...availableBrands, brandToAdd]);
+                        }
+                        const current = editingReward.applicableBrands || [];
+                        if (!current.some(b => b.toLowerCase() === brandToAdd.toLowerCase())) {
+                          setEditingReward({ ...editingReward, applicableBrands: [...current, brandToAdd] });
+                        }
+                        setNewBrandInput('');
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-slate-900 text-amber-400 font-bold rounded-lg text-xs hover:bg-slate-800"
+                  >
+                    + Add
+                  </button>
+                </div>
+
+                <p className="text-[10px] text-gray-500 mt-1.5">
+                  {(!editingReward.applicableBrands || editingReward.applicableBrands.length === 0)
+                    ? '✓ This coupon will be valid on all products across all brands.'
+                    : `🔒 Valid ONLY on: ${editingReward.applicableBrands.join(', ')}. On other brands, the coupon will be visibly disabled with an explanation.`}
+                </p>
               </div>
             </div>
 
