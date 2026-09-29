@@ -14,12 +14,165 @@ interface Section {
   isVisible: boolean;
 }
 
+function TargetUrlFilterBuilder({ 
+  value, 
+  onChange,
+  availableBrands = ['EYEVENGERS', 'Ray-Ban', 'Oakley', 'Lenskart', 'Vincent Chase', 'John Jacobs', 'Vogue']
+}: { 
+  value: string; 
+  onChange: (url: string) => void;
+  availableBrands?: string[];
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [brand, setBrand] = useState('all');
+  const [category, setCategory] = useState('all');
+  const [gender, setGender] = useState('all');
+  const [discount, setDiscount] = useState('all');
+
+  useEffect(() => {
+    if (value && value.includes('?')) {
+      try {
+        const query = value.split('?')[1];
+        const params = new URLSearchParams(query);
+        if (params.get('brand')) setBrand(params.get('brand') || 'all');
+        if (params.get('category')) setCategory(params.get('category') || 'all');
+        if (params.get('gender')) setGender(params.get('gender') || 'all');
+        if (params.get('discount')) setDiscount(params.get('discount') || 'all');
+      } catch (e) {}
+    }
+  }, [value]);
+
+  const updateUrl = (b: string, c: string, g: string, d: string) => {
+    const params = new URLSearchParams();
+    if (b && b !== 'all') params.set('brand', b);
+    if (c && c !== 'all') params.set('category', c);
+    if (g && g !== 'all') params.set('gender', g);
+    if (d && d !== 'all') params.set('discount', d);
+
+    const qs = params.toString();
+    const finalUrl = qs ? `/products?${qs}` : '/products';
+    onChange(finalUrl);
+  };
+
+  return (
+    <div className="mt-2 mb-2">
+      <div className="flex items-center justify-between mb-1">
+        <label className="text-xs font-bold text-purple-900">Target URL / CTA Link</label>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="text-[11px] font-semibold text-purple-700 bg-purple-100 hover:bg-purple-200 px-2.5 py-0.5 rounded transition flex items-center gap-1 cursor-pointer"
+        >
+          {isOpen ? '✕ Close Filter Helper' : '⚡ Pick Brand / Discount'}
+        </button>
+      </div>
+
+      <input 
+        type="text"
+        placeholder="e.g., /products?brand=EYEVENGERS&discount=30"
+        className="w-full border border-purple-200 rounded p-1.5 text-xs font-mono bg-white focus:ring-1 focus:ring-purple-400"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+
+      {isOpen && (
+        <div className="mt-2 p-3 bg-purple-50/90 border border-purple-200 rounded-lg space-y-2 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-purple-900 text-[11px]">Auto-generate URL for Specific Products:</span>
+            <span className="text-[10px] text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded font-medium">Option A: Brand & Discount Filter</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] font-bold text-gray-700 block mb-0.5">Brand</label>
+              <select 
+                className="w-full border border-gray-300 rounded p-1 text-xs bg-white cursor-pointer"
+                value={brand}
+                onChange={(e) => {
+                  setBrand(e.target.value);
+                  updateUrl(e.target.value, category, gender, discount);
+                }}
+              >
+                <option value="all">All Brands</option>
+                {availableBrands.map(b => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-gray-700 block mb-0.5">Discount</label>
+              <select 
+                className="w-full border border-gray-300 rounded p-1 text-xs bg-white cursor-pointer"
+                value={discount}
+                onChange={(e) => {
+                  setDiscount(e.target.value);
+                  updateUrl(brand, category, gender, e.target.value);
+                }}
+              >
+                <option value="all">Any Discount</option>
+                <option value="10">10% OFF or more</option>
+                <option value="20">20% OFF or more</option>
+                <option value="30">30% OFF or more</option>
+                <option value="40">40% OFF or more</option>
+                <option value="50">50% OFF or more</option>
+                <option value="70">70% OFF or more</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-gray-700 block mb-0.5">Category</label>
+              <select 
+                className="w-full border border-gray-300 rounded p-1 text-xs bg-white cursor-pointer"
+                value={category}
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  updateUrl(brand, e.target.value, gender, discount);
+                }}
+              >
+                <option value="all">All Categories</option>
+                <option value="eyeglasses">Eyeglasses</option>
+                <option value="sunglasses">Sunglasses</option>
+                <option value="contact-lenses">Contact Lenses</option>
+                <option value="accessories">Accessories</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-gray-700 block mb-0.5">Gender</label>
+              <select 
+                className="w-full border border-gray-300 rounded p-1 text-xs bg-white cursor-pointer"
+                value={gender}
+                onChange={(e) => {
+                  setGender(e.target.value);
+                  updateUrl(brand, category, e.target.value, discount);
+                }}
+              >
+                <option value="all">All Genders</option>
+                <option value="men">Men</option>
+                <option value="women">Women</option>
+                <option value="kids">Kids</option>
+                <option value="unisex">Unisex</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="pt-1 flex items-center justify-between text-[11px] text-purple-900 border-t border-purple-200/60">
+            <span>Result: <code className="font-mono bg-white px-1.5 py-0.5 rounded border border-purple-200 font-bold">{value || '/products'}</code></span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function HomepageBuilder() {
   const [sections, setSections] = useState<Section[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingSection, setEditingSection] = useState<Section | null>(null);
   const [editConfigText, setEditConfigText] = useState("");
   const [offers, setOffers] = useState<any[]>([]);
+  const [availableBrands, setAvailableBrands] = useState<string[]>(['EYEVENGERS', 'Ray-Ban', 'Oakley', 'Lenskart', 'Vincent Chase', 'John Jacobs', 'Vogue']);
   const [newSectionType, setNewSectionType] = useState('hero_banner');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -111,6 +264,16 @@ export default function HomepageBuilder() {
     fetchWithAuth(`https://eyevengers-web.onrender.com/api/offers`)
       .then(r => r.json())
       .then(data => setOffers(data))
+      .catch(() => {});
+    fetch('https://eyevengers-web.onrender.com/api/admin/products')
+      .then(r => r.json())
+      .then(prods => {
+        if (Array.isArray(prods)) {
+          const bSet = new Set(['EYEVENGERS', 'Ray-Ban', 'Oakley', 'Lenskart', 'Vincent Chase', 'John Jacobs', 'Vogue']);
+          prods.forEach(p => { if (p.brand) bSet.add(p.brand); });
+          setAvailableBrands(Array.from(bSet));
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -497,27 +660,21 @@ export default function HomepageBuilder() {
                               )}
 
                               {hasCta && (
-                                <div>
-                                  <label className="text-xs font-bold text-purple-800">Target URL / CTA Link</label>
-                                  <input 
-                                    type="text"
-                                    placeholder="e.g., /membership?offerId=..."
-                                    className="w-full mt-1 border border-purple-200 rounded p-1.5 text-sm"
-                                    value={config.targetUrl || config.ctaUrl || ''}
-                                    onChange={(e) => {
-                                      try {
-                                        const newConfig = JSON.parse(editConfigText);
-                                        // Update whichever key was originally used, or default to targetUrl
-                                        if ('ctaUrl' in newConfig) {
-                                          newConfig.ctaUrl = e.target.value;
-                                        } else {
-                                          newConfig.targetUrl = e.target.value;
-                                        }
-                                        setEditConfigText(JSON.stringify(newConfig, null, 2));
-                                      } catch (err) {}
-                                    }}
-                                  />
-                                </div>
+                                <TargetUrlFilterBuilder 
+                                  value={config.targetUrl || config.ctaUrl || ''}
+                                  availableBrands={availableBrands}
+                                  onChange={(url) => {
+                                    try {
+                                      const newConfig = JSON.parse(editConfigText);
+                                      if ('ctaUrl' in newConfig) {
+                                        newConfig.ctaUrl = url;
+                                      } else {
+                                        newConfig.targetUrl = url;
+                                      }
+                                      setEditConfigText(JSON.stringify(newConfig, null, 2));
+                                    } catch (err) {}
+                                  }}
+                                />
                               )}
                             </div>
                           );
@@ -649,20 +806,18 @@ export default function HomepageBuilder() {
                                       </div>
                                     )}
 
-                                    {/* Target URL */}
-                                   <input 
-                                     type="text"
-                                     placeholder="Target URL (e.g., /membership?offerId=...)"
-                                     className="w-full mb-2 border border-gray-200 rounded p-1.5 text-xs focus:ring-1 focus:ring-purple-400"
-                                     value={item.targetUrl || item.ctaUrl || ''}
-                                     onChange={(e) => {
-                                       try {
-                                         const newConfig = JSON.parse(editConfigText);
-                                         newConfig[arrayKey][idx].targetUrl = e.target.value;
-                                         setEditConfigText(JSON.stringify(newConfig, null, 2));
-                                       } catch (err) {}
-                                     }}
-                                   />
+                                    {/* Target URL with Filter Helper */}
+                                    <TargetUrlFilterBuilder 
+                                      value={item.targetUrl || item.ctaUrl || ''}
+                                      availableBrands={availableBrands}
+                                      onChange={(url) => {
+                                        try {
+                                          const newConfig = JSON.parse(editConfigText);
+                                          newConfig[arrayKey][idx].targetUrl = url;
+                                          setEditConfigText(JSON.stringify(newConfig, null, 2));
+                                        } catch (err) {}
+                                      }}
+                                    />
                                    
                                    {/* Link to Offer */}
                                    <select 

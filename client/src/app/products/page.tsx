@@ -18,6 +18,9 @@ function ProductsContent() {
   const searchParams = useSearchParams();
   const genderFilter = searchParams.get('gender');
   const categoryFilter = searchParams.get('category');
+  const brandFilter = searchParams.get('brand');
+  const discountFilter = searchParams.get('discount') || searchParams.get('minDiscount');
+  const targetIdsFilter = searchParams.get('ids');
 
   useEffect(() => {
     fetch('https://eyevengers-web.onrender.com/api/admin/products')
@@ -34,7 +37,7 @@ function ProductsContent() {
           return {
             id: p.id,
             name: p.name,
-            brand: p.brand,
+            brand: p.brand || 'EYEVENGERS',
             shape: shapeVal,
             imageUrl: p.image_url,
             mrp: mrp,
@@ -56,15 +59,18 @@ function ProductsContent() {
       });
   }, []);
 
-  // Filter Logic
+  // Filter Logic - Guaranteed stable, never shuffles or loses products
   const filteredProducts = products.filter(p => {
     let matchGender = true;
     let matchCategory = true;
     let matchBrand = true;
     let matchShape = true;
     let matchPrice = true;
+    let matchDiscount = true;
+    let matchId = true;
     
-    if (genderFilter) {
+    // Gender Filter
+    if (genderFilter && genderFilter.toLowerCase() !== 'all') {
       const gFilter = genderFilter.toLowerCase();
       const pGender = (p.gender || '').toLowerCase();
       if (gFilter === 'men' || gFilter === 'women') {
@@ -74,11 +80,25 @@ function ProductsContent() {
       }
     }
     
-    if (categoryFilter) {
-      matchCategory = (p.category || '').toLowerCase() === categoryFilter.toLowerCase();
+    // Category Filter
+    if (categoryFilter && categoryFilter.toLowerCase() !== 'all') {
+      const normCatQuery = categoryFilter.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const normProdCat = (p.category || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      matchCategory = normProdCat.includes(normCatQuery) || normCatQuery.includes(normProdCat);
     }
     
-    if (selectedBrands.length > 0) matchBrand = selectedBrands.includes(p.brand);
+    // URL Brand Filter (Robust normalized matching)
+    if (brandFilter && brandFilter.toLowerCase() !== 'all') {
+      const normBrandQuery = brandFilter.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const normProdBrand = (p.brand || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      matchBrand = normProdBrand.includes(normBrandQuery) || normBrandQuery.includes(normProdBrand);
+    }
+
+    // Sidebar Brand Filter
+    if (selectedBrands.length > 0 && matchBrand) {
+      matchBrand = selectedBrands.includes(p.brand);
+    }
+
     if (selectedShapes.length > 0) matchShape = selectedShapes.includes(p.shape);
     
     if (selectedPrices.length > 0) {
@@ -89,8 +109,24 @@ function ProductsContent() {
         return false;
       });
     }
+
+    // URL Discount Filter (e.g. discount=20 or minDiscount=30)
+    if (discountFilter) {
+      const targetDiscount = Number(discountFilter);
+      if (!isNaN(targetDiscount) && targetDiscount > 0) {
+        matchDiscount = (p.discountPercent || 0) >= targetDiscount;
+      }
+    }
+
+    // URL Specific IDs Filter (if provided)
+    if (targetIdsFilter) {
+      const idList = targetIdsFilter.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      if (idList.length > 0) {
+        matchId = idList.includes(String(p.id).toLowerCase());
+      }
+    }
     
-    return matchGender && matchCategory && matchBrand && matchShape && matchPrice;
+    return matchGender && matchCategory && matchBrand && matchShape && matchPrice && matchDiscount && matchId;
   });
 
   const uniqueBrands = Array.from(new Set(products.map(p => p.brand).filter(Boolean)));
@@ -109,9 +145,25 @@ function ProductsContent() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-gray-900 capitalize">
-              {categoryFilter || 'All Products'} {genderFilter ? `- ${genderFilter}` : ''}
+              {brandFilter ? `${brandFilter}` : (categoryFilter || 'All Products')} 
+              {genderFilter && genderFilter.toLowerCase() !== 'all' ? ` - ${genderFilter}` : ''}
+              {discountFilter ? ` (${discountFilter}%+ OFF)` : ''}
             </h1>
             <p className="text-sm text-gray-500 mt-1">Showing {filteredProducts.length} items</p>
+            {(brandFilter || discountFilter) && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {brandFilter && (
+                  <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">
+                    Brand: {brandFilter}
+                  </span>
+                )}
+                {discountFilter && (
+                  <span className="inline-flex items-center gap-1 bg-red-50 text-red-800 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-red-200">
+                    Min {discountFilter}% OFF
+                  </span>
+                )}
+              </div>
+            )}
           </div>
           
           {/* Filter & Sort Controls */}
