@@ -11,10 +11,12 @@ interface Slide {
   mobileImageUrl?: string;
   headline: string;
   subtext: string;
+  ctaText?: string;
   ctaUrl?: string;
   targetUrl?: string;
   linkedOfferId?: string;
   logoUrl?: string;
+  hideTextOverlay?: boolean;
 }
 
 interface SliderBannerProps {
@@ -47,88 +49,113 @@ export function SliderBanner({ data }: SliderBannerProps) {
           className="flex transition-transform duration-500 ease-out h-full"
           style={{ transform: `translateX(-${currentSlide * 100}%)` }}
         >
-          {data.slides?.map((slide, index) => (
-            <div key={index} className="w-full flex-shrink-0 relative">
-              {/* Background - Responsive Desktop & Mobile with zero-cut support */}
-              {slide.imageUrl || slide.mobileImageUrl ? (
-                <>
-                  {/* Desktop Media */}
-                  <div className={`absolute inset-0 w-full h-full ${slide.mobileImageUrl ? 'hidden md:block' : 'block'}`}>
-                    {isVideoUrl(slide.imageUrl || slide.mobileImageUrl || '') ? (
-                      <video 
-                        src={slide.imageUrl || slide.mobileImageUrl}
-                        className="w-full h-full object-cover"
-                        autoPlay loop muted playsInline preload="auto"
-                      />
-                    ) : (
-                      <OptimizedImage 
-                        src={slide.imageUrl || slide.mobileImageUrl || ''}
-                        alt={slide.headline}
-                        fill
-                        priority={index === 0}
-                        sizes="(max-width: 768px) 100vw, 1280px"
-                        className="object-cover"
-                      />
-                    )}
-                  </div>
+          {data.slides?.map((slide, index) => {
+            const hasTextOverlay = !slide.hideTextOverlay && Boolean(
+              (slide.headline && slide.headline.trim() !== '') || 
+              (slide.subtext && slide.subtext.trim() !== '')
+            );
+            const targetUrl = slide.targetUrl || slide.ctaUrl || (slide.linkedOfferId ? `/offers/${slide.linkedOfferId}` : (data.linkedOfferId ? `/offers/${data.linkedOfferId}` : '/'));
 
-                  {/* Mobile Specific Media (If provided) */}
-                  {slide.mobileImageUrl && (
-                    <div className="absolute inset-0 w-full h-full block md:hidden">
-                      {isVideoUrl(slide.mobileImageUrl) ? (
+            return (
+              <div key={index} className="w-full flex-shrink-0 relative">
+                {/* When no text overlay is needed, the entire slide is a clickable link */}
+                {!hasTextOverlay && (
+                  <Link 
+                    href={targetUrl} 
+                    className="absolute inset-0 z-20 cursor-pointer"
+                    aria-label={slide.headline || 'Banner'}
+                  />
+                )}
+
+                {/* Background - Responsive Desktop & Mobile with zero-cut support */}
+                {slide.imageUrl || slide.mobileImageUrl ? (
+                  <>
+                    {/* Desktop Media */}
+                    <div className={`absolute inset-0 w-full h-full ${slide.mobileImageUrl ? 'hidden md:block' : 'block'}`}>
+                      {isVideoUrl(slide.imageUrl || slide.mobileImageUrl || '') ? (
                         <video 
-                          src={slide.mobileImageUrl}
+                          src={slide.imageUrl || slide.mobileImageUrl}
                           className="w-full h-full object-cover"
                           autoPlay loop muted playsInline preload="auto"
                         />
                       ) : (
                         <OptimizedImage 
-                          src={slide.mobileImageUrl}
-                          alt={slide.headline}
+                          src={slide.imageUrl || slide.mobileImageUrl || ''}
+                          alt={slide.headline || 'Eyevengers Banner'}
                           fill
                           priority={index === 0}
-                          sizes="100vw"
+                          sizes="(max-width: 768px) 100vw, 1280px"
                           className="object-cover"
                         />
                       )}
                     </div>
-                  )}
-                </>
-              ) : (
-                <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
-                  <svg className="w-24 h-24 text-white/10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-              )}
 
-              {/* Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent md:bg-gradient-to-r md:from-black/80 md:via-black/50 md:to-transparent"></div>
-
-              {/* Content */}
-              <div className="absolute inset-0 flex flex-col justify-end md:justify-center p-6 md:p-16 z-10 w-full md:w-1/2">
-                
-                {slide.logoUrl && (
-                  <div className="w-16 h-6 md:w-24 md:h-8 bg-white/20 backdrop-blur-sm rounded mb-4 md:mb-6"></div>
+                    {/* Mobile Specific Media (If provided) */}
+                    {slide.mobileImageUrl && (
+                      <div className="absolute inset-0 w-full h-full block md:hidden">
+                        {isVideoUrl(slide.mobileImageUrl) ? (
+                          <video 
+                            src={slide.mobileImageUrl}
+                            className="w-full h-full object-cover"
+                            autoPlay loop muted playsInline preload="auto"
+                          />
+                        ) : (
+                          <OptimizedImage 
+                            src={slide.mobileImageUrl}
+                            alt={slide.headline || 'Eyevengers Banner'}
+                            fill
+                            priority={index === 0}
+                            sizes="100vw"
+                            className="object-cover"
+                          />
+                        )}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
+                    <svg className="w-24 h-24 text-white/10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
                 )}
-                
-                <h2 className="text-2xl md:text-5xl font-black text-white mb-2 md:mb-3 uppercase tracking-wide leading-tight">
-                  {slide.headline || (slide as any).title || (slide as any).label || (slide as any).ctaText}
-                </h2>
-                
-                <p className="text-sm md:text-lg text-gray-300 mb-6 md:mb-8 max-w-sm">
-                  {slide.subtext}
-                </p>
-                
-                <Link 
-                  href={slide.targetUrl || slide.ctaUrl || (slide.linkedOfferId ? `/offers/${slide.linkedOfferId}` : (data.linkedOfferId ? `/offers/${data.linkedOfferId}` : '/'))}
-                  className="bg-white text-brand-navy font-bold px-6 py-2.5 md:px-10 md:py-3 rounded-full w-fit hover:bg-gray-50 transition-colors text-sm md:text-base shadow-lg inline-block text-center"
-                >
-                  SHOP NOW
-                </Link>
+
+                {/* Gradient & Text Overlay - ONLY rendered if hasTextOverlay is true */}
+                {hasTextOverlay && (
+                  <>
+                    {/* Gradient Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent md:bg-gradient-to-r md:from-black/80 md:via-black/50 md:to-transparent z-10 pointer-events-none"></div>
+
+                    {/* Content */}
+                    <div className="absolute inset-0 flex flex-col justify-end md:justify-center p-6 md:p-16 z-10 w-full md:w-1/2">
+                      {slide.logoUrl && (
+                        <div className="w-16 h-6 md:w-24 md:h-8 bg-white/20 backdrop-blur-sm rounded mb-4 md:mb-6"></div>
+                      )}
+                      
+                      {slide.headline && (
+                        <h2 className="text-2xl md:text-5xl font-black text-white mb-2 md:mb-3 uppercase tracking-wide leading-tight">
+                          {slide.headline}
+                        </h2>
+                      )}
+                      
+                      {slide.subtext && (
+                        <p className="text-sm md:text-lg text-gray-300 mb-6 md:mb-8 max-w-sm">
+                          {slide.subtext}
+                        </p>
+                      )}
+                      
+                      <Link 
+                        href={targetUrl}
+                        className="bg-white text-brand-navy font-bold px-6 py-2.5 md:px-10 md:py-3 rounded-full w-fit hover:bg-gray-50 transition-colors text-sm md:text-base shadow-lg inline-block text-center"
+                      >
+                        {slide.ctaText || 'SHOP NOW'}
+                      </Link>
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Navigation Arrows */}

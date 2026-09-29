@@ -598,7 +598,33 @@ export default function HomepageBuilder() {
                                      </div>
                                    )}
                                    
-                                   {/* Target URL */}
+                                   {/* Hide Text Overlay Checkbox (For banners with text in image) */}
+                                    {['SliderBanner', 'slider_banner'].includes(editingSection.sectionType) && (
+                                      <div className="mb-2 p-2 bg-purple-50 rounded border border-purple-200 flex items-center justify-between">
+                                        <div>
+                                          <span className="text-xs font-bold text-purple-900 block">Hide Text & Button Overlay</span>
+                                          <span className="text-[10px] text-purple-700">Check this if your banner image already has text & button designed inside it.</span>
+                                        </div>
+                                        <input 
+                                          type="checkbox"
+                                          className="w-4 h-4 text-purple-600 rounded cursor-pointer"
+                                          checked={Boolean(item.hideTextOverlay)}
+                                          onChange={(e) => {
+                                            try {
+                                              const newConfig = JSON.parse(editConfigText);
+                                              newConfig[arrayKey][idx].hideTextOverlay = e.target.checked;
+                                              if (e.target.checked) {
+                                                newConfig[arrayKey][idx].headline = '';
+                                                newConfig[arrayKey][idx].subtext = '';
+                                              }
+                                              setEditConfigText(JSON.stringify(newConfig, null, 2));
+                                            } catch (err) {}
+                                          }}
+                                        />
+                                      </div>
+                                    )}
+
+                                    {/* Target URL */}
                                    <input 
                                      type="text"
                                      placeholder="Target URL (e.g., /membership?offerId=...)"
