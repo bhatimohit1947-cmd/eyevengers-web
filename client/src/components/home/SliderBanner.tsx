@@ -8,6 +8,7 @@ import { isVideoUrl } from '@/utils/media';
 
 interface Slide {
   imageUrl: string;
+  mobileImageUrl?: string;
   headline: string;
   subtext: string;
   ctaUrl?: string;
@@ -39,7 +40,7 @@ export function SliderBanner({ data }: SliderBannerProps) {
   return (
     <div className="relative w-full max-w-7xl mx-auto md:px-4 py-8 group overflow-hidden">
       
-      <div className="overflow-hidden md:rounded-[24px] relative bg-black aspect-[4/3] md:aspect-[21/9]">
+      <div className="overflow-hidden md:rounded-[24px] relative bg-black aspect-[16/9] md:aspect-[21/9]">
         
         {/* Slides Container */}
         <div 
@@ -48,24 +49,51 @@ export function SliderBanner({ data }: SliderBannerProps) {
         >
           {data.slides?.map((slide, index) => (
             <div key={index} className="w-full flex-shrink-0 relative">
-              {/* Background */}
-              {slide.imageUrl ? (
-                isVideoUrl(slide.imageUrl) ? (
-                  <video 
-                    src={slide.imageUrl}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    autoPlay loop muted playsInline preload="auto"
-                  />
-                ) : (
-                  <OptimizedImage 
-                    src={slide.imageUrl}
-                    alt={slide.headline}
-                    fill
-                    priority={index === 0}
-                    sizes="(max-width: 768px) 100vw, 1280px"
-                    className="object-cover"
-                  />
-                )
+              {/* Background - Responsive Desktop & Mobile with zero-cut support */}
+              {slide.imageUrl || slide.mobileImageUrl ? (
+                <>
+                  {/* Desktop Media */}
+                  <div className={`absolute inset-0 w-full h-full ${slide.mobileImageUrl ? 'hidden md:block' : 'block'}`}>
+                    {isVideoUrl(slide.imageUrl || slide.mobileImageUrl || '') ? (
+                      <video 
+                        src={slide.imageUrl || slide.mobileImageUrl}
+                        className="w-full h-full object-cover"
+                        autoPlay loop muted playsInline preload="auto"
+                      />
+                    ) : (
+                      <OptimizedImage 
+                        src={slide.imageUrl || slide.mobileImageUrl || ''}
+                        alt={slide.headline}
+                        fill
+                        priority={index === 0}
+                        sizes="(max-width: 768px) 100vw, 1280px"
+                        className="object-cover"
+                      />
+                    )}
+                  </div>
+
+                  {/* Mobile Specific Media (If provided) */}
+                  {slide.mobileImageUrl && (
+                    <div className="absolute inset-0 w-full h-full block md:hidden">
+                      {isVideoUrl(slide.mobileImageUrl) ? (
+                        <video 
+                          src={slide.mobileImageUrl}
+                          className="w-full h-full object-cover"
+                          autoPlay loop muted playsInline preload="auto"
+                        />
+                      ) : (
+                        <OptimizedImage 
+                          src={slide.mobileImageUrl}
+                          alt={slide.headline}
+                          fill
+                          priority={index === 0}
+                          sizes="100vw"
+                          className="object-cover"
+                        />
+                      )}
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
                   <svg className="w-24 h-24 text-white/10" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -569,7 +569,7 @@ export default function HomepageBuilder() {
                                    {/* Image URL */}
                                    <div className="mb-2">
                                      <ImageUpload
-                                       label="Image URL"
+                                       label={['SliderBanner', 'slider_banner'].includes(editingSection.sectionType) ? "Desktop Banner Image (1920x820)" : "Image URL"}
                                        value={item[imgKey] || ''}
                                        onChange={(url) => {
                                          try {
@@ -580,6 +580,23 @@ export default function HomepageBuilder() {
                                        }}
                                      />
                                    </div>
+
+                                   {/* Mobile Image URL (Optional - For SliderBanner zero cut on phones) */}
+                                   {['SliderBanner', 'slider_banner'].includes(editingSection.sectionType) && (
+                                     <div className="mb-2">
+                                       <ImageUpload
+                                         label="📱 Mobile Banner Image (Optional - 800x450 for 100% Zero Cut on Phones)"
+                                         value={item.mobileImageUrl || ''}
+                                         onChange={(url) => {
+                                           try {
+                                             const newConfig = JSON.parse(editConfigText);
+                                             newConfig[arrayKey][idx].mobileImageUrl = url;
+                                             setEditConfigText(JSON.stringify(newConfig, null, 2));
+                                           } catch (err) {}
+                                         }}
+                                       />
+                                     </div>
+                                   )}
                                    
                                    {/* Target URL */}
                                    <input 
