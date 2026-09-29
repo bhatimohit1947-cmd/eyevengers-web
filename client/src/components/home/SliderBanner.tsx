@@ -40,9 +40,9 @@ export function SliderBanner({ data }: SliderBannerProps) {
   };
 
   return (
-    <div className="relative w-full max-w-7xl mx-auto md:px-4 py-8 group overflow-hidden">
+    <div className="relative w-full max-w-7xl mx-auto px-3.5 sm:px-4 py-2.5 md:py-6 group overflow-hidden">
       
-      <div className="overflow-hidden md:rounded-[24px] relative bg-black aspect-[16/9] md:aspect-[21/9]">
+      <div className="overflow-hidden rounded-2xl md:rounded-[28px] relative bg-slate-950 aspect-[21/9] shadow-sm">
         
         {/* Slides Container */}
         <div 
@@ -178,13 +178,13 @@ export function SliderBanner({ data }: SliderBannerProps) {
 
         {/* Dots */}
         {(data.dots !== false && data.slides.length > 1) && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+          <div className="absolute bottom-2 md:bottom-5 left-1/2 -translate-x-1/2 flex gap-1.5 md:gap-2 z-20">
             {data.slides?.map((_, i) => (
               <button 
                 key={i}
                 onClick={() => setCurrentSlide(i)}
-                className={`h-1.5 rounded-full transition-all ${
-                  currentSlide === i ? 'w-6 bg-white' : 'w-1.5 bg-white/40'
+                className={`h-1 md:h-1.5 rounded-full transition-all ${
+                  currentSlide === i ? 'w-5 md:w-6 bg-white' : 'w-1 md:w-1.5 bg-white/40'
                 }`}
                 aria-label={`Go to slide ${i + 1}`}
               />

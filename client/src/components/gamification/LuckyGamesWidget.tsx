@@ -36,7 +36,7 @@ export function LuckyGamesWidget() {
       {/* Floating Trigger Button */}
       <aside
         aria-label="Daily rewards"
-        className="fixed bottom-24 left-4 z-40 sm:bottom-8 sm:left-8 group"
+        className="fixed bottom-20 right-3.5 sm:bottom-8 sm:left-8 z-40 group"
       >
         {/* Desktop View: Full Horizontal Pill */}
         <button

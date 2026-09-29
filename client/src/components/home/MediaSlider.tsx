@@ -24,8 +24,8 @@ interface MediaSliderProps {
 export function MediaSlider({ data }: MediaSliderProps) {
   
   return (
-    <div className="py-8 max-w-7xl mx-auto pl-4 md:pl-0">
-      <div className="flex overflow-x-auto gap-4 md:gap-6 pb-6 no-scrollbar snap-x">
+    <div className="py-2.5 md:py-6 max-w-7xl mx-auto pl-4 md:pl-0">
+      <div className="flex overflow-x-auto gap-3.5 md:gap-6 pb-2 md:pb-4 no-scrollbar snap-x">
         {data.cards?.map((card, index) => (
           <div 
             key={index}

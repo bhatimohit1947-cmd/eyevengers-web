@@ -27,10 +27,10 @@ interface SpecialsGridProps {
 
 export function SpecialsGrid({ data }: SpecialsGridProps) {
   return (
-    <div className="py-8 max-w-7xl mx-auto px-4 md:px-0">
-      <h2 className="text-[18px] md:text-2xl font-bold text-gray-900 tracking-tight mb-4">{data.title}</h2>
+    <div className="py-2.5 md:py-6 max-w-7xl mx-auto px-4 md:px-0">
+      <h2 className="text-[17px] md:text-2xl font-bold text-gray-900 tracking-tight mb-2 md:mb-3.5">{data.title}</h2>
       
-      <div className="grid grid-cols-4 gap-2 md:gap-6 pb-2 w-full">
+      <div className="grid grid-cols-4 gap-2 md:gap-6 pb-1 w-full">
         {data.items?.map((item, index) => {
           const imageSrc = item.iconImageUrl || item.imageUrl;
           const displayLabel = item.label || item.title || item.ctaText || item.headline || '';
