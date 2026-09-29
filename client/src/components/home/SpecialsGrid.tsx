@@ -28,9 +28,9 @@ interface SpecialsGridProps {
 export function SpecialsGrid({ data }: SpecialsGridProps) {
   return (
     <div className="py-8 max-w-7xl mx-auto px-4 md:px-0">
-      <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-6">{data.title}</h2>
+      <h2 className="text-[18px] md:text-2xl font-bold text-gray-900 tracking-tight mb-4">{data.title}</h2>
       
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-6">
+      <div className="grid grid-cols-4 gap-2 md:gap-6 pb-2 w-full">
         {data.items?.map((item, index) => {
           const imageSrc = item.iconImageUrl || item.imageUrl;
           const displayLabel = item.label || item.title || item.ctaText || item.headline || '';
@@ -40,21 +40,21 @@ export function SpecialsGrid({ data }: SpecialsGridProps) {
             <Link 
               key={index}
               href={finalUrl}
-              className="flex flex-col items-center justify-between group relative bg-white border border-gray-100 hover:border-brand-navy rounded-2xl md:rounded-3xl p-3 md:p-4 hover:shadow-lg transition-all duration-300 w-full h-full overflow-hidden"
+              className="flex flex-col items-center group w-full"
             >
-              {item.ribbonText && (
-                <div className="absolute top-2.5 left-2.5 bg-gradient-to-r from-red-600 to-rose-500 text-white text-[9px] md:text-[10px] font-black px-2 md:px-2.5 py-0.5 rounded-full shadow-md z-10 uppercase tracking-wider">
-                  {item.ribbonText}
-                </div>
-              )}
-              
-              {/* Constant image container that auto-fits any small/large image perfectly */}
-              <div className="relative w-full aspect-[4/3] rounded-xl md:rounded-2xl overflow-hidden bg-slate-50 flex items-center justify-center mb-2.5 md:mb-3">
+              {/* Full-fit tile with zero padding gaps, edge-to-edge rounded image */}
+              <div className="relative w-full aspect-square rounded-[18px] md:rounded-[32px] overflow-hidden bg-gray-50 flex items-center justify-center border border-gray-100 group-hover:border-brand-navy/40 group-hover:shadow-sm transition-all mb-2 md:mb-3">
+                {item.ribbonText && (
+                  <div className="absolute top-1.5 left-1.5 md:top-2.5 md:left-2.5 bg-brand-navy text-white text-[8px] md:text-xs font-bold px-1.5 md:px-2.5 py-0.5 rounded shadow-sm z-10 whitespace-nowrap">
+                    {item.ribbonText}
+                  </div>
+                )}
+                
                 {imageSrc ? (
                   isVideoUrl(imageSrc) ? (
                     <video 
                       src={imageSrc} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="absolute inset-0 w-full h-full object-cover rounded-[18px] md:rounded-[32px] group-hover:scale-105 transition-transform duration-300"
                       autoPlay loop muted playsInline preload="auto"
                     />
                   ) : (
@@ -62,26 +62,24 @@ export function SpecialsGrid({ data }: SpecialsGridProps) {
                       src={imageSrc} 
                       alt={displayLabel || 'Special Offer'}
                       fill
-                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 300px"
-                      className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                      sizes="(max-width: 768px) 25vw, 250px"
+                      className="object-cover rounded-[18px] md:rounded-[32px] group-hover:scale-105 transition-transform duration-300"
                     />
                   )
                 ) : (
-                  <div className="w-full h-full text-gray-300 group-hover:scale-110 group-hover:text-brand-navy transition-all flex items-center justify-center bg-slate-50">
-                    {displayLabel.toLowerCase().includes('sun') ? <Sun size={36} /> :
-                     displayLabel.toLowerCase().includes('lens') || displayLabel.toLowerCase().includes('power') ? <Glasses size={36} /> :
-                     displayLabel.toLowerCase().includes('reading') ? <ScanFace size={36} /> :
-                     <Sparkles size={36} />}
+                  <div className="w-full h-full text-gray-300 group-hover:scale-110 group-hover:text-brand-navy transition-all flex items-center justify-center bg-gray-50">
+                    {displayLabel.toLowerCase().includes('sun') ? <Sun size={32} /> :
+                     displayLabel.toLowerCase().includes('lens') || displayLabel.toLowerCase().includes('power') ? <Glasses size={32} /> :
+                     displayLabel.toLowerCase().includes('reading') ? <ScanFace size={32} /> :
+                     <Sparkles size={32} />}
                   </div>
                 )}
               </div>
               
-              {/* Constant label area */}
-              <div className="w-full text-center px-1">
-                <span className="text-xs md:text-sm lg:text-base font-bold text-gray-800 text-center leading-snug group-hover:text-brand-navy transition-colors line-clamp-1">
-                  {displayLabel}
-                </span>
-              </div>
+              {/* Text label right under tile */}
+              <span className="text-[11px] md:text-base font-medium md:font-bold text-gray-700 md:text-gray-800 text-center leading-tight group-hover:text-brand-navy transition-colors">
+                {displayLabel}
+              </span>
             </Link>
           );
         })}
