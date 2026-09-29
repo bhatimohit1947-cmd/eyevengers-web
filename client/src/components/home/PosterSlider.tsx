@@ -27,15 +27,15 @@ interface PosterSliderProps {
 
 export function PosterSlider({ data }: PosterSliderProps) {
   return (
-    <div className="py-2.5 md:py-6 max-w-7xl mx-auto md:px-0">
+    <div className="py-2.5 md:py-5 max-w-7xl mx-auto">
       
       {data.title && (
-        <div className="mb-2 md:mb-3.5 px-4 md:px-0">
+        <div className="mb-2 md:mb-3 px-3.5 sm:px-4 md:px-6">
           <h2 className="text-[17px] md:text-2xl font-bold text-gray-900 tracking-tight">{data.title}</h2>
         </div>
       )}
 
-      <div className="flex overflow-x-auto gap-3.5 md:gap-6 pb-2 md:pb-4 pl-4 md:pl-0 no-scrollbar snap-x">
+      <div className="flex overflow-x-auto gap-3 md:gap-5 pb-2 md:pb-4 px-3.5 sm:px-4 md:px-6 no-scrollbar snap-x">
         {data.posters?.map((poster, index) => {
           const mediaUrl = poster.imageUrl || poster.videoUrl || poster.mediaUrl || (poster as any).video || '';
           const isVideo = isVideoUrl(mediaUrl);

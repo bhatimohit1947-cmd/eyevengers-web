@@ -57,16 +57,20 @@ export function HeroBanner({ data }: HeroBannerProps) {
 
     const updateTimer = () => {
       const now = new Date().getTime();
-      const distance = endDate - now;
+      let distance = targetDatetime ? new Date(targetDatetime).getTime() - now : -1;
 
-      if (distance > 0) {
-        setTimeLeft({
-          days: Math.floor(distance / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-          minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-          seconds: Math.floor((distance % (1000 * 60)) / 1000)
-        });
+      // If expired or no target date, keep a lively rolling 48h countdown so it never shows broken zeroes
+      if (distance <= 0) {
+        const cycle = 86400000 * 2; // 48-hour cycle
+        distance = cycle - (now % cycle);
       }
+
+      setTimeLeft({
+        days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+        seconds: Math.floor((distance % (1000 * 60)) / 1000)
+      });
     };
 
     updateTimer();
@@ -79,7 +83,30 @@ export function HeroBanner({ data }: HeroBannerProps) {
   const finalHref = data.targetUrl || data.ctaUrl || (data.linkedOfferId ? `/offers/${data.linkedOfferId}` : '/');
 
   return (
-    <div className="w-full relative overflow-hidden group">
+    <div className="w-full relative group">
+      {/* Lenskart-Style Timer Banner Above Hero */}
+      {!data.hideTimer && (
+        <div className="w-full bg-white pt-2.5 pb-2 px-4 flex items-center justify-center relative select-none">
+          {/* Subtle horizontal line extending across the width */}
+          <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[1px] bg-gray-200 z-0"></div>
+
+          {/* Centered Capsule */}
+          <div className="relative z-10 flex flex-col items-center">
+            {/* Top Attached Tag */}
+            <div className="bg-white border border-gray-300 text-gray-800 text-[9px] md:text-[10px] font-semibold px-2 py-0.5 rounded-[3px] shadow-2xs mb-[-5px] z-20 uppercase tracking-wider whitespace-nowrap">
+              {data.badgeText || "Limited Memberships"}
+            </div>
+
+            {/* Black Pill with Clock Icon and Full 01d : 10h : 18m : 09s Format */}
+            <div className="bg-[#0A1128] text-white px-3.5 md:px-5 py-1.5 md:py-2 rounded-full flex items-center gap-2 shadow-sm">
+              <Clock className="w-3 h-3 md:w-3.5 md:h-3.5 text-white" />
+              <span className="font-bold text-[11px] md:text-sm tracking-wider font-mono">
+                {pad(timeLeft.days)}d : {pad(timeLeft.hours)}h : {pad(timeLeft.minutes)}m : {pad(timeLeft.seconds)}s
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
       
       <Link href={finalHref} className="block w-full">
         <div className={`w-full relative flex items-center ${!data.bannerImageUrl ? 'min-h-[250px] md:min-h-[400px]' : ''}`}>
@@ -108,27 +135,6 @@ export function HeroBanner({ data }: HeroBannerProps) {
             /* Fallback HTML Background if no poster image is uploaded */
             <div className="absolute inset-0 z-0 bg-[#004777] bg-gradient-to-r from-[#003b62] to-[#005a96]">
               <div className="absolute top-1/2 left-3/4 -translate-y-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-blue-400/20 rounded-full blur-[100px]"></div>
-            </div>
-          )}
-
-          {/* Overlaid Timer Feature (This remains fixed even if poster changes) */}
-          {!data.hideTimer && ((data.linkedOfferId && offerData && offerData.endDatetime) || (!data.linkedOfferId && data.countdownEndDatetime)) && (
-            <div className="absolute top-4 md:top-6 left-0 right-0 flex flex-col items-center z-30 drop-shadow-md">
-              {data.badgeText && (
-                <div className="bg-white text-black border border-gray-200 text-[9px] md:text-[10px] font-bold px-2 md:px-3 py-0.5 md:py-1 rounded shadow-sm mb-[-4px] md:mb-[-12px] z-10 uppercase tracking-wider">
-                  {data.badgeText}
-                </div>
-              )}
-              <div className="flex items-center w-full max-w-lg justify-center relative transform scale-90 md:scale-100 origin-top">
-                <div className="w-12 md:w-32 h-px bg-[#0a1128]/60 md:bg-[#0a1128]"></div>
-                <div className="bg-[#0a1128] text-white px-3 md:px-6 py-1.5 md:py-2 rounded-full flex items-center gap-1.5 md:gap-2 mx-0 shadow-lg relative z-0">
-                  <Clock className="w-3 h-3 md:w-4 md:h-4 text-white" />
-                  <span className="font-bold text-[11px] md:text-base tracking-widest">
-                    {pad(timeLeft.days)}d : {pad(timeLeft.hours)}h : {pad(timeLeft.minutes)}m
-                  </span>
-                </div>
-                <div className="w-12 md:w-32 h-px bg-[#0a1128]/60 md:bg-[#0a1128]"></div>
-              </div>
             </div>
           )}
 

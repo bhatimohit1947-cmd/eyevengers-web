@@ -25,7 +25,7 @@ export function SectionRenderer({ section }: SectionRendererProps) {
       return <HeroBanner data={configJson} />;
     case 'secondary_banner':
       return (
-        <div className="pt-2 pb-3.5 md:pt-6 md:pb-6">
+        <div className="py-2 md:py-3.5">
           <SecondaryBanner data={configJson} />
         </div>
       );

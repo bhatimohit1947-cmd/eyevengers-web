@@ -23,19 +23,19 @@ interface CategoryRailProps {
 
 export function CategoryRail({ data }: CategoryRailProps) {
   return (
-    <div className="py-2.5 md:py-6 max-w-7xl mx-auto md:px-0">
+    <div className="py-2 md:py-3.5 max-w-7xl mx-auto px-3.5 sm:px-4 md:px-6">
       {/* Header */}
-      <div className="flex items-center gap-2.5 px-4 md:px-0 mb-2 md:mb-3.5">
+      <div className="flex items-center gap-2 mb-2 md:mb-3">
         <h2 className="text-[17px] md:text-2xl font-black text-brand-navy tracking-tight">{data.sectionTitle}</h2>
         {data.sectionTag && (
-          <span className="bg-brand-light text-brand-navy border border-gray-200 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
+          <span className="bg-[#EEF4FF] text-[#1E3A8A] border border-[#D0E0FF] text-[9px] md:text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
             {data.sectionTag}
           </span>
         )}
       </div>
 
       {/* Tiles Rail (Grid Layout to fill screen on all devices) */}
-      <div className="grid grid-cols-4 gap-2.5 md:gap-6 px-4 md:px-0 w-full">
+      <div className="grid grid-cols-4 gap-2 md:gap-4 w-full">
         {data.tiles?.map((tile, index) => {
           const finalUrl = tile.targetUrl || (tile.linkedOfferId ? `/offers/${tile.linkedOfferId}` : '#');
           return (
@@ -44,10 +44,10 @@ export function CategoryRail({ data }: CategoryRailProps) {
             href={finalUrl}
             className="flex flex-col items-center group w-full"
           >
-            <div className="relative w-full aspect-square rounded-[18px] md:rounded-[32px] bg-gray-50 flex items-center justify-center border border-gray-100 group-hover:border-brand-navy/30 group-hover:shadow-sm transition-all mb-1.5 md:mb-3">
+            <div className="relative w-full aspect-square rounded-[16px] md:rounded-[24px] bg-[#f8f9fa] flex items-center justify-center border border-gray-100 group-hover:border-brand-navy/30 group-hover:shadow-sm transition-all mb-1 md:mb-2 overflow-hidden">
               {/* Badge */}
               {tile.badgeText && (
-                <div className="absolute -top-1.5 left-1/2 transform -translate-x-1/2 bg-brand-navy text-white text-[8px] md:text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs z-10 whitespace-nowrap">
+                <div className="absolute -top-1.5 left-1/2 transform -translate-x-1/2 bg-[#161F38] text-white text-[8px] md:text-[9.5px] font-black px-2 py-0.5 rounded-full shadow-2xs z-10 whitespace-nowrap">
                   {tile.badgeText}
                 </div>
               )}
@@ -57,7 +57,7 @@ export function CategoryRail({ data }: CategoryRailProps) {
                 isVideoUrl(tile.imageUrl) ? (
                   <video 
                     src={tile.imageUrl} 
-                    className="absolute inset-0 w-full h-full object-cover rounded-[18px] md:rounded-[32px] group-hover:scale-105 transition-transform"
+                    className="absolute inset-0 w-full h-full object-cover rounded-[16px] md:rounded-[24px] group-hover:scale-105 transition-transform"
                     autoPlay loop muted playsInline preload="auto"
                   />
                 ) : (
@@ -66,7 +66,7 @@ export function CategoryRail({ data }: CategoryRailProps) {
                     alt={tile.label} 
                     fill
                     sizes="(max-width: 768px) 25vw, 200px"
-                    className="object-cover rounded-[18px] md:rounded-[32px] group-hover:scale-105 transition-transform"
+                    className="object-cover rounded-[16px] md:rounded-[24px] group-hover:scale-105 transition-transform"
                   />
                 )
               ) : (
@@ -76,7 +76,7 @@ export function CategoryRail({ data }: CategoryRailProps) {
               )}
             </div>
             
-            <span className="text-[11px] md:text-base font-semibold md:font-bold text-gray-700 md:text-gray-800 text-center leading-tight group-hover:text-brand-navy transition-colors">
+            <span className="text-[11.5px] md:text-sm font-semibold text-gray-800 text-center leading-tight group-hover:text-brand-navy transition-colors">
               {tile.label || (tile as any).title || (tile as any).ctaText || (tile as any).headline}
             </span>
           </Link>

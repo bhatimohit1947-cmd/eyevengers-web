@@ -27,10 +27,10 @@ interface SpecialsGridProps {
 
 export function SpecialsGrid({ data }: SpecialsGridProps) {
   return (
-    <div className="py-2.5 md:py-6 max-w-7xl mx-auto px-4 md:px-0">
-      <h2 className="text-[17px] md:text-2xl font-bold text-gray-900 tracking-tight mb-2 md:mb-3.5">{data.title}</h2>
+    <div className="py-2.5 md:py-5 max-w-7xl mx-auto px-3.5 sm:px-4 md:px-6">
+      <h2 className="text-[17px] md:text-2xl font-bold text-gray-900 tracking-tight mb-2 md:mb-3">{data.title}</h2>
       
-      <div className="grid grid-cols-4 gap-2 md:gap-6 pb-1 w-full">
+      <div className="grid grid-cols-4 gap-2 md:gap-4 pb-1 w-full">
         {data.items?.map((item, index) => {
           const imageSrc = item.iconImageUrl || item.imageUrl;
           const displayLabel = item.label || item.title || item.ctaText || item.headline || '';
@@ -43,7 +43,7 @@ export function SpecialsGrid({ data }: SpecialsGridProps) {
               className="flex flex-col items-center group w-full"
             >
               {/* Full-fit tile with zero padding gaps, edge-to-edge rounded image */}
-              <div className="relative w-full aspect-square rounded-[18px] md:rounded-[32px] overflow-hidden bg-gray-50 flex items-center justify-center border border-gray-100 group-hover:border-brand-navy/40 group-hover:shadow-sm transition-all mb-2 md:mb-3">
+              <div className="relative w-full aspect-square rounded-[16px] md:rounded-[24px] overflow-hidden bg-gray-50 flex items-center justify-center border border-gray-100 group-hover:border-brand-navy/40 group-hover:shadow-sm transition-all mb-1 md:mb-2">
                 {item.ribbonText && (
                   <div className="absolute top-1.5 left-1.5 md:top-2.5 md:left-2.5 bg-brand-navy text-white text-[8px] md:text-xs font-bold px-1.5 md:px-2.5 py-0.5 rounded shadow-sm z-10 whitespace-nowrap">
                     {item.ribbonText}
