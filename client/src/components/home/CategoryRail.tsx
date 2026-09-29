@@ -44,11 +44,11 @@ export function CategoryRail({ data }: CategoryRailProps) {
             href={finalUrl}
             className="flex flex-col items-center group w-full"
           >
-            {/* Outer container with overflow-visible so top badge is NEVER cut */}
-            <div className="relative w-full aspect-square mb-1 md:mb-2">
-              {/* Centered Badge - 100% visible, no clipping */}
+            {/* Outer container with overflow-visible */}
+            <div className="relative w-full aspect-square mb-1.5 md:mb-2">
+              {/* Lenskart-Style Top Ribbon Badge - Flush inside top edge of tile */}
               {tile.badgeText && (
-                <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-[#161F38] text-white text-[8.5px] md:text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-md z-30 whitespace-nowrap">
+                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 bg-[#181E3B] text-white text-[8px] md:text-[9.5px] font-bold px-2 md:px-2.5 py-0.5 rounded-b-[6px] shadow-2xs z-30 tracking-tight whitespace-nowrap">
                   {tile.badgeText}
                 </div>
               )}

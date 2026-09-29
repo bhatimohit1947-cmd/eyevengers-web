@@ -453,21 +453,46 @@ export default function HomepageBuilder() {
                               )}
 
                               {editingSection.sectionType === 'hero_banner' && (
-                                <div className="mb-3 mt-3 flex items-center gap-2">
-                                  <input 
-                                    type="checkbox"
-                                    id="hideTimer"
-                                    className="w-4 h-4 text-purple-600 rounded"
-                                    checked={config.hideTimer || false}
-                                    onChange={(e) => {
-                                      try {
-                                        const newConfig = JSON.parse(editConfigText);
-                                        newConfig.hideTimer = e.target.checked;
-                                        setEditConfigText(JSON.stringify(newConfig, null, 2));
-                                      } catch (err) {}
-                                    }}
-                                  />
-                                  <label htmlFor="hideTimer" className="text-sm font-bold text-purple-800">Hide Countdown Timer</label>
+                                <div className="mb-3 mt-3 p-3 bg-purple-50/70 border border-purple-100 rounded-lg space-y-2.5">
+                                  <div className="flex items-center gap-2">
+                                    <input 
+                                      type="checkbox"
+                                      id="hideTimer"
+                                      className="w-4 h-4 text-purple-600 rounded cursor-pointer"
+                                      checked={config.hideTimer || false}
+                                      onChange={(e) => {
+                                        try {
+                                          const newConfig = JSON.parse(editConfigText);
+                                          newConfig.hideTimer = e.target.checked;
+                                          setEditConfigText(JSON.stringify(newConfig, null, 2));
+                                        } catch (err) {}
+                                      }}
+                                    />
+                                    <label htmlFor="hideTimer" className="text-sm font-bold text-purple-900 cursor-pointer">
+                                      Hide Countdown Timer
+                                    </label>
+                                  </div>
+
+                                  {!config.hideTimer && (
+                                    <div>
+                                      <label className="text-xs font-bold text-purple-900 block mb-1">
+                                        Timer Badge Name (e.g. Limited Memberships, Ends In)
+                                      </label>
+                                      <input 
+                                        type="text"
+                                        placeholder="Limited Memberships"
+                                        className="w-full border border-purple-200 bg-white rounded p-1.5 text-sm focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                                        value={config.badgeText !== undefined ? config.badgeText : 'Limited Memberships'}
+                                        onChange={(e) => {
+                                          try {
+                                            const newConfig = JSON.parse(editConfigText);
+                                            newConfig.badgeText = e.target.value;
+                                            setEditConfigText(JSON.stringify(newConfig, null, 2));
+                                          } catch (err) {}
+                                        }}
+                                      />
+                                    </div>
+                                  )}
                                 </div>
                               )}
 
