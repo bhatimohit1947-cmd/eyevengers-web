@@ -42,38 +42,42 @@ export function SpecialsGrid({ data }: SpecialsGridProps) {
               href={finalUrl}
               className="flex flex-col items-center group w-full"
             >
-              {/* Full-fit tile with zero padding gaps, edge-to-edge rounded image */}
-              <div className="relative w-full aspect-square rounded-[16px] md:rounded-[24px] overflow-hidden bg-gray-50 flex items-center justify-center border border-gray-100 group-hover:border-brand-navy/40 group-hover:shadow-sm transition-all mb-1 md:mb-2">
+              {/* Outer container with overflow-visible so ribbon badge is centered and NEVER cut */}
+              <div className="relative w-full aspect-square mb-1 md:mb-2">
+                {/* Centered Ribbon Badge - 100% visible, no clipping */}
                 {item.ribbonText && (
-                  <div className="absolute top-1.5 left-1.5 md:top-2.5 md:left-2.5 bg-brand-navy text-white text-[8px] md:text-xs font-bold px-1.5 md:px-2.5 py-0.5 rounded shadow-sm z-10 whitespace-nowrap">
+                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-brand-navy text-white text-[8.5px] md:text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-md z-30 whitespace-nowrap">
                     {item.ribbonText}
                   </div>
                 )}
-                
-                {imageSrc ? (
-                  isVideoUrl(imageSrc) ? (
-                    <video 
-                      src={imageSrc} 
-                      className="absolute inset-0 w-full h-full object-cover rounded-[18px] md:rounded-[32px] group-hover:scale-105 transition-transform duration-300"
-                      autoPlay loop muted playsInline preload="auto"
-                    />
+
+                {/* Inner media container with rounded corners and overflow-hidden */}
+                <div className="relative w-full h-full rounded-[16px] md:rounded-[24px] overflow-hidden bg-gray-50 flex items-center justify-center border border-gray-100 group-hover:border-brand-navy/40 group-hover:shadow-sm transition-all">
+                  {imageSrc ? (
+                    isVideoUrl(imageSrc) ? (
+                      <video 
+                        src={imageSrc} 
+                        className="absolute inset-0 w-full h-full object-cover rounded-[16px] md:rounded-[24px] group-hover:scale-105 transition-transform duration-300"
+                        autoPlay loop muted playsInline preload="auto"
+                      />
+                    ) : (
+                      <OptimizedImage 
+                        src={imageSrc} 
+                        alt={displayLabel || 'Special Offer'}
+                        fill
+                        sizes="(max-width: 768px) 25vw, 250px"
+                        className="object-cover rounded-[16px] md:rounded-[24px] group-hover:scale-105 transition-transform duration-300"
+                      />
+                    )
                   ) : (
-                    <OptimizedImage 
-                      src={imageSrc} 
-                      alt={displayLabel || 'Special Offer'}
-                      fill
-                      sizes="(max-width: 768px) 25vw, 250px"
-                      className="object-cover rounded-[18px] md:rounded-[32px] group-hover:scale-105 transition-transform duration-300"
-                    />
-                  )
-                ) : (
-                  <div className="w-full h-full text-gray-300 group-hover:scale-110 group-hover:text-brand-navy transition-all flex items-center justify-center bg-gray-50">
-                    {displayLabel.toLowerCase().includes('sun') ? <Sun size={32} /> :
-                     displayLabel.toLowerCase().includes('lens') || displayLabel.toLowerCase().includes('power') ? <Glasses size={32} /> :
-                     displayLabel.toLowerCase().includes('reading') ? <ScanFace size={32} /> :
-                     <Sparkles size={32} />}
-                  </div>
-                )}
+                    <div className="w-full h-full text-gray-300 group-hover:scale-110 group-hover:text-brand-navy transition-all flex items-center justify-center bg-gray-50">
+                      {displayLabel.toLowerCase().includes('sun') ? <Sun size={32} /> :
+                       displayLabel.toLowerCase().includes('lens') || displayLabel.toLowerCase().includes('power') ? <Glasses size={32} /> :
+                       displayLabel.toLowerCase().includes('reading') ? <ScanFace size={32} /> :
+                       <Sparkles size={32} />}
+                    </div>
+                  )}
+                </div>
               </div>
               
               {/* Text label right under tile */}

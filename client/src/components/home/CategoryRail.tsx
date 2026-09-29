@@ -44,36 +44,39 @@ export function CategoryRail({ data }: CategoryRailProps) {
             href={finalUrl}
             className="flex flex-col items-center group w-full"
           >
-            <div className="relative w-full aspect-square rounded-[16px] md:rounded-[24px] bg-[#f8f9fa] flex items-center justify-center border border-gray-100 group-hover:border-brand-navy/30 group-hover:shadow-sm transition-all mb-1 md:mb-2 overflow-hidden">
-              {/* Badge */}
+            {/* Outer container with overflow-visible so top badge is NEVER cut */}
+            <div className="relative w-full aspect-square mb-1 md:mb-2">
+              {/* Centered Badge - 100% visible, no clipping */}
               {tile.badgeText && (
-                <div className="absolute -top-1.5 left-1/2 transform -translate-x-1/2 bg-[#161F38] text-white text-[8px] md:text-[9.5px] font-black px-2 py-0.5 rounded-full shadow-2xs z-10 whitespace-nowrap">
+                <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-[#161F38] text-white text-[8.5px] md:text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-md z-30 whitespace-nowrap">
                   {tile.badgeText}
                 </div>
               )}
 
-              {/* Image */}
-              {tile.imageUrl ? (
-                isVideoUrl(tile.imageUrl) ? (
-                  <video 
-                    src={tile.imageUrl} 
-                    className="absolute inset-0 w-full h-full object-cover rounded-[16px] md:rounded-[24px] group-hover:scale-105 transition-transform"
-                    autoPlay loop muted playsInline preload="auto"
-                  />
+              {/* Inner media container with rounded corners and overflow-hidden */}
+              <div className="relative w-full h-full rounded-[16px] md:rounded-[24px] bg-[#f8f9fa] flex items-center justify-center border border-gray-100 group-hover:border-brand-navy/30 group-hover:shadow-sm transition-all overflow-hidden">
+                {tile.imageUrl ? (
+                  isVideoUrl(tile.imageUrl) ? (
+                    <video 
+                      src={tile.imageUrl} 
+                      className="absolute inset-0 w-full h-full object-cover rounded-[16px] md:rounded-[24px] group-hover:scale-105 transition-transform"
+                      autoPlay loop muted playsInline preload="auto"
+                    />
+                  ) : (
+                    <OptimizedImage 
+                      src={tile.imageUrl} 
+                      alt={tile.label} 
+                      fill
+                      sizes="(max-width: 768px) 25vw, 200px"
+                      className="object-cover rounded-[16px] md:rounded-[24px] group-hover:scale-105 transition-transform"
+                    />
+                  )
                 ) : (
-                  <OptimizedImage 
-                    src={tile.imageUrl} 
-                    alt={tile.label} 
-                    fill
-                    sizes="(max-width: 768px) 25vw, 200px"
-                    className="object-cover rounded-[16px] md:rounded-[24px] group-hover:scale-105 transition-transform"
-                  />
-                )
-              ) : (
-                <svg className="w-1/2 h-1/2 text-gray-300 group-hover:scale-110 transition-transform relative z-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              )}
+                  <svg className="w-1/2 h-1/2 text-gray-300 group-hover:scale-110 transition-transform relative z-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                )}
+              </div>
             </div>
             
             <span className="text-[11.5px] md:text-sm font-semibold text-gray-800 text-center leading-tight group-hover:text-brand-navy transition-colors">
